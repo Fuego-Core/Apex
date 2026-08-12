@@ -12,7 +12,7 @@ export default function workoutView(root, { sessionId }) {
     navigate('#/')
     return
   }
-  if (!live || live.sessionId !== sessionId) {
+  if (!live || live.sessionId !== sessionId || !live.entries?.length) {
     navigate(`#/seance/${sessionId}`)
     return
   }
@@ -62,6 +62,8 @@ export default function workoutView(root, { sessionId }) {
 
   function exerciseCard(ex) {
     const entry = entryOf(ex.id)
+    // Exercice ajouté au programme après le début de la séance : rien à saisir ici.
+    if (!entry) return ''
     const done = entry.sets.filter((s) => s.done).length
     const complete = done > 0 && done === entry.sets.length
     const mixed = ex.mode === 'reps' && isMixedWeight(entry.sets)

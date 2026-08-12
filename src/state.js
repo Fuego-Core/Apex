@@ -94,6 +94,8 @@ export function importJSON(text) {
   }
   state = migrate(data)
   save()
+  // Une séance en cours n'a plus de sens face à un programme importé.
+  setLive(null)
   return state
 }
 
@@ -107,5 +109,6 @@ export function resetAll() {
 export function resetProgramKeepHistory() {
   state.program = buildProgram()
   save()
+  setLive(null)
   return state
 }
