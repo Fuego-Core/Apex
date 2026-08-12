@@ -2,7 +2,8 @@ name: Deploy APEX to GitHub Pages
 
 on:
   push:
-    branches: [main, master]
+    # La branche par défaut du dépôt, quel que soit son nom.
+    branches: [main, master, claude/apex-musculation-pwa-9qx1jd]
   workflow_dispatch:
 
 permissions:

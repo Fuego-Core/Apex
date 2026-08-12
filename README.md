@@ -30,8 +30,11 @@ Le build utilise `base: './'` : les chemins sont relatifs, le site marche donc a
 racine d'un domaine que dans `https://<user>.github.io/<repo>/`.
 
 **Automatique (recommandé)** — le workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)
-construit et publie à chaque push sur la branche par défaut. Une seule chose à faire :
-`Settings → Pages → Source: GitHub Actions`.
+construit et publie à chaque push sur la branche par défaut. Une seule chose à faire, une fois :
+`Settings → Pages → Source: GitHub Actions`. Le site sort ensuite sur
+`https://fuego-core.github.io/Apex/`.
+
+Si la branche par défaut change de nom, penser à l'ajouter dans `on.push.branches` du workflow.
 
 **Manuel** — si tu préfères la branche `gh-pages` :
 
