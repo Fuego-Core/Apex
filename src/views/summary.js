@@ -1,14 +1,16 @@
 import { getState, getLive, setLive, findSession, save } from '../state.js'
 import { navigate } from '../main.js'
-import { evaluate, tonnage, workSets, PROGRESSION, TROP_LOURD, LOG } from '../engine.js'
+import { evaluate, tonnage, workSets, PROGRESSION, TROP_LOURD, LOG } from '../core/engine.js'
 import { esc, header, kg, num, mmss, duration, uid, toast } from '../ui.js'
 
-/** Meilleur poids déjà enregistré pour cet exercice (par nom, toutes séances). */
-function previousBest(history, exerciseName) {
+/** Meilleur poids déjà enregistré pour ce MOUVEMENT, toutes séances confondues.
+ *  L'identité passe par l'id du catalogue : renommer un exercice ne casse plus
+ *  son historique, et Push et Upper partagent le même record. */
+function previousBest(history, exerciseId) {
   let best = 0
   history.forEach((h) => {
     h.entries.forEach((e) => {
-      if (e.name !== exerciseName || e.mode !== 'reps' || e.assisted) return
+      if (e.exerciseId !== exerciseId || e.mode !== 'reps' || e.assisted) return
       e.sets.forEach((s) => {
         if (!s.warmup && s.done) best = Math.max(best, Number(s.weight) || 0)
       })
@@ -34,10 +36,10 @@ export default function summaryView(root, { sessionId }) {
   )
 
   const results = session.exercises.map((ex) => {
-    const entry = live.entries.find((e) => e.exerciseId === ex.id)
+    const entry = live.entries.find((e) => e.instanceId === ex.id)
     const sets = entry ? entry.sets : []
     const verdict = evaluate(ex, sets)
-    const best = previousBest(state.history, ex.name)
+    const best = previousBest(state.history, ex.exerciseId)
     // Un record se bat : à la toute première séance, il n'y a rien à battre.
     // Et un poids qui t'a écrasé (série sous le plancher) n'est pas un record.
     const record =
@@ -122,7 +124,9 @@ export default function summaryView(root, { sessionId }) {
       durationSec,
       tonnage: Math.round(totalTonnage),
       entries: results.map(({ ex, sets, verdict, record }) => ({
-        exerciseId: ex.id,
+        // Identité du mouvement (catalogue) + emplacement dans le programme.
+        exerciseId: ex.exerciseId,
+        instanceId: ex.id,
         name: ex.name,
         mode: ex.mode,
         assisted: ex.assisted,

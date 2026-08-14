@@ -4,6 +4,7 @@ Une app de suivi de musculation qui ne se contente pas de noter les séries : el
 règles de progression et les explique**. Mobile-first, 100 % locale, utilisable hors ligne en salle.
 
 - Vanilla JS + HTML + CSS, build [Vite](https://vitejs.dev/). Aucun framework, aucun backend, aucun compte.
+- Aucune requête vers un tiers : polices auto-hébergées, tout est servi par l'app.
 - PWA installable sur Android (manifest + service worker), fonctionne sans réseau.
 - Données en `localStorage`, export / import JSON manuel dans les réglages.
 - Noir profond + or, tout en français, gros boutons tapables en pleine série.
@@ -15,8 +16,15 @@ règles de progression et les explique**. Mobile-first, 100 % locale, utilisable
 ```bash
 npm install
 npm run dev        # serveur de dev sur http://localhost:5173
+npm test           # tests unitaires (moteur, schéma, migration, stockage)
 npm run build      # build de production dans dist/
 npm run preview    # sert dist/ pour vérifier avant déploiement
+```
+
+Parcours complet dans un vrai navigateur (migration, séance, hors ligne, écran d'erreur) :
+
+```bash
+npm run build && npm i --no-save playwright-core && node tests/e2e/smoke.mjs
 ```
 
 Sur le téléphone, en dev : `npm run dev` écoute sur le réseau local (`host: true`), ouvre
@@ -82,7 +90,9 @@ Si des poids différents sont saisis entre séries de travail, l'app affiche un 
 
 Le mode `temps` (planche, marche inclinée, vélo) est un simple log de durée : pas de moteur.
 
-Les règles vivent dans [`src/engine.js`](src/engine.js), sans dépendance au DOM.
+Les règles vivent dans [`src/core/engine.js`](src/core/engine.js), sans dépendance au DOM,
+et sont gelées par les tests de [`tests/engine.spec.js`](tests/engine.spec.js) : le comportement
+actuel est une spécification, il ne change que volontairement.
 
 ### Pense-bête
 
@@ -112,12 +122,8 @@ l'accueil propose « Reprendre ».
 
 ## Données
 
-Tout est dans le `localStorage` de l'appareil, rien ne sort du téléphone.
-
-| Clé | Contenu |
-| --- | --- |
-| `apex.v1` | programme (5 séances + exercices + poids courants), historique, réglages |
-| `apex.live.v1` | séance en cours, pour survivre à une fermeture d'app |
+Tout est dans le `localStorage` de l'appareil, rien ne sort du téléphone. Les clés et la garantie de
+non-destruction sont décrites plus bas, dans *Données, identité des exercices et migration*.
 
 **Réglages → Sauvegarde** : export JSON (fichier ou presse-papier) et import (fichier ou
 copier-coller). À faire de temps en temps : effacer les données du navigateur efface l'historique.
@@ -126,7 +132,12 @@ Forme du JSON exporté :
 
 ```jsonc
 {
-  "version": 1,
+  "version": 2,
+  "catalog": {
+    // L'identité des mouvements : un id stable, un nom qui peut changer.
+    "lateral-raise": { "id": "lateral-raise", "name": "Élévations latérales",
+                       "mode": "reps", "assisted": false, "increment": 2.5 }
+  },
   "program": [
     {
       "id": "push",
@@ -134,22 +145,20 @@ Forme du JSON exporté :
       "lastDoneAt": "2026-08-12T18:30:00.000Z",
       "exercises": [
         {
-          "id": "push-01-supine-press-machine",
-          "name": "Supine Press machine",
-          "mode": "reps",          // "reps" | "temps"
+          "id": "push-04-lateral-raise",   // placement dans la séance
+          "exerciseId": "lateral-raise",   // mouvement du catalogue
           "sets": 4,
-          "repMin": 6, "repMax": 8,
-          "weight": 50,
+          "repMin": 12, "repMax": 15,
+          "weight": 8,
           "increment": 2.5,
-          "rest": 120,             // secondes
+          "rest": 60,                      // secondes
           "note": "",
-          "assisted": false,
-          "pending": null          // suggestion du moteur (pense-bête)
+          "pending": null                  // suggestion du moteur (pense-bête)
         }
       ]
     }
   ],
-  "history": [ /* séances archivées, séries incluses */ ],
+  "history": [ /* séances archivées, séries incluses, rattachées à exerciseId */ ],
   "settings": { "sound": true, "vibration": true }
 }
 ```
@@ -159,21 +168,54 @@ Forme du JSON exporté :
 ## Structure
 
 ```
-index.html                 coquille + polices Google
+index.html                 coquille, zéro requête externe
 public/
   manifest.webmanifest     manifest PWA
-  sw.js                    service worker (offline)
+  sw.js                    service worker (offline, précache injecté au build)
+  fonts/                   Inter + Space Grotesk auto-hébergées (woff2)
   icons/                   logo + icônes APEX (SVG)
 src/
-  main.js                  routeur hash + enregistrement du service worker
-  state.js                 localStorage, export/import, séance en cours
-  program.js               le programme préchargé (les 5 séances)
-  engine.js                moteur de progression (pur, testable)
+  main.js                  démarrage async, routeur hash, garde-fous d'erreur
+  state.js                 état en mémoire, chargement/enregistrement, import/export
+  core/                    métier pur, sans DOM, testable
+    engine.js              moteur de progression
+    catalog.js             catalogue des mouvements (ids stables)
+    program.js             programme préchargé (5 séances)
+    schema.js              schéma v2, hydratation, validation
+    migrate.js             migration v1 → v2
+  data/                    stockage
+    dataStore.js           façade asynchrone (file d'écriture)
+    adapters/local.js      adapter localStorage (IndexedDB viendra ici)
+    errors.js              erreurs typées avec message utilisateur
+    rescue.js              export de secours si l'app ne démarre pas
   timer.js                 timer plein écran (repos / effort), son + vibration
-  ui.js                    helpers de rendu, formats FR, toasts, modales
+  ui.js                    helpers de rendu, toasts, modales, bannières, écran d'erreur
+  fonts.css                @font-face locales
   styles.css               design system noir + or
   views/                   home, prep (pense-bête), workout, summary, history, exercise, settings
+tests/                     tests unitaires + parcours navigateur (tests/e2e)
 ```
+
+## Données, identité des exercices et migration
+
+Un **mouvement** a un id stable et global (`lateral-raise`). Une séance ne contient pas des
+exercices : elle place des mouvements et leur donne des paramètres de travail (séries, fourchette,
+poids, incrément, repos). Conséquence : les élévations latérales de Push et de Upper sont **le même
+exercice**, donc le même historique et le même record — mais chaque séance garde son propre poids de
+travail. Renommer un mouvement ne casse rien, l'id ne bouge pas.
+
+| Clé | Contenu |
+| --- | --- |
+| `apex.v2` | état courant (catalogue, programme, historique, réglages) |
+| `apex.live.v2` | séance en cours |
+| `apex.backup.v1` | copie brute de l'état v1, écrite automatiquement avant la migration |
+| `apex.v1` | état d'origine — **jamais modifié, jamais supprimé** |
+
+La migration v1 → v2 est non destructive et vérifiée : sauvegarde d'abord, conversion ensuite,
+validation du résultat, écriture sous une nouvelle clé, puis **relecture de contrôle**. Si une seule
+de ces étapes échoue, rien n'est écrit, `apex.v1` reste intact et l'app affiche un écran d'erreur
+avec un export de secours. Les anciens fichiers d'export v1 restent importables : ils sont convertis
+à la volée.
 
 ## Logo
 

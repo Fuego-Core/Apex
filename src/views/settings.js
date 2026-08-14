@@ -1,4 +1,13 @@
-import { getState, save, exportJSON, importJSON, resetAll, resetProgramKeepHistory } from '../state.js'
+import {
+  getState,
+  save,
+  exportJSON,
+  importJSON,
+  resetAll,
+  resetProgramKeepHistory,
+  getBackupInfo,
+  getBackupRaw
+} from '../state.js'
 import { navigate } from '../main.js'
 import { esc, header, toast, confirmDialog, formatDateTime } from '../ui.js'
 
@@ -55,6 +64,11 @@ export default function settingsView(root) {
         </details>
       </div>
 
+      <div class="card stack-sm" data-backup hidden>
+        <p class="muted" data-backup-text></p>
+        <button class="btn btn--ghost btn--block" data-act="export-v1">Exporter la sauvegarde v1</button>
+      </div>
+
       <h3 class="section-title">Zone rouge</h3>
       <div class="card stack-sm">
         <button class="btn btn--ghost btn--block" data-act="reset-program">Réinitialiser le programme</button>
@@ -63,8 +77,22 @@ export default function settingsView(root) {
         <p class="muted">Programme, historique et réglages. Irréversible.</p>
       </div>
 
-      <p class="footnote">APEX v1 · 100% local, aucune donnée ne quitte l'appareil.</p>
+      <p class="footnote">APEX · 100% local, aucune donnée ne quitte l'appareil.</p>
     </div>`
+
+  // La sauvegarde v1 vit dans le stockage : on la lit sans bloquer le rendu.
+  getBackupInfo()
+    .then((info) => {
+      if (!info) return
+      const box = root.querySelector('[data-backup]')
+      if (!box) return
+      const when = info.at ? formatDateTime(info.at) : null
+      box.querySelector('[data-backup-text]').textContent = when
+        ? `Sauvegarde automatique de tes données d'origine (v1), conservée le ${when}.`
+        : "Sauvegarde automatique de tes données d'origine (v1) conservée sur cet appareil."
+      box.hidden = false
+    })
+    .catch(() => {})
 
   root.querySelectorAll('[data-setting]').forEach((input) => {
     input.addEventListener('change', () => {
@@ -81,7 +109,7 @@ export default function settingsView(root) {
     if (!file) return
     try {
       const text = await file.text()
-      importJSON(text)
+      await importJSON(text)
       toast('Import réussi', 'gold')
       navigate('#/')
     } catch (e) {
@@ -111,12 +139,17 @@ export default function settingsView(root) {
       const text = root.querySelector('[data-paste]').value.trim()
       if (!text) return toast('Rien à importer', 'warn')
       try {
-        importJSON(text)
+        await importJSON(text)
         toast('Import réussi', 'gold')
         navigate('#/')
       } catch (err) {
         toast(`Import impossible : ${err.message}`, 'warn')
       }
+    } else if (act === 'export-v1') {
+      const raw = await getBackupRaw()
+      if (!raw) return toast('Aucune sauvegarde v1 sur cet appareil', 'warn')
+      download(`apex-v1-sauvegarde-${stamp()}.json`, raw)
+      toast('Sauvegarde v1 exportée')
     } else if (act === 'reset-program') {
       const ok = await confirmDialog({
         title: 'Réinitialiser le programme ?',
@@ -125,7 +158,7 @@ export default function settingsView(root) {
         danger: true
       })
       if (ok) {
-        resetProgramKeepHistory()
+        await resetProgramKeepHistory()
         toast('Programme réinitialisé')
         navigate('#/')
       }
@@ -137,7 +170,7 @@ export default function settingsView(root) {
         danger: true
       })
       if (ok) {
-        resetAll()
+        await resetAll()
         toast('Données effacées')
         navigate('#/')
       }

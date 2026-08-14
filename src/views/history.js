@@ -1,7 +1,7 @@
 import { getState } from '../state.js'
 import { navigate } from '../main.js'
 import { esc, header, kg, num, mmss, duration, formatDate, formatDateTime } from '../ui.js'
-import { PROGRESSION, TROP_LOURD, LOG, STATUS_LABEL } from '../engine.js'
+import { PROGRESSION, TROP_LOURD, LOG, STATUS_LABEL } from '../core/engine.js'
 
 function toneOf(status) {
   if (status === PROGRESSION) return 'gold'
@@ -74,26 +74,31 @@ export default function historyView(root, { entryId } = {}) {
     )
     .join('')
 
-  // Un exercice = un nom (les élévations latérales de Push et Upper, c'est le même mouvement).
-  const byName = new Map()
+  // Un exercice = un MOUVEMENT du catalogue : les élévations latérales de Push
+  // et celles de Upper sont le même exercice, donc le même historique. Le nom
+  // affiché est le nom actuel du mouvement, pas celui figé le jour de la séance.
+  const byMovement = new Map()
   state.history.forEach((h) => {
     h.entries.forEach((e) => {
       if (e.mode !== 'reps') return
       if (!e.sets.some((s) => s.done && !s.warmup)) return
-      const cur = byName.get(e.name) || { name: e.name, count: 0, last: null, weight: 0 }
+      const id = e.exerciseId
+      if (!id) return
+      const cur = byMovement.get(id) || { id, name: null, count: 0, last: null, weight: 0 }
       cur.count++
       if (!cur.last || new Date(h.startedAt) > new Date(cur.last)) {
         cur.last = h.startedAt
         cur.weight = e.weightUsed
       }
-      byName.set(e.name, cur)
+      cur.name = state.catalog[id]?.name || e.name || id
+      byMovement.set(id, cur)
     })
   })
-  const exercises = [...byName.values()]
+  const exercises = [...byMovement.values()]
     .sort((a, b) => a.name.localeCompare(b.name, 'fr'))
     .map(
       (e) => `
-      <a class="card xrow" href="#/exercice/${encodeURIComponent(e.name)}">
+      <a class="card xrow" href="#/exercice/${esc(encodeURIComponent(e.id))}">
         <span class="xrow__name">${esc(e.name)}</span>
         <span class="xrow__meta">${esc(kg(e.weight))} · ${e.count} séance${e.count > 1 ? 's' : ''}</span>
         <span class="session-card__go">›</span>

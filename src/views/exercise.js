@@ -1,7 +1,7 @@
 import { getState } from '../state.js'
 import { navigate } from '../main.js'
 import { esc, header, kg, num, formatDate } from '../ui.js'
-import { PROGRESSION, TROP_LOURD, LOG, STATUS_LABEL } from '../engine.js'
+import { PROGRESSION, TROP_LOURD, LOG, STATUS_LABEL } from '../core/engine.js'
 
 const W = 320
 const H = 130
@@ -53,8 +53,14 @@ function chart(points) {
     </div>`
 }
 
-export default function exerciseView(root, { name }) {
+export default function exerciseView(root, { exerciseId }) {
   const state = getState()
+  const movement = state.catalog[exerciseId] || null
+  // Nom actuel du mouvement ; à défaut, celui figé dans l'historique.
+  const name =
+    movement?.name ||
+    state.history.flatMap((h) => h.entries).find((e) => e.exerciseId === exerciseId)?.name ||
+    exerciseId
 
   const rows = []
   ;[...state.history]
@@ -62,7 +68,7 @@ export default function exerciseView(root, { name }) {
     .sort((a, b) => new Date(a.startedAt) - new Date(b.startedAt))
     .forEach((h) => {
       h.entries.forEach((e) => {
-        if (e.name !== name || e.mode !== 'reps') return
+        if (e.exerciseId !== exerciseId || e.mode !== 'reps') return
         const done = e.sets.filter((s) => s.done && !s.warmup)
         if (!done.length) return
         rows.push({

@@ -133,6 +133,58 @@ export function confirmDialog({ title, message, confirmLabel = 'Confirmer', dang
   })
 }
 
+/** Bandeau persistant en haut d'écran : un problème que l'utilisateur doit voir
+ *  et qui ne doit pas disparaître tout seul (échec d'enregistrement). */
+export function banner(message, { tone = 'warn', id = 'default' } = {}) {
+  const host = document.getElementById('overlay')
+  const existing = host.querySelector(`.banner[data-banner="${id}"]`)
+  if (existing) {
+    existing.querySelector('.banner__text').textContent = message
+    return
+  }
+  const el = document.createElement('div')
+  el.className = `banner banner--${tone}`
+  el.dataset.banner = id
+  el.innerHTML = `
+    <p class="banner__text"></p>
+    <button class="banner__close" aria-label="Fermer">×</button>`
+  el.querySelector('.banner__text').textContent = message
+  el.querySelector('.banner__close').addEventListener('click', () => el.remove())
+  host.appendChild(el)
+  requestAnimationFrame(() => el.classList.add('is-in'))
+}
+
+/** Écran d'erreur bloquant : l'app ne peut pas démarrer. On explique, et on
+ *  laisse toujours une porte de sortie pour récupérer ses données. */
+export function fatalScreen(root, { title, message, details = [], onExport, onRetry }) {
+  root.innerHTML = `
+    <div class="page">
+      <header class="brand">
+        <span class="brand__mark">${logoMark(34)}</span>
+        <span class="brand__word">APEX</span>
+      </header>
+      <section class="card fatal">
+        <h2 class="fatal__title">${esc(title)}</h2>
+        <p class="fatal__text">${esc(message)}</p>
+        ${
+          details.length
+            ? `<ul class="fatal__details">${details.map((d) => `<li>${esc(d)}</li>`).join('')}</ul>`
+            : ''
+        }
+        <p class="fatal__safe">Aucune donnée n’a été supprimée.</p>
+        <div class="stack-sm">
+          <button class="btn btn--gold btn--block" data-act="export">Exporter mes données</button>
+          <button class="btn btn--ghost btn--block" data-act="retry">Réessayer</button>
+        </div>
+      </section>
+    </div>`
+
+  root.querySelector('[data-act="export"]').addEventListener('click', () => onExport?.())
+  root.querySelector('[data-act="retry"]').addEventListener('click', () =>
+    onRetry ? onRetry() : location.reload()
+  )
+}
+
 /** Le symbole APEX, en inline SVG pour hériter des couleurs. */
 export function logoMark(size = 28) {
   return `<svg class="mark" width="${size}" height="${size}" viewBox="0 0 512 512" aria-hidden="true">

@@ -8,7 +8,7 @@ function buildLive(session) {
     sessionId: session.id,
     startedAt: new Date().toISOString(),
     entries: session.exercises.map((ex) => ({
-      exerciseId: ex.id,
+      instanceId: ex.id,
       sets: Array.from({ length: ex.sets }, () => ({
         warmup: false,
         done: false,

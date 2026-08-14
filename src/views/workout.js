@@ -1,8 +1,10 @@
 import { getLive, setLive, findSession, save } from '../state.js'
 import { navigate } from '../main.js'
 import { openTimer } from '../timer.js'
-import { isMixedWeight, round } from '../engine.js'
+import { isMixedWeight, round } from '../core/engine.js'
 import { esc, header, kg, num, mmss, restLabel, duration, toast, confirmDialog } from '../ui.js'
+
+const MIXED_WARNING = `<p class="warn-box">⚠️ 1 exo = 1 poids — les montées, c'est l'échauffement.</p>`
 
 export default function workoutView(root, { sessionId }) {
   const session = findSession(sessionId)
@@ -18,7 +20,7 @@ export default function workoutView(root, { sessionId }) {
   }
 
   const exOf = (id) => session.exercises.find((e) => e.id === id)
-  const entryOf = (id) => live.entries.find((e) => e.exerciseId === id)
+  const entryOf = (id) => live.entries.find((e) => e.instanceId === id)
 
   function persist() {
     setLive(live)
@@ -110,11 +112,7 @@ export default function workoutView(root, { sessionId }) {
 
         <div class="sets">${entry.sets.map((_, i) => setRow(ex, entry, i)).join('')}</div>
 
-        ${
-          mixed
-            ? `<p class="warn-box">⚠️ 1 exo = 1 poids — les montées, c'est l'échauffement.</p>`
-            : ''
-        }
+        <div class="exo__warn" data-warn="${esc(ex.id)}">${mixed ? MIXED_WARNING : ''}</div>
 
         <div class="exo__actions">
           <button class="btn btn--ghost btn--sm" data-act="add-warmup" data-ex="${esc(ex.id)}">+ Échauffement</button>
@@ -132,16 +130,25 @@ export default function workoutView(root, { sessionId }) {
     refreshProgress()
   }
 
+  /** Avancement affiché : séries de travail uniquement, comme partout ailleurs
+   *  dans APEX (les échauffements ne comptent ni pour le moteur ni pour les stats). */
   function totals() {
     let done = 0
     let total = 0
     live.entries.forEach((entry) => {
       entry.sets.forEach((s) => {
+        if (s.warmup) return
         total++
         if (s.done) done++
       })
     })
     return { done, total }
+  }
+
+  /** Reste-t-il quelque chose à faire ? (échauffements compris : c'est ce qui
+   *  décide de lancer un repos ou non après une validation). */
+  function anySetLeft() {
+    return live.entries.some((entry) => entry.sets.some((s) => !s.done))
   }
 
   function refreshProgress() {
@@ -150,6 +157,18 @@ export default function workoutView(root, { sessionId }) {
     const label = root.querySelector('[data-progress-label]')
     if (bar) bar.style.width = `${total ? (done / total) * 100 : 0}%`
     if (label) label.textContent = `${done}/${total} séries`
+  }
+
+  /** Met à jour l'avertissement « 1 exo = 1 poids » SANS reconstruire la carte :
+   *  reconstruire pendant une saisie ferait perdre le tap suivant. */
+  function refreshWarning(exId) {
+    const host = root.querySelector(`[data-warn="${CSS.escape(exId)}"]`)
+    if (!host) return
+    const ex = exOf(exId)
+    const entry = entryOf(exId)
+    const mixed = ex && entry && ex.mode === 'reps' && isMixedWeight(entry.sets)
+    const next = mixed ? MIXED_WARNING : ''
+    if (host.innerHTML !== next) host.innerHTML = next
   }
 
   function renderAll() {
@@ -205,8 +224,7 @@ export default function workoutView(root, { sessionId }) {
     if (!s.done) return
 
     // Repos automatique, sauf si tout est terminé ou si l'exo n'a pas de repos.
-    const { done, total } = totals()
-    if (ex.rest > 0 && done < total) {
+    if (ex.rest > 0 && anySetLeft()) {
       await openTimer({
         seconds: ex.rest,
         kind: 'repos',
@@ -230,8 +248,7 @@ export default function workoutView(root, { sessionId }) {
     persist()
     refreshCard(ex.id)
 
-    const { done, total } = totals()
-    if (ex.rest > 0 && done < total) {
+    if (ex.rest > 0 && anySetLeft()) {
       await openTimer({ seconds: ex.rest, kind: 'repos', title: esc(ex.name), sub: `${mmss(s.seconds)} enregistrées` })
     }
   }
@@ -404,33 +421,57 @@ export default function workoutView(root, { sessionId }) {
     }
   }
 
+  /** Saisie en cours de frappe : on enregistre, mais on ne reconstruit RIEN.
+   *  Reconstruire la carte ici détacherait le bouton que le doigt vise déjà,
+   *  et le tap suivant serait perdu. */
   function onInput(e) {
     const input = e.target.closest('[data-input]')
     if (!input) return
-    const ex = exOf(input.dataset.ex)
     const entry = entryOf(input.dataset.ex)
+    if (!entry) return
     const s = entry.sets[Number(input.dataset.i)]
-    const raw = String(input.value).replace(',', '.')
-    const v = parseFloat(raw)
+    if (!s) return
+
     const field = input.dataset.input
+    const v = parseFloat(String(input.value).replace(',', '.'))
+    // Champ vidé ou à moitié tapé : on laisse l'utilisateur finir.
+    if (!Number.isFinite(v) || v < 0) return
+
+    s[field] = field === 'weight' ? round(v) : Math.round(v)
+    persist()
+    refreshWarning(input.dataset.ex)
+  }
+
+  /** Sortie du champ : on remet la valeur du modèle si la saisie est restée
+   *  invalide, sans toucher au reste de la carte. */
+  function onCommit(e) {
+    const input = e.target.closest('[data-input]')
+    if (!input) return
+    const entry = entryOf(input.dataset.ex)
+    if (!entry) return
+    const s = entry.sets[Number(input.dataset.i)]
+    if (!s) return
+
+    const field = input.dataset.input
+    const v = parseFloat(String(input.value).replace(',', '.'))
     if (!Number.isFinite(v) || v < 0) {
-      // saisie vide/invalide : on remet la valeur précédente
       input.value = field === 'weight' ? num(s.weight) : s[field] ?? ''
       return
     }
-    s[field] = field === 'weight' ? round(v) : Math.round(v)
-    persist()
-    refreshCard(ex.id)
+    const normalized = field === 'weight' ? num(round(v)) : String(Math.round(v))
+    if (input.value !== normalized) input.value = normalized
   }
 
   root.addEventListener('click', onClick)
-  root.addEventListener('change', onInput)
+  root.addEventListener('input', onInput)
+  root.addEventListener('change', onCommit)
 
   renderAll()
 
   return () => {
     clearInterval(chronoTimer)
     root.removeEventListener('click', onClick)
-    root.removeEventListener('change', onInput)
+    root.removeEventListener('input', onInput)
+    root.removeEventListener('change', onCommit)
   }
 }
