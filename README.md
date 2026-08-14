@@ -194,6 +194,6 @@ d'origine en gardant l'historique ; « Tout effacer » remet l'app à zéro.
 ## Historique du dépôt
 
 Ce dépôt a brièvement changé de sujet (plateforme d'analyse de marchés) : le code de la PWA avait
-été retiré au commit `82da47b`, puis **restauré ici**. APEX est bien l'app de coaching musculation.
-Le document de conception de l'autre concept reste dans [`docs/APEX-DESIGN.md`](docs/APEX-DESIGN.md)
-à titre d'archive ; il n'a aucun lien avec cette app et ne participe ni au build ni au site déployé.
+été retiré au commit `82da47b`, puis **restauré ici**. APEX est bien, et reste, l'app de coaching
+musculation. Le document de conception de l'autre concept a été supprimé de l'arbre de travail ; il
+reste consultable dans l'historique git au commit `df8b57b` (`git show df8b57b:docs/APEX-DESIGN.md`).
