@@ -37,6 +37,9 @@ conception explique pourquoi elle serait malhonnête.
 ## Historique du dépôt
 
 Ce dépôt a d'abord hébergé une PWA de suivi de musculation, projet abandonné. Le nom APEX est
-conservé pour le nouveau produit. L'ancien code est toujours présent à la racine (`src/`, `public/`,
-`index.html`) et reste accessible dans l'historique git au commit `a8842c0`. Il sera retiré lors de
-l'initialisation du nouveau socle technique.
+conservé pour le nouveau produit. L'ancien code a été retiré de l'arbre de travail ; il reste
+récupérable dans l'historique git au commit `a8842c0` (`git show a8842c0` pour le consulter,
+`git checkout a8842c0 -- .` pour le restaurer).
+
+Le dépôt ne contient donc, à ce stade, que de la documentation. Le socle technique du nouveau
+produit sera initialisé une fois les décisions de l'annexe C tranchées.
