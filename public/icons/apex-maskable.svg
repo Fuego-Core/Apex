@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="APEX">
+  <rect width="512" height="512" fill="#0B0B0C"/>
+  <!-- symbole réduit à 62% pour tenir dans la safe zone maskable -->
+  <g transform="translate(256 256) scale(0.62) translate(-256 -256)">
+    <g fill="none" stroke="#D4AF37" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M256 116 L140 384" stroke-width="16"/>
+      <path d="M256 116 L372 384" stroke-width="16"/>
+      <path d="M104 300 H408" stroke-width="16"/>
+      <path d="M132 268 V332" stroke-width="16"/>
+      <path d="M380 268 V332" stroke-width="16"/>
+      <path d="M104 284 V316" stroke-width="14"/>
+      <path d="M408 284 V316" stroke-width="14"/>
+    </g>
+  </g>
+</svg>

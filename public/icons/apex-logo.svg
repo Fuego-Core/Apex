@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 320" width="640" height="320" role="img" aria-label="APEX">
+  <rect width="640" height="320" fill="#0B0B0C"/>
+  <g transform="translate(250 20) scale(0.52)" fill="none" stroke="#D4AF37" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M256 116 L140 384" stroke-width="16"/>
+    <path d="M256 116 L372 384" stroke-width="16"/>
+    <path d="M104 300 H408" stroke-width="16"/>
+    <path d="M132 272 V328" stroke-width="16"/>
+    <path d="M380 272 V328" stroke-width="16"/>
+    <path d="M104 286 V314" stroke-width="14"/>
+    <path d="M408 286 V314" stroke-width="14"/>
+  </g>
+  <text x="320" y="285"
+        text-anchor="middle"
+        font-family="'Space Grotesk','Inter','Helvetica Neue',Arial,sans-serif"
+        font-size="72" font-weight="700" letter-spacing="26" fill="#D4AF37">APEX</text>
+</svg>
