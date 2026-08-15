@@ -176,7 +176,7 @@ export default function goalsView(root, { create = false } = {}) {
     const state = getState()
     root.innerHTML = `
       <div class="page">
-        ${header({ back: '#/', title: 'Objectifs', sub: `${state.goals.length} en cours` })}
+        ${header({ back: '#/progression', title: 'Objectifs', sub: `${state.goals.length} en cours` })}
         ${
           state.goals.length
             ? `<div class="stack">${state.goals.map(goalCard).join('')}</div>`

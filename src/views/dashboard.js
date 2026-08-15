@@ -8,13 +8,13 @@
 
 import { getState, getLive } from '../state.js'
 import { nextSession, sessionsThisWeek, estimateDuration, pendingCount } from '../core/today.js'
-import { currentAverage, latest, trend, latestChange, series } from '../core/body.js'
+import { currentAverage, trend, series } from '../core/body.js'
 import { evaluateGoal } from '../core/goals.js'
 import { dayOf, loggedCount } from '../core/nutrition/journal.js'
 import { dayTotals, remaining, display } from '../core/nutrition/calculations.js'
 import { today } from '../core/body.js'
 import { esc, logoMark, num, duration } from '../ui.js'
-import { tile, meter, blank, sectionTitle, sparkline } from '../ui/components.js'
+import { meter, blank, sectionTitle, sparkline } from '../ui/components.js'
 
 /** Le corps bouge-t-il dans le sens voulu ? Sans objectif déclaré, on ne juge pas. */
 function toneForTrend(direction, profileGoal) {
@@ -67,11 +67,10 @@ function todayBlock(state, live) {
 
 function bodyBlock(state) {
   const weight = state.body.weight
-  const waist = state.body.waist
 
-  if (!weight.length && !waist.length) {
+  if (!weight.length) {
     return `
-      ${sectionTitle('Corps')}
+      ${sectionTitle('Progression')}
       <div class="reveal">
         ${blank({
           title: 'Commence par te peser',
@@ -84,36 +83,17 @@ function bodyBlock(state) {
 
   const wAvg = currentAverage(weight)
   const wTrend = trend(weight)
-  const waistLast = latest(waist)
-  const waistChange = latestChange(waist)
   const points = series(weight, { days: 90 })
 
   return `
-    ${sectionTitle('Corps', { href: '#/corps', linkLabel: 'Suivi' })}
-    <div class="reveal">
-      <div class="grid-2">
-        ${tile({
-          label: 'Poids · moy. 7 j',
-          value: wAvg === null ? null : num(wAvg),
-          unit: 'kg',
-          hint: trendLabel(wTrend, 'kg'),
-          tone: wTrend.status === 'ok' ? toneForTrend(wTrend.direction, state.profile.goal) : '',
-          empty: '—'
-        })}
-        ${tile({
-          label: 'Tour de taille',
-          value: waistLast ? num(waistLast.value) : null,
-          unit: 'cm',
-          hint: waistChange
-            ? `${waistChange.delta > 0 ? '↑' : '↓'} ${num(Math.abs(waistChange.delta))} cm en ${waistChange.days} j`
-            : waist.length > 1
-              ? 'pas assez de recul'
-              : 'une seule mesure',
-          empty: '—'
-        })}
+    ${sectionTitle('Progression', { href: '#/progression', linkLabel: 'Voir' })}
+    <a class="card metric reveal" href="#/progression">
+      <div class="metric__main">
+        <p class="metric__value">${wAvg === null ? '—' : num(wAvg)}<span class="metric__unit">kg</span></p>
+        <p class="metric__hint ${wTrend.status === 'ok' ? `metric__hint--${toneForTrend(wTrend.direction, state.profile.goal)}` : ''}">${esc(trendLabel(wTrend, 'kg'))}</p>
       </div>
-      ${points.length > 1 ? `<div class="card" style="margin-top:var(--sp-3)">${sparkline(points)}</div>` : ''}
-    </div>`
+      ${points.length > 1 ? `<div class="metric__spark">${sparkline(points)}</div>` : ''}
+    </a>`
 }
 
 /** Une seule ligne : où j'en suis aujourd'hui côté nutrition. Le détail est
@@ -207,11 +187,19 @@ export default function dashboardView(root) {
   const live = getLive()
   const week = sessionsThisWeek(state.history)
 
+  const now = new Date()
+  const hello = now.getHours() < 5 ? 'Bonsoir' : now.getHours() < 18 ? 'Bonjour' : 'Bonsoir'
+  const raw = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+  const dateLine = raw.charAt(0).toUpperCase() + raw.slice(1)
+
   root.innerHTML = `
     <div class="page page--home">
-      <header class="brand">
-        <span class="brand__mark">${logoMark(30)}</span>
-        <span class="brand__word">APEX</span>
+      <header class="home-head">
+        <div>
+          <p class="home-head__hello">${hello}</p>
+          <p class="home-head__date">${esc(dateLine)}</p>
+        </div>
+        <span class="home-head__mark">${logoMark(30)}</span>
       </header>
 
       ${todayBlock(state, live)}
@@ -223,25 +211,6 @@ export default function dashboardView(root) {
       ${bodyBlock(state)}
       ${nutritionBlock(state)}
       ${goalsBlock(state)}
-
-      <nav class="dash-links">
-        <a class="card nav-card" href="#/seances">
-          <span class="nav-card__label">Séances</span>
-          <span class="nav-card__meta">${state.program.length} au programme</span>
-        </a>
-        <a class="card nav-card" href="#/historique">
-          <span class="nav-card__label">Historique</span>
-          <span class="nav-card__meta">${state.history.length} séance${state.history.length > 1 ? 's' : ''}</span>
-        </a>
-        <a class="card nav-card" href="#/profil">
-          <span class="nav-card__label">Profil</span>
-          <span class="nav-card__meta">${state.profile.updatedAt ? 'Renseigné' : 'À compléter'}</span>
-        </a>
-        <a class="card nav-card" href="#/reglages">
-          <span class="nav-card__label">Réglages</span>
-          <span class="nav-card__meta">Sauvegarde &amp; données</span>
-        </a>
-      </nav>
 
       <p class="footnote">Données stockées sur cet appareil uniquement.</p>
     </div>`

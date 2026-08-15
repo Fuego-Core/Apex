@@ -190,26 +190,34 @@ export function fatalScreen(root, { title, message, details = [], onExport, onRe
   )
 }
 
-/** Le symbole APEX, en inline SVG pour hériter des couleurs. */
+/** Le symbole APEX — un sommet dans un sommet, la barre en pied.
+ *  Inline et en currentColor : il hérite de l'or ou du gris selon le contexte,
+ *  et reste net de 16 px à plein écran. */
 export function logoMark(size = 28) {
-  return `<svg class="mark" width="${size}" height="${size}" viewBox="0 0 512 512" aria-hidden="true">
-    <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M256 116 L140 384" stroke-width="22"/>
-      <path d="M256 116 L372 384" stroke-width="22"/>
-      <path d="M104 300 H408" stroke-width="22"/>
-      <path d="M132 272 V328" stroke-width="22"/>
-      <path d="M380 272 V328" stroke-width="22"/>
-      <path d="M104 286 V314" stroke-width="18"/>
-      <path d="M408 286 V314" stroke-width="18"/>
-    </g>
+  return `<svg class="mark" width="${size}" height="${size}" viewBox="0 0 48 48" aria-hidden="true" fill="currentColor">
+    <path d="M24 4.5 L42.5 43 H36 L24 17.9 L12 43 H5.5 Z"/>
+    <path d="M24 22.4 L28.2 31.2 H19.8 Z"/>
+    <rect x="9" y="33.8" width="30" height="3.2"/>
+    <rect x="5.4" y="30.9" width="2.7" height="9"/>
+    <rect x="39.9" y="30.9" width="2.7" height="9"/>
   </svg>`
 }
 
-/** En-tête de page réutilisable. */
+/** En-tête de page réutilisable.
+ *  Sans `back`, c'est un écran de premier niveau : grand titre aligné à
+ *  gauche, pas de flèche — la navigation principale est déjà là.
+ *  Avec `back`, c'est un écran de détail : flèche + titre centré. */
 export function header({ back = null, title, sub = '' }) {
+  if (!back) {
+    return `
+      <header class="topbar topbar--top">
+        <h1 class="topbar__big">${esc(title)}</h1>
+        ${sub ? `<p class="topbar__bigsub">${esc(sub)}</p>` : ''}
+      </header>`
+  }
   return `
     <header class="topbar">
-      ${back ? `<a class="topbar__back" href="${back}" aria-label="Retour">‹</a>` : '<span class="topbar__spacer"></span>'}
+      <a class="topbar__back" href="${back}" aria-label="Retour">‹</a>
       <div class="topbar__titles">
         <h1 class="topbar__title">${esc(title)}</h1>
         ${sub ? `<p class="topbar__sub">${esc(sub)}</p>` : ''}

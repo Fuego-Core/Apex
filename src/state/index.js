@@ -104,7 +104,10 @@ export async function initState(customStore) {
     }
   }
 
-  state = freshState()
+  /* Hydrater aussi l'état neuf : sans cela, le tout premier lancement (aucune
+     donnée, aucune migration) servait des instances sans nom ni mode jusqu'au
+     premier rechargement — et la toute première séance était illisible. */
+  state = hydrate(freshState())
   live = null
   await save()
   boot = { source: 'fresh', migrated: false, from: STATE_VERSION, report: null, backupKey: null }

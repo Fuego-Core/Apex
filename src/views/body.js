@@ -125,7 +125,7 @@ export default function bodyView(root, { kind: initialKind } = {}) {
 
     root.innerHTML = `
       <div class="page">
-        ${header({ back: '#/', title: 'Corps', sub: 'Poids et tour de taille' })}
+        ${header({ back: '#/progression', title: 'Corps', sub: 'Poids et tour de taille' })}
 
         <div class="seg seg--page" data-kind-switch>
           ${Object.values(KINDS)

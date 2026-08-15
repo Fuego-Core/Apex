@@ -54,6 +54,22 @@ p {
   margin: 0;
 }
 
+/* Le clavier doit voir où il est — sans halo bleu de navigateur. */
+:focus-visible {
+  outline: 2px solid var(--gold-line);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+::selection {
+  background: var(--gold-dim);
+  color: var(--text);
+}
+
 /* ---------- Structure ---------- */
 
 .page {
@@ -78,7 +94,7 @@ p {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
-  padding: 14px;
+  padding: var(--sp-4);
   display: block;
 }
 
@@ -177,7 +193,55 @@ p {
   display: block;
 }
 
+/* Premier niveau : grand titre à gauche, comme une app — pas comme un site. */
+.topbar--top {
+  display: block;
+  padding: var(--sp-3) 0 var(--sp-5);
+}
+
+.topbar__big {
+  font-family: var(--font-title);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.topbar__bigsub {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  margin-top: 3px;
+}
+
 /* ---------- Accueil ---------- */
+
+/* La salutation remplace la bannière de marque : la marque vit dans la
+   navigation, l'accueil parle à l'utilisateur. */
+.home-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: var(--sp-3) 0 var(--sp-5);
+}
+
+.home-head__hello {
+  font-family: var(--font-title);
+  font-size: var(--fs-xl);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.home-head__date {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  margin-top: 3px;
+}
+
+.home-head__mark {
+  color: var(--gold);
+  flex: none;
+}
+
 
 .session-card {
   display: flex;
@@ -295,17 +359,23 @@ p {
   font-weight: 600;
   font-size: 15px;
   cursor: pointer;
-  transition: transform 0.06s ease, background 0.15s ease, opacity 0.15s ease;
+  transition: transform 0.06s ease, background var(--t-fast), opacity var(--t-fast), box-shadow var(--t-fast);
 }
 
 .btn:active {
   transform: scale(0.985);
 }
 
+/* L'action principale : la seule chose dorée de l'écran. */
 .btn--gold {
-  background: var(--gold);
-  border-color: var(--gold);
-  color: #14140f;
+  background: var(--gold-grad);
+  border-color: transparent;
+  color: #131208;
+  box-shadow: 0 4px 18px rgba(212, 175, 55, 0.18);
+}
+
+.btn--gold:active {
+  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.14);
 }
 
 .btn--ghost {
@@ -339,8 +409,8 @@ p {
   background: transparent;
   border: 1px solid var(--line);
   border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   flex: none;
   color: var(--muted);
   font-size: 17px;
@@ -554,8 +624,9 @@ p {
 }
 
 .exo__name {
-  font-size: 17px;
-  letter-spacing: 0.04em;
+  font-size: 21px;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
 }
 
 .exo__target {
@@ -604,7 +675,7 @@ p {
 /* n° · valeur · poids (ou chrono) · valider · supprimer */
 .set {
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr) 64px 46px 18px;
+  grid-template-columns: 18px minmax(0, 1fr) 70px 52px 18px;
   align-items: center;
   gap: 6px;
 }
@@ -635,9 +706,9 @@ p {
 .field__step {
   background: transparent;
   border: 0;
-  width: 44px;
-  height: 50px;
-  font-size: 22px;
+  width: 46px;
+  height: 56px;
+  font-size: 24px;
   color: var(--muted);
   cursor: pointer;
   flex: none;
@@ -656,7 +727,7 @@ p {
   border: 0;
   text-align: center;
   font-family: var(--font-title);
-  font-size: 22px;
+  font-size: 26px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   padding: 0 0 6px;
@@ -665,7 +736,7 @@ p {
 
 .field__value {
   display: block;
-  line-height: 50px;
+  line-height: 56px;
   padding: 0;
 }
 
@@ -689,7 +760,7 @@ p {
   background: var(--surface-2);
   border: 1px solid var(--line);
   border-radius: var(--r-sm);
-  height: 50px;
+  height: 56px;
   padding: 0 4px;
   min-width: 0;
 }
@@ -702,7 +773,7 @@ p {
   outline: none;
   text-align: right;
   font-family: var(--font-title);
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   padding: 0;
@@ -715,7 +786,7 @@ p {
 }
 
 .set__chrono {
-  height: 50px;
+  height: 56px;
   border-radius: var(--r-sm);
   border: 1px solid var(--line);
   background: var(--surface-2);
@@ -734,13 +805,14 @@ p {
 }
 
 .set__ok {
-  height: 50px;
+  height: 56px;
   border-radius: var(--r-sm);
   border: 1px solid var(--line);
   background: transparent;
   color: var(--gold);
-  font-size: 22px;
+  font-size: 24px;
   cursor: pointer;
+  transition: background var(--t-fast), border-color var(--t-fast);
 }
 
 .set.is-done .set__ok {
@@ -1208,16 +1280,19 @@ p {
   justify-content: center;
   padding: 16px;
   padding-bottom: calc(16px + var(--safe-b));
-  z-index: 50;
+  z-index: var(--z-modal);
 }
 
 .modal__card {
-  background: var(--surface);
-  border: 1px solid var(--line);
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--line-strong);
   border-radius: var(--r-lg);
   padding: 20px;
   width: 100%;
   max-width: 520px;
+  box-shadow: var(--shadow-3);
   animation: rise 0.18s ease-out;
 }
 
@@ -1301,7 +1376,7 @@ p {
   position: fixed;
   inset: 0;
   background: var(--bg);
-  z-index: 80;
+  z-index: var(--z-modal);
   display: grid;
   place-items: center;
   opacity: 0;
@@ -1401,7 +1476,7 @@ p {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 60;
+  z-index: var(--z-banner);
   display: flex;
   align-items: center;
   gap: var(--sp-3);
@@ -1471,6 +1546,180 @@ p {
   margin-bottom: var(--sp-4);
 }
 
+/* ---------- Navigation principale ----------
+   Le même élément partout : barre du bas sur mobile, latérale sur desktop.
+   Cinq destinations, icône + libellé, l'actif en or. Elle répond en
+   permanence à « où suis-je ? » — et s'efface pendant une séance. */
+
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-nav);
+  display: flex;
+  align-items: stretch;
+  height: calc(var(--nav-h) + var(--safe-b));
+  padding: 0 var(--sp-2) var(--safe-b);
+  background: var(--glass);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border-top: 1px solid var(--line);
+  transition: transform var(--t-base), opacity var(--t-base);
+}
+
+.tabbar.is-hidden {
+  transform: translateY(105%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* La marque ne s'affiche que dans la barre latérale desktop. */
+.tabbar__brand {
+  display: none;
+}
+
+.tabbar__item {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: var(--muted);
+  border-radius: var(--r-sm);
+  transition: color var(--t-fast);
+}
+
+.tabbar__icon svg {
+  width: 23px;
+  height: 23px;
+  display: block;
+}
+
+.tabbar__label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.tabbar__item.is-on {
+  color: var(--gold);
+}
+
+/* Quand la navigation est là, tout ce qui colle au bas se pose dessus. */
+body.has-nav .page {
+  padding-bottom: calc(190px + var(--nav-h) + var(--safe-b));
+}
+
+body.has-nav .sticky-actions {
+  bottom: calc(var(--nav-h) + var(--safe-b));
+  padding-bottom: var(--sp-3);
+}
+
+body.has-nav .toast-stack {
+  bottom: calc(var(--nav-h) + 88px + var(--safe-b));
+}
+
+/* ---------- Desktop : barre latérale + contenu décalé ---------- */
+
+@media (min-width: 1024px) {
+  .tabbar {
+    top: 0;
+    bottom: 0;
+    right: auto;
+    width: var(--nav-w);
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 4px;
+    height: auto;
+    padding: var(--sp-6) var(--sp-3);
+    background: var(--surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    border-top: 0;
+    border-right: 1px solid var(--line);
+  }
+
+  .tabbar.is-hidden {
+    transform: translateX(-105%);
+  }
+
+  .tabbar__brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--gold);
+    padding: var(--sp-2) var(--sp-3) var(--sp-6);
+  }
+
+  .tabbar__brandword {
+    font-family: var(--font-title);
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: var(--tracking-brand);
+    color: var(--text);
+  }
+
+  .tabbar__item {
+    flex: none;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 11px var(--sp-3);
+    transition: color var(--t-fast), background var(--t-fast);
+  }
+
+  .tabbar__item:hover {
+    color: var(--text);
+    background: var(--surface-2);
+  }
+
+  .tabbar__item.is-on {
+    color: var(--gold);
+    background: var(--gold-dim);
+  }
+
+  .tabbar__icon svg {
+    width: 21px;
+    height: 21px;
+  }
+
+  .tabbar__label {
+    font-size: 14px;
+  }
+
+  body.has-nav #app {
+    padding-left: var(--nav-w);
+  }
+
+  body.has-nav .sticky-actions {
+    left: var(--nav-w);
+    bottom: 0;
+    padding-bottom: calc(var(--sp-4) + var(--safe-b));
+  }
+
+  body.has-nav .page {
+    padding-bottom: 190px;
+  }
+
+  .page {
+    max-width: 620px;
+    padding-top: var(--sp-6);
+  }
+
+  /* La marque vit déjà dans la barre latérale : pas deux fois à l'écran. */
+  .home-head__mark {
+    display: none;
+  }
+}
+
 /* ---------- Toast ---------- */
 
 .toast-stack {
@@ -1482,7 +1731,7 @@ p {
   flex-direction: column-reverse;
   align-items: center;
   gap: 8px;
-  z-index: 90;
+  z-index: var(--z-toast);
   pointer-events: none;
 }
 

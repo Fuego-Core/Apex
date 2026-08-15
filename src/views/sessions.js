@@ -34,7 +34,7 @@ export default function sessionsView(root) {
 
   root.innerHTML = `
     <div class="page">
-      ${header({ back: '#/', title: 'Séances', sub: `${state.program.length} séances au programme` })}
+      ${header({ title: 'Entraînement', sub: `${state.program.length} séances au programme` })}
 
       ${
         live && liveSession

@@ -6,6 +6,7 @@ import { primeAudio } from './timer.js'
 import { initState, onStorageError, getBootInfo } from './state.js'
 import { downloadEmergencyExport } from './data/rescue.js'
 import { banner, fatalScreen, toast } from './ui.js'
+import { initNav, syncNav } from './ui/nav.js'
 import { measureLocal, storageAdvice } from './data/storageInfo.js'
 import dashboardView from './views/dashboard.js'
 import sessionsView from './views/sessions.js'
@@ -21,6 +22,7 @@ import summaryView from './views/summary.js'
 import historyView from './views/history.js'
 import exerciseView from './views/exercise.js'
 import settingsView from './views/settings.js'
+import progressView from './views/progress.js'
 
 const app = document.getElementById('app')
 
@@ -33,6 +35,7 @@ const ROUTES = [
   { re: /^\/objectifs$/, view: goalsView },
   { re: /^\/objectifs\/nouveau$/, view: goalsView, keys: [], create: true },
   { re: /^\/profil$/, view: profileView },
+  { re: /^\/progression$/, view: progressView },
   { re: /^\/nutrition$/, view: nutritionView },
   { re: /^\/nutrition\/historique$/, view: nutritionHistoryView },
   { re: /^\/nutrition\/(\d{4}-\d{2}-\d{2})$/, view: nutritionView, keys: ['date'] },
@@ -68,6 +71,7 @@ function render() {
 
   const path = location.hash.replace(/^#/, '') || '/'
   const match = ROUTES.map((r) => ({ r, m: path.match(r.re) })).find((x) => x.m)
+  syncNav(path)
 
   if (typeof cleanup === 'function') {
     cleanup()
@@ -120,6 +124,7 @@ async function boot() {
   }
 
   ready = true
+  initNav()
 
   // Un échec d'enregistrement ne doit jamais rester invisible.
   onStorageError((error) => {

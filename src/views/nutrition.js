@@ -21,7 +21,7 @@ import { dayTotals, remaining, display, entryMacros } from '../core/nutrition/ca
 import { estimateTargets, explain } from '../core/nutrition/targets.js'
 import { today, currentAverage } from '../core/body.js'
 import { esc, header, num, formatDate, toast, confirmDialog } from '../ui.js'
-import { tile, meter, blank, openSheet, parseNumber } from '../ui/components.js'
+import { meter, blank, openSheet, parseNumber } from '../ui/components.js'
 import { pickFood } from '../ui/food-flow.js'
 
 const MACRO_LABELS = { kcal: 'Calories', protein: 'Protéines', carbs: 'Glucides', fat: 'Lipides' }
@@ -158,53 +158,69 @@ export default function nutritionView(root, { date: initialDate } = {}) {
 
   /* ---------- rendu ---------- */
 
-  function targetsBlock(totals) {
+  /** Le héros : LE chiffre du jour. Avec un objectif, il devient « mangé / cap » ;
+   *  sans objectif, il compte sans juger — et propose d'en fixer un. */
+  function heroBlock(totals, entryCount) {
     const state = getState()
     const t = state.nutrition.targets
     const left = remaining(t, totals)
+    const eaten = totals.kcal === null ? null : display(totals.kcal, 'kcal')
 
     if (!left) {
       return `
-        <div class="card">
-          <p class="tile__label">Objectifs</p>
-          <p class="note" style="margin-top:var(--sp-2)">
-            Pas encore configurés. APEX compte tes apports sans les juger tant que tu n'as pas fixé de cap.
+        <div class="card hero">
+          <p class="tile__label">Calories</p>
+          <p class="tile__value hero__value">${eaten === null ? '—' : eaten}<span class="tile__unit">kcal</span></p>
+          <p class="hero__hint">${entryCount} aliment${entryCount > 1 ? 's' : ''} aujourd'hui</p>
+          <p class="note" style="margin-top:var(--sp-3)">
+            Pas encore configurés : APEX compte tes apports sans les juger tant que tu n'as pas fixé de cap.
           </p>
-          <button class="btn btn--ghost btn--block" data-act="targets" style="margin-top:var(--sp-3)">
+          <button class="btn btn--ghost btn--block btn--sm" data-act="targets" style="margin-top:var(--sp-3)">
             Définir mes objectifs
           </button>
         </div>`
     }
 
-    const rows = ['kcal', 'protein', 'carbs', 'fat']
-      .filter((macro) => left[macro])
-      .map((macro) => {
-        const r = left[macro]
-        return `
-          <div class="goal">
-            <div class="goal__head">
-              <span class="goal__title">${esc(MACRO_LABELS[macro])}</span>
-              <span class="goal__values">
-                <strong>${esc(String(display(r.eaten, macro)))}</strong> / ${esc(String(r.target))} ${esc(MACRO_UNITS[macro])}
-              </span>
-            </div>
-            ${meter(r.pct)}
-            <div class="goal__foot">
-              <span>${r.left >= 0 ? `reste ${display(r.left, macro)} ${MACRO_UNITS[macro]}` : `dépassement de ${display(-r.left, macro)} ${MACRO_UNITS[macro]}`}</span>
-              <span>${r.pct} %</span>
-            </div>
-          </div>`
-      })
-      .join('')
-
+    const kcal = left.kcal
     const basis = t.mode === 'estimated' ? explain(t.basis) : null
     return `
-      <div class="card">${rows}
-        <p class="goal__source">
-          ${t.mode === 'estimated' ? 'Estimation' : 'Objectifs saisis à la main'}${basis ? ` — ${esc(basis)}` : ''}
+      <div class="card hero">
+        <p class="tile__label">Calories</p>
+        <p class="tile__value hero__value">
+          ${eaten === null ? '0' : eaten}<span class="hero__target"> / ${esc(String(kcal ? kcal.target : ''))} kcal</span>
         </p>
-        <button class="btn btn--ghost btn--sm" data-act="targets" style="margin-top:var(--sp-3)">Modifier</button>
+        ${kcal ? meter(kcal.pct) : ''}
+        <div class="hero__foot">
+          <span>${
+            kcal
+              ? kcal.left >= 0
+                ? `reste ${display(kcal.left, 'kcal')} kcal`
+                : `dépassement de ${display(-kcal.left, 'kcal')} kcal`
+              : `${entryCount} aliment${entryCount > 1 ? 's' : ''}`
+          }</span>
+          <button class="linklike" data-act="targets">${t.mode === 'estimated' ? 'Estimation' : 'Objectifs'} · modifier</button>
+        </div>
+        ${basis ? `<p class="goal__source">${esc(basis)}</p>` : ''}
       </div>`
+  }
+
+  /** Protéines / glucides / lipides : trois petites jauges, une ligne. */
+  function macroRow(totals) {
+    const t = getState().nutrition.targets
+    const left = remaining(t, totals)
+
+    const cell = (macro) => {
+      const eaten = totals[macro]
+      const goal = left?.[macro]
+      return `
+        <div class="macro">
+          <p class="macro__label">${esc(MACRO_LABELS[macro])}</p>
+          <p class="macro__value">${eaten === null ? '—' : display(eaten, macro)}<span class="macro__unit">${goal ? `/${goal.target}` : ''} g</span></p>
+          ${goal ? meter(goal.pct) : ''}
+        </div>`
+    }
+
+    return `<div class="macros">${cell('protein')}${cell('carbs')}${cell('fat')}</div>`
   }
 
   function mealBlock(day, meal) {
@@ -272,7 +288,7 @@ export default function nutritionView(root, { date: initialDate } = {}) {
 
     root.innerHTML = `
       <div class="page">
-        ${header({ back: '#/', title: 'Nutrition', sub: 'Journal alimentaire' })}
+        ${header({ title: 'Nutrition', sub: 'Journal alimentaire' })}
 
         <div class="daynav">
           <button class="btn btn--ghost btn--sm" data-act="prev-day" aria-label="Jour précédent">‹</button>
@@ -280,27 +296,8 @@ export default function nutritionView(root, { date: initialDate } = {}) {
           <button class="btn btn--ghost btn--sm" data-act="next-day" aria-label="Jour suivant" ${isToday ? 'disabled' : ''}>›</button>
         </div>
 
-        <div class="grid-2" style="margin-top:var(--sp-4)">
-          ${tile({
-            label: 'Calories',
-            value: total.kcal === null ? null : display(total.kcal, 'kcal'),
-            unit: 'kcal',
-            hint: `${day.entries.length} aliment${day.entries.length > 1 ? 's' : ''}`,
-            empty: '—'
-          })}
-          ${tile({
-            label: 'Protéines',
-            value: total.protein === null ? null : display(total.protein),
-            unit: 'g',
-            hint:
-              total.carbs !== null || total.fat !== null
-                ? `G ${total.carbs === null ? '—' : display(total.carbs)} · L ${total.fat === null ? '—' : display(total.fat)}`
-                : '',
-            empty: '—'
-          })}
-        </div>
-
-        <div style="margin-top:var(--sp-3)">${targetsBlock(total)}</div>
+        <div style="margin-top:var(--sp-3)">${heroBlock(total, day.entries.length)}</div>
+        <div style="margin-top:var(--sp-3)">${macroRow(total)}</div>
 
         ${
           meals.length

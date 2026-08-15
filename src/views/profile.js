@@ -6,7 +6,7 @@
    servent déjà à lire une tendance de poids dans le bon sens. */
 
 import { getState, updateProfile } from '../state.js'
-import { esc, header, num, toast } from '../ui.js'
+import { esc, header, num, toast, logoMark } from '../ui.js'
 import { blank, openSheet, parseNumber } from '../ui/components.js'
 
 const SEX = [
@@ -121,13 +121,27 @@ export default function profileView(root) {
       { title: 'Durée d’une séance', meta: p.sessionDuration ? `${p.sessionDuration} min` : null }
     ]
 
+    const goalLabel = labelOf(GOALS, p.goal)
+
     root.innerHTML = `
       <div class="page">
-        ${header({ back: '#/', title: 'Profil', sub: filled ? `${filled} information${filled > 1 ? 's' : ''}` : 'À compléter' })}
+        ${header({ title: 'Profil', sub: filled ? `${filled} information${filled > 1 ? 's' : ''}` : 'À compléter' })}
+
+        <div class="card identity">
+          <span class="identity__mark">${logoMark(30)}</span>
+          <div class="identity__main">
+            <p class="identity__title">${goalLabel ? `Objectif : ${esc(goalLabel.toLowerCase())}` : 'Aucun objectif déclaré'}</p>
+            <p class="identity__sub">${
+              [p.height ? `${num(p.height)} cm` : null, p.trainingDays ? `${p.trainingDays} séances/sem` : null]
+                .filter(Boolean)
+                .join(' · ') || 'Complète ton profil pour des lectures plus justes'
+            }</p>
+          </div>
+        </div>
 
         ${
           filled
-            ? `<div class="card">
+            ? `<div class="card" style="margin-top:var(--sp-3)">
                 ${lines
                   .map(
                     (l) => `
@@ -145,6 +159,17 @@ export default function profileView(root) {
                 text: 'Renseigne l’essentiel : APEX pourra lire tes tendances dans le bon sens et, plus tard, adapter ton programme.'
               })
         }
+
+        <h3 class="section-title">Données &amp; app</h3>
+        <a class="row" href="#/reglages">
+          <div class="row__main">
+            <p class="row__title">Réglages</p>
+            <p class="row__meta">Sauvegarde, export, stockage, réinitialisation</p>
+          </div>
+          <span class="row__go">›</span>
+        </a>
+
+        <p class="footnote">APEX · 100 % local, aucune donnée ne quitte l'appareil.</p>
 
         <div class="sticky-actions">
           <button class="btn btn--gold btn--block btn--lg" data-act="edit">

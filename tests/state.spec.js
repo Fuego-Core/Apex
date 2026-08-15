@@ -54,6 +54,16 @@ describe('premier démarrage', () => {
     expect(mod.getState().program).toHaveLength(5)
     expect(storage.getItem(CURRENT)).toBeTruthy()
   })
+
+  it('hydrate l’état neuf : la première séance a des noms et des modes', async () => {
+    // Régression réelle : sans hydratation, name/mode restaient indéfinis
+    // jusqu'au premier rechargement, et la première séance affichait des
+    // chronos vides à la place des répétitions.
+    await load()
+    const first = mod.getState().program[0].exercises[0]
+    expect(first.name).toBe('Supine Press machine')
+    expect(first.mode).toBe('reps')
+  })
 })
 
 describe('migration au démarrage', () => {

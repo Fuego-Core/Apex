@@ -297,7 +297,8 @@ check('profil enregistré', profile.height === 178 && profile.goal === 'seche')
 /* --- le tableau de bord reflète les nouvelles données --- */
 await page.goto(BASE, { waitUntil: 'networkidle' })
 await page.waitForSelector('.today')
-check('poids remonté au tableau de bord', (await page.locator('.tile__value').first().textContent()).includes('79'))
+// Depuis la refonte, l'accueil montre le poids dans une métrique compacte.
+check('poids remonté au tableau de bord', (await page.locator('.metric__value').first().textContent()).includes('79'))
 check('objectif remonté au tableau de bord', (await page.locator('.goal').count()) >= 1)
 check('sparkline affichée', (await page.locator('.spark').count()) === 1)
 
@@ -937,7 +938,7 @@ await page.locator('[data-act="import-paste"]').click()
 await page.waitForSelector('.today', { timeout: 5000 })
 const reimported = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).body.weight, CURRENT)
 check('import : les données remplacent bien l’état courant', reimported.length === 1 && reimported[0].value === 70)
-check('import : le tableau de bord affiche la donnée importée', (await page.locator('.tile__value').first().textContent()).includes('70'))
+check('import : le tableau de bord affiche la donnée importée', (await page.locator('.metric__value').first().textContent()).includes('70'))
 
 await page.goto(`${BASE}#/reglages`, { waitUntil: 'networkidle' })
 await page.locator('.details summary').click()

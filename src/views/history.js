@@ -108,7 +108,7 @@ export default function historyView(root, { entryId } = {}) {
 
   root.innerHTML = `
     <div class="page">
-      ${header({ back: '#/', title: 'Historique', sub: `${state.history.length} séance${state.history.length > 1 ? 's' : ''} archivée${state.history.length > 1 ? 's' : ''}` })}
+      ${header({ back: '#/progression', title: 'Historique', sub: `${state.history.length} séance${state.history.length > 1 ? 's' : ''} archivée${state.history.length > 1 ? 's' : ''}` })}
       ${
         state.history.length
           ? `<h3 class="section-title">Séances</h3>

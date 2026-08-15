@@ -1,16 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="APEX">
-  <rect width="512" height="512" rx="112" fill="#0B0B0C"/>
-  <g fill="none" stroke="#D4AF37" stroke-linecap="round" stroke-linejoin="round">
-    <!-- sommet : les deux versants -->
-    <path d="M256 116 L140 384" stroke-width="12"/>
-    <path d="M256 116 L372 384" stroke-width="12"/>
-    <!-- barre de musculation : la barre horizontale du sommet -->
-    <path d="M104 300 H408" stroke-width="12"/>
-    <!-- disques -->
-    <path d="M132 272 V328" stroke-width="12"/>
-    <path d="M380 272 V328" stroke-width="12"/>
-    <!-- colliers -->
-    <path d="M104 286 V314" stroke-width="10"/>
-    <path d="M408 286 V314" stroke-width="10"/>
+  <!-- Icône d'app : le sommet APEX. Fond noir profond, symbole or. -->
+  <rect width="512" height="512" rx="116" fill="#070707"/>
+  <g transform="translate(76 78) scale(7.5)" fill="#D4AF37">
+    <!-- le A : deux versants -->
+    <path d="M24 4.5 L42.5 43 H36 L24 17.9 L12 43 H5.5 Z"/>
+    <!-- le sommet intérieur : la progression, un sommet après l'autre -->
+    <path d="M24 22.4 L28.2 31.2 H19.8 Z"/>
+    <!-- la barre : référence discrète à la musculation -->
+    <rect x="9" y="33.8" width="30" height="3.2"/>
+    <rect x="5.4" y="30.9" width="2.7" height="9"/>
+    <rect x="39.9" y="30.9" width="2.7" height="9"/>
   </g>
 </svg>

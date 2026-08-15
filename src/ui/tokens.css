@@ -1,38 +1,42 @@
 /* ===========================================================
-   APEX — jetons de design.
+   APEX — jetons de design.  « POWER WITHOUT NOISE. »
 
    Un seul endroit décide des couleurs, des espacements, des rayons et des
    durées. Les écrans ne choisissent plus de valeurs : ils choisissent un jeton.
 
-   Règle d'or, inchangée depuis la v1 : l'OR est réservé à ce qui a de la
-   valeur — action principale, timer actif, progression 🎯, record. Tout le
-   reste vit en noir, blanc et gris. Un écran où tout brille est un écran où
+   Direction : LUXURY PERFORMANCE. Noir profond, surfaces à peine plus
+   claires, traits presque invisibles — et l'or en accent, jamais en décor.
+
+   Répartition volontaire : ~80 % noir/gris, ~15 % blanc/gris clair, ~5 % or.
+   L'or est réservé à ce qui a de la valeur : l'action principale, le timer
+   actif, la progression, un record. Un écran où tout brille est un écran où
    plus rien ne ressort.
    =========================================================== */
 
 :root {
-  /* Fonds et surfaces */
-  --bg: #0b0b0c;
-  --surface: #16161a;
-  --surface-2: #1e1e23;
-  --surface-3: #26262c;
+  /* Fonds et surfaces — trois niveaux, pas plus */
+  --bg: #070707;
+  --surface: #101010;
+  --surface-2: #151515;
+  --surface-3: #1c1c1c;
 
   /* Texte */
-  --text: #f5f5f0;
-  --muted: #9a9aa0;
-  --faint: #6e6e75;
+  --text: #f5f5f5;
+  --muted: #858585;
+  --faint: #5a5a5a;
 
-  /* Or */
+  /* Or — l'accent, 5 % de l'écran maximum */
   --gold: #d4af37;
-  --gold-soft: #e6c964;
-  --gold-dim: rgba(212, 175, 55, 0.14);
-  --gold-line: rgba(212, 175, 55, 0.4);
+  --gold-soft: #e6c766;
+  --gold-dim: rgba(212, 175, 55, 0.12);
+  --gold-line: rgba(212, 175, 55, 0.38);
+  --gold-grad: linear-gradient(160deg, #e6c766 0%, #d4af37 55%, #b8952d 100%);
 
-  /* Traits */
-  --line: rgba(245, 245, 240, 0.09);
-  --line-strong: rgba(245, 245, 240, 0.18);
+  /* Traits — présents mais presque invisibles */
+  --line: rgba(255, 255, 255, 0.07);
+  --line-strong: rgba(255, 255, 255, 0.14);
 
-  /* États */
+  /* États — discrets, uniquement quand nécessaire */
   --success: #4f9d69;
   --warning: #c9922f;
   --danger: #b3503c;
@@ -40,28 +44,29 @@
   /* Espacement — une seule suite, pas de valeurs au hasard */
   --sp-1: 4px;
   --sp-2: 8px;
-  --sp-3: 10px;
-  --sp-4: 14px;
-  --sp-5: 16px;
-  --sp-6: 26px;
-  --sp-7: 36px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 28px;
+  --sp-7: 40px;
 
-  /* Rayons */
+  /* Rayons — les mêmes partout */
   --r-sm: 10px;
-  --r-md: 14px;
-  --r-lg: 20px;
+  --r-md: 16px;
+  --r-lg: 22px;
   --r-full: 999px;
 
-  /* Ombres */
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-2: 0 10px 30px rgba(0, 0, 0, 0.55);
+  /* Ombres — la profondeur remplace la décoration */
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-2: 0 12px 32px rgba(0, 0, 0, 0.55);
+  --shadow-3: 0 24px 60px rgba(0, 0, 0, 0.7);
 
-  /* Mouvement — court, jamais décoratif */
-  --t-fast: 120ms ease;
+  /* Mouvement — 150–250 ms, jamais décoratif */
+  --t-fast: 150ms ease;
   --t-base: 200ms ease;
-  --t-slow: 320ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  --t-slow: 250ms cubic-bezier(0.22, 0.61, 0.36, 1);
 
-  /* Typographie */
+  /* Typographie — hiérarchie forte, chiffres puissants */
   --font-title: 'Space Grotesk', 'Inter', system-ui, sans-serif;
   --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --fs-xs: 11px;
@@ -70,11 +75,27 @@
   --fs-lg: 20px;
   --fs-xl: 28px;
   --fs-2xl: 40px;
+  --fs-display: 56px;
   --tracking-wide: 0.14em;
   --tracking-brand: 0.34em;
 
+  /* Plans — un seul ordre, décidé ici */
+  --z-nav: 40;
+  --z-banner: 60;
+  --z-sheet: 70;
+  --z-modal: 80;
+  --z-toast: 90;
+
+  /* Verre — réservé aux plans flottants (feuilles, navigation) */
+  --glass: rgba(16, 16, 16, 0.82);
+  --glass-blur: saturate(1.4) blur(18px);
+
   /* Cible tactile minimale : une série se valide avec le pouce, en sueur. */
   --tap: 44px;
+
+  /* Navigation : barre du bas (mobile) ou latérale (desktop) */
+  --nav-h: 62px;
+  --nav-w: 232px;
 
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);

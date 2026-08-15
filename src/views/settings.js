@@ -37,7 +37,7 @@ export default function settingsView(root) {
 
   root.innerHTML = `
     <div class="page">
-      ${header({ back: '#/', title: 'Réglages' })}
+      ${header({ back: '#/profil', title: 'Réglages' })}
 
       <h3 class="section-title">Séance</h3>
       <div class="card">
