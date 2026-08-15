@@ -349,8 +349,8 @@ check('import : un fichier invalide est refusé avec un motif', /Import impossib
 /* --- la coquille hors ligne ne doit pas être polluée --- */
 // Incident réel : ouvrir une autre page du domaine (outil, ou 404 transitoire
 // pendant un déploiement) faisait de cette réponse l'app hors ligne.
-await page.goto(`${BASE}off-probe.html`, { waitUntil: 'networkidle' })
-check('page annexe servie normalement', (await page.title()).includes('sonde'))
+const svg = await page.goto(`${BASE}icons/apex-icon.svg`, { waitUntil: 'commit' })
+check('ressource non-HTML servie normalement', svg.status() === 200, `${svg.status()} ${svg.headers()['content-type']}`)
 expectingErrors = true
 const notFound = await page.goto(`${BASE}page-qui-nexiste-pas.html`, { waitUntil: 'commit' })
 check('page inconnue rendue en 404', notFound.status() === 404, String(notFound.status()))
@@ -365,7 +365,11 @@ await ctx.setOffline(true)
 await page.goto(BASE, { waitUntil: 'load' })
 await page.waitForSelector('.today', { timeout: 8000 })
 check('la coquille hors ligne reste APEX après une visite ailleurs', await page.locator('.today__name').isVisible())
-check('aucune page étrangère mise en cache comme coquille', !(await page.title()).includes('sonde'), await page.title())
+check(
+  'aucune page étrangère mise en cache comme coquille',
+  (await page.title()).includes('APEX'),
+  await page.title()
+)
 await ctx.setOffline(false)
 
 /* --- hors ligne --- */
