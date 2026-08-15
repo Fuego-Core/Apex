@@ -17,11 +17,17 @@ function serviceWorkerPrecache() {
       const assets = Object.keys(bundle)
         .filter((f) => /\.(js|css)$/.test(f))
         .map((f) => `./${f}`)
-      // Version de cache dérivée du contenu : un nouveau build purge l'ancien,
-      // un build identique ne fait rien retélécharger.
-      const version = `apex-${createHash('sha1').update(assets.join('|')).digest('hex').slice(0, 8)}`
+      const template = readFileSync(swPath, 'utf8')
+      // Version de cache dérivée du contenu — assets ET service worker. Sans
+      // le second, corriger une règle de cache ne purgeait pas les caches déjà
+      // écrits par l'ancienne règle : le défaut restait sur les appareils.
+      const version = `apex-${createHash('sha1')
+        .update(assets.join('|'))
+        .update(template)
+        .digest('hex')
+        .slice(0, 8)}`
 
-      const source = readFileSync(swPath, 'utf8')
+      const source = template
         .replace("'__APEX_BUILD__'", JSON.stringify(version))
         .replace("'__APEX_ASSETS__'", JSON.stringify(assets))
       writeFileSync(swPath, source)

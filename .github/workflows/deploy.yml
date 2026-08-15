@@ -41,6 +41,10 @@ jobs:
 
   deploy:
     needs: build
+    # Seule la branche par défaut publie. Les autres branches se contentent de
+    # construire et de tester : l'environnement github-pages leur est fermé, et
+    # une tentative de déploiement s'y solderait par un échec rouge trompeur.
+    if: github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-latest
     environment:
       name: github-pages

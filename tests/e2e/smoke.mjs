@@ -88,8 +88,16 @@ const errors = []
 // Le test de données corrompues provoque volontairement une erreur : on ne la
 // compte pas comme une anomalie, mais tout le reste doit rester silencieux.
 let expectingErrors = false
+/** Erreurs attendues : le 404 provoqué volontairement, et la favicon qu'un
+ *  serveur statique nu ne sert pas. Ni l'une ni l'autre ne vient de l'app. */
+const IGNORED = ['page-qui-nexiste-pas', 'favicon.ico']
 page.on('pageerror', (e) => !expectingErrors && errors.push(`pageerror: ${e.message}`))
-page.on('console', (m) => m.type() === 'error' && !expectingErrors && errors.push(`console: ${m.text()}`))
+page.on('console', (m) => {
+  if (m.type() !== 'error' || expectingErrors) return
+  const url = m.location()?.url || ''
+  if (IGNORED.some((pattern) => url.includes(pattern))) return
+  errors.push(`console: ${m.text()} @ ${url}`)
+})
 
 /** Capture d'écran seulement si on a demandé un dossier de sortie. */
 const shot = (name) =>
@@ -337,6 +345,28 @@ await page.locator('[data-act="import-paste"]').click()
 await page.waitForSelector('.toast')
 const importError = await page.locator('.toast').last().textContent()
 check('import : un fichier invalide est refusé avec un motif', /Import impossible/.test(importError), importError.trim().slice(0, 60))
+
+/* --- la coquille hors ligne ne doit pas être polluée --- */
+// Incident réel : ouvrir une autre page du domaine (outil, ou 404 transitoire
+// pendant un déploiement) faisait de cette réponse l'app hors ligne.
+await page.goto(`${BASE}off-probe.html`, { waitUntil: 'networkidle' })
+check('page annexe servie normalement', (await page.title()).includes('sonde'))
+expectingErrors = true
+const notFound = await page.goto(`${BASE}page-qui-nexiste-pas.html`, { waitUntil: 'commit' })
+check('page inconnue rendue en 404', notFound.status() === 404, String(notFound.status()))
+
+await page.goto(BASE, { waitUntil: 'networkidle' })
+await page.waitForSelector('.today')
+// Le 404 provoqué plus haut peut encore remonter en console : on referme la
+// fenêtre de tolérance seulement maintenant.
+expectingErrors = false
+await page.evaluate(() => navigator.serviceWorker.ready)
+await ctx.setOffline(true)
+await page.goto(BASE, { waitUntil: 'load' })
+await page.waitForSelector('.today', { timeout: 8000 })
+check('la coquille hors ligne reste APEX après une visite ailleurs', await page.locator('.today__name').isVisible())
+check('aucune page étrangère mise en cache comme coquille', !(await page.title()).includes('sonde'), await page.title())
+await ctx.setOffline(false)
 
 /* --- hors ligne --- */
 // Le service worker doit avoir pris la main avant de couper le réseau,

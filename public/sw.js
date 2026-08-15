@@ -60,6 +60,9 @@ self.addEventListener('message', (event) => {
   if (event.data === 'skip-waiting') self.skipWaiting()
 })
 
+/** La coquille de l'app : la racine du scope ou son index.html, rien d'autre. */
+const isAppShell = (url) => url.pathname.endsWith('/') || url.pathname.endsWith('/index.html')
+
 self.addEventListener('fetch', (event) => {
   const req = event.request
   if (req.method !== 'GET') return
@@ -73,11 +76,20 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
-          const copy = res.clone()
-          caches.open(SHELL).then((c) => c.put('./index.html', copy))
+          // La coquille ne se met à jour QUE depuis la coquille, et seulement
+          // si la réponse est saine. Sans cette garde, un 404 transitoire ou
+          // une autre page du domaine devenait l'application hors ligne.
+          const html = (res.headers.get('content-type') || '').includes('text/html')
+          if (res.ok && html && isAppShell(url)) {
+            const copy = res.clone()
+            caches.open(SHELL).then((c) => c.put('./index.html', copy))
+          }
           return res
         })
         .catch(async () => {
+          // Hors ligne, on ne sert en repli que l'app elle-même : une autre
+          // page doit échouer franchement plutôt que d'afficher APEX à sa place.
+          if (!isAppShell(url)) return Response.error()
           const cache = await caches.open(SHELL)
           return (
             (await cache.match('./index.html')) ||
