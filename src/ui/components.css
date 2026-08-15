@@ -340,6 +340,14 @@
   margin-bottom: var(--sp-4);
 }
 
+/* À quatre onglets sur un écran de téléphone, un libellé passait à la ligne :
+   on resserre plutôt que de raccourcir les mots jusqu'à l'obscurité. */
+.seg--tight .seg__opt {
+  font-size: var(--fs-xs);
+  padding: 0 2px;
+  white-space: nowrap;
+}
+
 /* ---------- En-tête de section ---------- */
 
 .section-head {
@@ -589,6 +597,22 @@
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
+}
+
+/* La recherche en ligne se déclenche : le bouton est à côté du champ, pas ailleurs. */
+.pick-search {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+}
+
+.pick-search .fld__input {
+  flex: 1;
+  min-width: 0;
+}
+
+.pick-search .btn {
+  flex: none;
 }
 
 /* ---------- Navigation par jour ---------- */

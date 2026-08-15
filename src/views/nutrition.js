@@ -6,7 +6,17 @@
    Sans cibles définies, APEX compte mais ne juge pas : pas de barres vides ni
    de pourcentages inventés, juste les totaux. */
 
-import { getState, logFood, removeLogEntry, createFood, applyEstimatedTargets, setManualTargets } from '../state.js'
+import {
+  getState,
+  logFood,
+  removeLogEntry,
+  createFood,
+  applyEstimatedTargets,
+  setManualTargets,
+  searchFoodsOnline,
+  lookupBarcode
+} from '../state.js'
+import { isBarcode } from '../data/openFoodFacts.js'
 import { dayOf, MEAL_LABELS, usedMeals, entriesOfMeal, shiftDate, suggestedMeal } from '../core/nutrition/journal.js'
 import { dayTotals, remaining, display, entryMacros } from '../core/nutrition/calculations.js'
 import { recents, favorites, searchLocal, snapshotOf } from '../core/nutrition/foods.js'
@@ -117,12 +127,25 @@ export default function nutritionView(root, { date: initialDate } = {}) {
     return { id: res.food.id, name: res.food.name, brand: res.food.brand, snapshot: snapshotOf(res.food), unit: res.food.unit, lastQty: null }
   }
 
+  /* Un code-barres tapé à la main est une lecture directe, pas une recherche :
+     on ne fait pas chercher « 3017620422003 » à un moteur de texte. */
+  async function onlineSearch(query) {
+    if (isBarcode(query)) {
+      const found = await lookupBarcode(query)
+      return found.ok ? { rows: [found.row], message: '' } : { rows: [], message: found.message }
+    }
+    const { rows, warning, skipped } = await searchFoodsOnline(query)
+    const note = warning || (skipped ? `${skipped} fiche${skipped > 1 ? 's' : ''} écartée${skipped > 1 ? 's' : ''} : valeurs manquantes.` : '')
+    return { rows, message: note }
+  }
+
   async function addFood(meal = null) {
     const state = getState()
     const chosen = await openFoodPicker({
       recents: () => recents(state.nutrition.usage),
       favorites: () => favorites(state.nutrition.usage),
       search: (query) => searchLocal(state.nutrition, query),
+      online: onlineSearch,
       onCreate: openCreateFoodSheet
     })
     if (!chosen) return

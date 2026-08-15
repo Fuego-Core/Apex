@@ -12,8 +12,12 @@ import {
   snapshotOf,
   touchUsage,
   setFavorite as setFavoriteIn,
-  validateFoodInput
+  validateFoodInput,
+  tokensOf,
+  queryTokens
 } from '../core/nutrition/foods.js'
+import { fetchProduct, searchOnline, OffError, ATTRIBUTION } from '../data/openFoodFacts.js'
+import { foodCache } from '../data/foodCache.js'
 import { dayOf, addEntry, updateEntry, removeEntry, suggestedMeal } from '../core/nutrition/journal.js'
 import { estimateTargets } from '../core/nutrition/targets.js'
 import { currentAverage } from '../core/body.js'
@@ -116,6 +120,91 @@ export function resolveFood(id) {
   if (n.foods[id]) return { ...snapshotOf(n.foods[id]), id }
   const remembered = n.usage[id]?.snapshot
   return remembered ? { ...remembered, id } : null
+}
+
+/* ---------- source extérieure (Open Food Facts) ---------- */
+
+/* Tout ce qui suit est un ACCÉLÉRATEUR. Si le réseau tombe et si le cache
+   disparaît, l'app perd la découverte de nouveaux produits — rien d'autre :
+   le journal, les récents et les favoris ne dépendent d'aucun des deux. */
+
+/** Une fiche extérieure ramenée au format des lignes du sélecteur. */
+function externalRow(food) {
+  const remembered = getState().nutrition.usage[food.id]
+  return {
+    id: food.id,
+    name: food.name,
+    brand: food.brand,
+    snapshot: { ...snapshotOf(food), license: food.license ?? null, attribution: food.attribution ?? ATTRIBUTION },
+    // Si on l'a déjà mangé, sa quantité habituelle prime sur toute suggestion.
+    lastQty: remembered?.lastQty ?? null,
+    unit: food.unit || 'g',
+    count: remembered?.count || 0,
+    lastAt: remembered?.lastAt || null,
+    favorite: !!remembered?.favorite,
+    external: true,
+    derived: food.derived || null
+  }
+}
+
+/** Les fiches que la mémoire connaît ne doivent jamais être purgées du cache. */
+function pinnedIds() {
+  return new Set(Object.keys(getState().nutrition.usage))
+}
+
+let persistenceAsked = false
+
+async function cacheFoods(foods) {
+  const cache = foodCache()
+  // Demandée une seule fois, au premier usage réel : un refus ne change rien.
+  if (!persistenceAsked) {
+    persistenceAsked = true
+    cache.requestPersistence()
+  }
+  await cache.putMany(foods, { tokensOf: (f) => tokensOf(f.name, f.brand) })
+  await cache.purge({ pinned: pinnedIds() })
+}
+
+/**
+ * Recherche en ligne, déclenchée explicitement par l'utilisateur.
+ * Le cache répond d'abord — donc instantanément et hors ligne —, le réseau
+ * complète ensuite.
+ * @returns {Promise<{rows: object[], total: number, skipped: number, warning: string|null}>}
+ */
+export async function searchFoodsOnline(query) {
+  const tokens = queryTokens(query)
+  const cached = await foodCache().search(tokens)
+  const rows = new Map(cached.map((record) => [record.id, externalRow(record)]))
+
+  try {
+    const { foods, total, skipped } = await searchOnline(query)
+    for (const food of foods) rows.set(food.id, externalRow(food))
+    await cacheFoods(foods)
+    return { rows: [...rows.values()], total, skipped, warning: null }
+  } catch (e) {
+    if (!(e instanceof OffError)) throw e
+    // Le réseau a échoué : ce que le cache savait déjà reste affiché, dit comme tel.
+    return { rows: [...rows.values()], total: rows.size, skipped: 0, warning: e.userMessage }
+  }
+}
+
+/**
+ * Retrouve un produit par son code-barres : cache d'abord, réseau ensuite.
+ * @returns {Promise<{ok: true, row, fromCache: boolean} | {ok: false, code: string, message: string}>}
+ */
+export async function lookupBarcode(code) {
+  const cached = await foodCache().getByBarcode(String(code ?? '').trim())
+  if (cached) return { ok: true, row: externalRow(cached), fromCache: true }
+
+  try {
+    const result = await fetchProduct(code)
+    if (!result.ok) return result
+    await cacheFoods([result.food])
+    return { ok: true, row: externalRow(result.food), fromCache: false }
+  } catch (e) {
+    if (!(e instanceof OffError)) throw e
+    return { ok: false, code: e.code, message: e.userMessage }
+  }
 }
 
 /* ---------- journal ---------- */

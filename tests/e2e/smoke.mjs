@@ -374,6 +374,169 @@ await page.waitForSelector('.today')
 const dashText = await page.locator('body').innerText()
 check('résumé nutrition sur le tableau de bord', /2400 kcal|2 400 kcal|\/ 2400/.test(dashText.replace(/\u202f|\u00a0/g, ' ')), dashText.split('\n').find((l) => l.includes('kcal')) || '')
 
+/* --- nutrition : source extérieure, cache réel, et son caractère jetable ---
+
+   Open Food Facts est intercepté : la sonde de l'étape 0 a prouvé sur un vrai
+   téléphone que l'API répond ; ce qu'on vérifie ici, c'est notre comportement
+   face à ses réponses — y compris quand elles n'arrivent pas. */
+
+const OFF_NUTELLA = {
+  status: 1,
+  product: {
+    code: '3017620422003',
+    product_name_fr: 'Nutella pâte à tartiner',
+    brands: 'Ferrero',
+    serving_size: '15 g',
+    nutriments: {
+      'energy-kcal_100g': 539,
+      energy_100g: 2255,
+      energy_unit: 'kJ',
+      proteins_100g: 6.3,
+      carbohydrates_100g: 57.5,
+      fat_100g: 30.9,
+      fiber_100g: 0
+    }
+  }
+}
+const OFF_SEARCH = {
+  count: 2,
+  products: [
+    OFF_NUTELLA.product,
+    // Fiche incomplète : elle doit être écartée, jamais complétée par des 0.
+    { code: '1234567890123', product_name: 'Produit sans macros', nutriments: { 'energy-kcal_100g': 250 } }
+  ]
+}
+
+let offCalls = []
+const offJSON = (body) => ({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
+await page.route(/openfoodfacts\.org/, (route) => {
+  const url = route.request().url()
+  offCalls.push(url)
+  if (url.includes('/api/v2/product/0000000000000')) return route.fulfill(offJSON({ status: 0 }))
+  if (url.includes('/api/v2/product/')) return route.fulfill(offJSON(OFF_NUTELLA))
+  return route.fulfill(offJSON(OFF_SEARCH))
+})
+
+await page.goto(`${BASE}#/nutrition`, { waitUntil: 'networkidle' })
+await page.locator('.sticky-actions [data-act="add"]').click()
+await page.waitForSelector('.sheet')
+check('onglet « En ligne » présent', await page.locator('[data-tab="online"]').isVisible())
+
+await page.locator('[data-tab="online"]').click()
+await page.fill('[data-online-query]', 'nutella')
+await page.waitForTimeout(700)
+check('aucune requête au fil de la frappe', offCalls.length === 0, `${offCalls.length} requête(s)`)
+
+await page.locator('[data-act="run-online"]').click()
+await page.waitForSelector('.pick')
+check('recherche déclenchée explicitement', offCalls.length === 1, `${offCalls.length} requête(s)`)
+check('identification transmise à Open Food Facts', offCalls[0].includes('app_name=APEX'))
+const onlineRows = await page.locator('.pick').count()
+check('fiche incomplète écartée du résultat', onlineRows === 1, `${onlineRows} résultat(s)`)
+check(
+  'fiche incomplète expliquée, pas masquée',
+  (await page.locator('[data-list]').innerText()).toLowerCase().includes('écartée')
+)
+check('attribution ODbL affichée', (await page.locator('[data-online-note]').innerText()).includes('ODbL'))
+await shot('nutrition-online')
+
+// Le cache réel : IndexedDB dans un vrai navigateur.
+const cached = await page.evaluate(
+  () =>
+    new Promise((resolve) => {
+      const req = indexedDB.open('apex-foods')
+      req.onsuccess = () => {
+        const db = req.result
+        const all = db.transaction('foods', 'readonly').objectStore('foods').getAll()
+        all.onsuccess = () => {
+          db.close()
+          resolve(all.result)
+        }
+        all.onerror = () => resolve([])
+      }
+      req.onerror = () => resolve([])
+    })
+)
+check('produit mis en cache', cached.length === 1 && cached[0].id === 'off:3017620422003', `${cached.length} fiche(s)`)
+check('provenance et licence conservées dans le cache', cached[0]?.source === 'open-food-facts' && cached[0]?.license === 'ODbL 1.0')
+check('kcal de la source conservées telles quelles', cached[0]?.kcal === 539, String(cached[0]?.kcal))
+
+// Réseau coupé : ce que le cache sait déjà doit rester consultable.
+// La requête avortée fait japper la console du navigateur — c'est le but.
+expectingErrors = true
+await page.unroute(/openfoodfacts\.org/)
+await page.route(/openfoodfacts\.org/, (route) => route.abort())
+offCalls = []
+await page.fill('[data-online-query]', 'nutella')
+await page.locator('[data-act="run-online"]').click()
+await page.waitForTimeout(500)
+const offlineRows = await page.locator('.pick').count()
+check('hors réseau, le cache répond quand même', offlineRows === 1, `${offlineRows} résultat(s)`)
+check('panne réseau annoncée sans mentir', (await page.locator('[data-list]').innerText()).includes('Open Food Facts'))
+await shot('nutrition-online-offline')
+expectingErrors = false
+
+// Ajout au journal depuis un produit extérieur.
+await page.locator('.pick__qty').first().click()
+await page.waitForSelector('[name="qty"]')
+await page.fill('[name="qty"]', '30')
+await page.locator('.sheet [type="submit"]').last().click()
+await page.waitForSelector('.sheet', { state: 'detached' })
+
+const offLogged = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).nutrition, CURRENT)
+const offEntry = Object.values(offLogged.days)
+  .flatMap((d) => d.entries)
+  .find((e) => e.foodId === 'off:3017620422003')
+check('produit extérieur enregistré avec son instantané', offEntry?.snapshot.kcal === 539 && offEntry?.qty === 30)
+check('provenance conservée sur la ligne', offEntry?.snapshot.source === 'open-food-facts')
+check('attribution conservée jusque dans la ligne', String(offEntry?.snapshot.attribution || '').includes('ODbL'))
+check('produit extérieur absent des aliments personnels', Object.keys(offLogged.foods).length === 1)
+
+// LA règle : le cache est jetable. On le supprime, on recharge, rien ne bouge.
+await page.goto(BASE, { waitUntil: 'networkidle' })
+const wiped = await page.evaluate(
+  () =>
+    new Promise((resolve) => {
+      const req = indexedDB.deleteDatabase('apex-foods')
+      req.onsuccess = () => resolve(true)
+      req.onerror = () => resolve(false)
+      req.onblocked = () => resolve(false)
+    })
+)
+await page.goto(`${BASE}#/nutrition`, { waitUntil: 'networkidle' })
+const survivingKcal = await page.locator('.tile__value').first().textContent()
+check('cache supprimé', wiped)
+// 155 kcal (Skyr 250 g) + 161,7 kcal (Nutella 30 g) : le total ne dépend que des instantanés.
+check('la journée reste identique sans cache', survivingKcal.includes('317'), survivingKcal.trim())
+
+await page.locator('.sticky-actions [data-act="add"]').click()
+await page.waitForSelector('.pick')
+const rememberedText = await page.locator('[data-list]').innerText()
+check('le produit scanné reste ré-ajoutable sans cache ni réseau', rememberedText.includes('Nutella'))
+check('sa quantité habituelle est retenue', rememberedText.includes('30 g'))
+
+// Code-barres tapé à la main : lecture directe, et produit inconnu bien traité.
+await page.unroute(/openfoodfacts\.org/)
+await page.route(/openfoodfacts\.org/, (route) => {
+  const url = route.request().url()
+  offCalls.push(url)
+  if (url.includes('/api/v2/product/0000000000000')) return route.fulfill(offJSON({ status: 0 }))
+  return route.fulfill(offJSON(OFF_NUTELLA))
+})
+offCalls = []
+await page.locator('[data-tab="online"]').click()
+await page.fill('[data-online-query]', '0000000000000')
+await page.locator('[data-act="run-online"]').click()
+await page.waitForTimeout(400)
+check('code-barres lu comme un code, pas comme du texte', offCalls[0]?.includes('/api/v2/product/0000000000000'))
+check(
+  'produit inconnu renvoyé vers la création manuelle',
+  (await page.locator('[data-list]').innerText()).includes('créer à la main')
+)
+await page.locator('[data-act="cancel"]').click()
+await page.waitForSelector('.sheet', { state: 'detached' })
+await page.unroute(/openfoodfacts\.org/)
+
 /* --- export / import --- */
 await page.goto(`${BASE}#/reglages`, { waitUntil: 'networkidle' })
 await page.waitForSelector('[data-act="export"]')
