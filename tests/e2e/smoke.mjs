@@ -298,6 +298,40 @@ await page.waitForSelector('.hlist')
 const timeline = await page.locator('.hrow').count()
 check('timeline commune aux deux séances', timeline >= 2, `${timeline} entrées`)
 
+/* --- export / import --- */
+await page.goto(`${BASE}#/reglages`, { waitUntil: 'networkidle' })
+await page.waitForSelector('[data-act="export"]')
+
+const [download] = await Promise.all([
+  page.waitForEvent('download'),
+  page.locator('[data-act="export"]').click()
+])
+const exported = JSON.parse(await (await import('node:fs/promises')).readFile(await download.path(), 'utf8'))
+check('export : fichier téléchargé et lisible', exported.version === 3, `version ${exported.version}`)
+check(
+  'export : contient programme, historique, mesures et objectifs',
+  Array.isArray(exported.program) && Array.isArray(exported.history) && !!exported.body && Array.isArray(exported.goals)
+)
+check('export : sauvegarde v1 conservée et proposée', await page.locator('[data-act="export-v1"]').isVisible())
+
+// Réimport d'un état modifié : le poids passe à 70 kg, l'app doit le refléter.
+const patched = JSON.stringify({ ...exported, body: { ...exported.body, weight: [{ date: '2026-08-15', value: 70 }] } })
+await page.locator('.details summary').click()
+await page.fill('[data-paste]', patched)
+await page.locator('[data-act="import-paste"]').click()
+await page.waitForSelector('.today', { timeout: 5000 })
+const reimported = await page.evaluate(() => JSON.parse(localStorage.getItem('apex.v3')).body.weight)
+check('import : les données remplacent bien l’état courant', reimported.length === 1 && reimported[0].value === 70)
+check('import : le tableau de bord affiche la donnée importée', (await page.locator('.tile__value').first().textContent()).includes('70'))
+
+await page.goto(`${BASE}#/reglages`, { waitUntil: 'networkidle' })
+await page.locator('.details summary').click()
+await page.fill('[data-paste]', '{"version":3,"program":"pas un tableau"}')
+await page.locator('[data-act="import-paste"]').click()
+await page.waitForSelector('.toast')
+const importError = await page.locator('.toast').last().textContent()
+check('import : un fichier invalide est refusé avec un motif', /Import impossible/.test(importError), importError.trim().slice(0, 60))
+
 /* --- hors ligne --- */
 // Le service worker doit avoir pris la main avant de couper le réseau,
 // sinon on testerait juste le cache HTTP du navigateur.
