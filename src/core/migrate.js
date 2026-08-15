@@ -12,7 +12,7 @@
    - une séance en cours au moment de la migration reste reprenable. */
 
 import { buildCatalog, catalogIdByName, nameKey, resolveOrCreate } from './catalog.js'
-import { STATE_VERSION, validateState, emptyProfile, emptyBody } from './schema.js'
+import { STATE_VERSION, validateState, emptyProfile, emptyBody, emptyNutrition } from './schema.js'
 
 export class MigrationError extends Error {
   constructor(message, details = []) {
@@ -188,10 +188,45 @@ export function migrateV2toV3(v2, { now = new Date() } = {}) {
   return { state, report: { added: ['profile', 'body', 'goals'] } }
 }
 
+/**
+ * v3 -> v4 : ajoute la section nutrition. Purement additive, comme la
+ * précédente : rien de l'existant n'est relu, réécrit ni réinterprété.
+ */
+export function migrateV3toV4(v3, { now = new Date() } = {}) {
+  if (!v3 || typeof v3 !== 'object') {
+    throw new MigrationError('État v3 illisible : rien à migrer.')
+  }
+
+  const previous = v3.nutrition && typeof v3.nutrition === 'object' ? v3.nutrition : {}
+  const empty = emptyNutrition()
+
+  const state = {
+    ...v3,
+    version: 4,
+    migratedAt: now.toISOString(),
+    nutrition: {
+      targets: { ...empty.targets, ...(previous.targets || {}) },
+      preferences: { ...empty.preferences, ...(previous.preferences || {}) },
+      foods: previous.foods && typeof previous.foods === 'object' ? previous.foods : empty.foods,
+      usage: previous.usage && typeof previous.usage === 'object' ? previous.usage : empty.usage,
+      meals: Array.isArray(previous.meals) ? previous.meals : empty.meals,
+      recipes: Array.isArray(previous.recipes) ? previous.recipes : empty.recipes,
+      days: previous.days && typeof previous.days === 'object' ? previous.days : empty.days
+    }
+  }
+
+  const check = validateState(state)
+  if (!check.ok) {
+    throw new MigrationError('La migration v3 → v4 a produit des données invalides.', check.errors)
+  }
+  return { state, report: { added: ['nutrition'] } }
+}
+
 /** La chaîne, dans l'ordre. Ajouter une version = ajouter une ligne ici. */
 export const MIGRATIONS = [
   { from: 1, to: 2, run: migrateV1toV2 },
-  { from: 2, to: 3, run: migrateV2toV3 }
+  { from: 2, to: 3, run: migrateV2toV3 },
+  { from: 3, to: 4, run: migrateV3toV4 }
 ]
 
 /**

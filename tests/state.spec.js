@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { MemoryStorage, FailingStorage } from './helpers/storage.js'
 import { v1State, v1Live } from './helpers/v1-fixture.js'
 import { STATE_VERSION } from '../src/core/schema.js'
-import { migrateV1toV2 } from '../src/core/migrate.js'
+import { migrateV1toV2, migrateV2toV3, MIGRATIONS } from '../src/core/migrate.js'
 
 /** Clé de l'état courant : les tests suivent la version, pas un nom figé. */
 const CURRENT = `apex.v${STATE_VERSION}`
@@ -30,6 +30,17 @@ function seedV1(withLive = false) {
 /** Installe un état v2, tel que laissé par la Phase 0. */
 function seedV2() {
   storage.setItem('apex.v2', JSON.stringify(migrateV1toV2(v1State()).state))
+}
+
+/** Installe un état v3, tel que laissé par la Phase 1. */
+function seedV3() {
+  const v3 = migrateV2toV3(migrateV1toV2(v1State()).state).state
+  v3.body.weight = [{ date: '2026-08-14', value: 79.4 }]
+  v3.profile = { ...v3.profile, height: 178, goal: 'seche', updatedAt: '2026-08-14T00:00:00.000Z' }
+  v3.goals = [
+    { id: 'g1', kind: 'weight', title: 'Descendre à 75 kg', unit: 'kg', target: 75, start: 81, direction: 'down', deadline: null, exerciseId: null, value: null, createdAt: '2026-08-14T00:00:00.000Z', history: [] }
+  ]
+  storage.setItem('apex.v3', JSON.stringify(v3))
 }
 
 beforeEach(() => {
@@ -133,12 +144,49 @@ describe('migration depuis la v2 (Phase 0 déjà installée)', () => {
   })
 })
 
+describe('migration depuis la v3 (Phase 1 déjà installée)', () => {
+  it('porte une v3 en version courante sans la modifier', async () => {
+    seedV3()
+    const before = storage.getItem('apex.v3')
+    const boot = await load()
+    expect(boot.migrated).toBe(true)
+    expect(boot.from).toBe(3)
+    expect(storage.getItem('apex.v3')).toBe(before)
+    expect(storage.getItem('apex.backup.v3')).toBe(before)
+  })
+
+  it('conserve tout ce que la Phase 1 avait enregistré', async () => {
+    seedV3()
+    await load()
+    const state = mod.getState()
+    expect(state.history).toHaveLength(2)
+    expect(state.body.weight).toEqual([{ date: '2026-08-14', value: 79.4 }])
+    expect(state.profile.height).toBe(178)
+    expect(state.goals[0].title).toBe('Descendre à 75 kg')
+    expect(mod.findSession('push').exercises[0].weight).toBe(55)
+  })
+
+  it('ajoute une section nutrition vide, sans cible inventée', async () => {
+    seedV3()
+    await load()
+    const n = mod.getState().nutrition
+    expect(n.targets.mode).toBeNull()
+    expect(n.targets.kcal).toBeNull()
+    expect(n.foods).toEqual({})
+    expect(n.usage).toEqual({})
+    expect(n.meals).toEqual([])
+    expect(n.recipes).toEqual([])
+    expect(n.days).toEqual({})
+  })
+})
+
 describe('chaîne complète v1 → version courante', () => {
   it('traverse toutes les versions en un seul démarrage', async () => {
     seedV1()
     const boot = await load()
     expect(boot.from).toBe(1)
-    expect(boot.reports.map((r) => `${r.from}->${r.to}`)).toEqual(['1->2', '2->3'])
+    // La chaîne complète, quelle que soit la version courante du jour.
+    expect(boot.reports.map((r) => `${r.from}->${r.to}`)).toEqual(MIGRATIONS.map((m) => `${m.from}->${m.to}`))
     expect(mod.getState().version).toBe(STATE_VERSION)
     expect(mod.getState().history).toHaveLength(2)
     expect(mod.getState().body.weight).toEqual([])
@@ -149,6 +197,17 @@ describe('chaîne complète v1 → version courante', () => {
     await load()
     expect(storage.getItem('apex.backup.v1')).toBeTruthy()
     expect(storage.getItem('apex.backup.v2')).toBeNull()
+    expect(storage.getItem('apex.backup.v3')).toBeNull()
+  })
+
+  it('traverse v1 → v2 → v3 → v4 sans rien perdre en route', async () => {
+    seedV1()
+    await load()
+    const state = mod.getState()
+    expect(state.version).toBe(STATE_VERSION)
+    expect(state.history.flatMap((h) => h.entries)).toHaveLength(3)
+    expect(state.nutrition.days).toEqual({})
+    expect(mod.findSession('upper').exercises.find((e) => e.id === 'upper-02-elevations-laterales').exerciseId).toBe('lateral-raise')
   })
 })
 

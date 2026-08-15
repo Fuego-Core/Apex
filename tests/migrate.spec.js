@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { migrateV1toV2, migrateLiveV1toV2, MigrationError } from '../src/core/migrate.js'
+import { migrateV1toV2, migrateV2toV3, migrateV3toV4, migrateToCurrent, migrateLiveV1toV2, MigrationError } from '../src/core/migrate.js'
 import { validateState } from '../src/core/schema.js'
 import { v1State, v1Live } from './helpers/v1-fixture.js'
 
@@ -128,5 +128,58 @@ describe('migration de la séance en cours', () => {
   it('rend null sur une séance illisible', () => {
     expect(migrateLiveV1toV2(null)).toBeNull()
     expect(migrateLiveV1toV2({ sessionId: 'push' })).toBeNull()
+  })
+})
+
+describe('migration v3 → v4 (nutrition)', () => {
+  const v3 = () => migrateV2toV3(migrateV1toV2(v1State()).state).state
+
+  it('ajoute la section nutrition sans toucher au reste', () => {
+    const before = v3()
+    const { state } = migrateV3toV4(before)
+    expect(state.version).toBe(4)
+    expect(state.history).toEqual(before.history)
+    expect(state.program).toEqual(before.program)
+    expect(state.catalog).toEqual(before.catalog)
+    expect(state.nutrition.targets.mode).toBeNull()
+  })
+
+  it('n’invente aucune cible', () => {
+    const { state } = migrateV3toV4(v3())
+    const t = state.nutrition.targets
+    expect([t.kcal, t.protein, t.carbs, t.fat]).toEqual([null, null, null, null])
+  })
+
+  it('respecte une section nutrition déjà présente', () => {
+    const source = v3()
+    source.nutrition = { foods: { 'user:x': { id: 'user:x', name: 'X', per: 100, kcal: 50 } }, days: { '2026-08-15': { date: '2026-08-15', entries: [] } } }
+    const { state } = migrateV3toV4(source)
+    expect(state.nutrition.foods['user:x'].name).toBe('X')
+    expect(state.nutrition.days['2026-08-15']).toBeTruthy()
+    expect(state.nutrition.meals).toEqual([])
+  })
+
+  it('refuse un état illisible', () => {
+    expect(() => migrateV3toV4(null)).toThrow(MigrationError)
+  })
+})
+
+describe('chaîne de migration', () => {
+  it('amène un état v1 jusqu’à la version courante', () => {
+    const { state, reports, from } = migrateToCurrent(v1State())
+    expect(from).toBe(1)
+    expect(state.version).toBe(4)
+    expect(reports.map((r) => `${r.from}->${r.to}`)).toEqual(['1->2', '2->3', '3->4'])
+    expect(state.history).toHaveLength(2)
+  })
+
+  it('n’applique que les étapes nécessaires', () => {
+    const v3 = migrateV2toV3(migrateV1toV2(v1State()).state).state
+    const { reports } = migrateToCurrent(v3)
+    expect(reports.map((r) => `${r.from}->${r.to}`)).toEqual(['3->4'])
+  })
+
+  it('refuse des données venues d’une version plus récente', () => {
+    expect(() => migrateToCurrent({ version: 99, program: [] })).toThrow(/plus récente/)
   })
 })

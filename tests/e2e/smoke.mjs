@@ -38,6 +38,8 @@ const server = createServer(async (req, res) => {
 })
 await new Promise((r) => server.listen(4173, r))
 const BASE = 'http://localhost:4173/'
+/** Clé de l'état courant. À faire suivre à chaque nouvelle version de schéma. */
+const CURRENT = 'apex.v4'
 
 const v1 = {
   version: 1,
@@ -110,12 +112,16 @@ await page.waitForSelector('.today', { timeout: 5000 })
 /* --- migration --- */
 const keys = await page.evaluate(() => Object.keys(localStorage).sort())
 check('apex.v1 conservé', keys.includes('apex.v1'))
-check('état courant créé (apex.v3)', keys.includes('apex.v3'))
+check(`état courant créé (${CURRENT})`, keys.includes(CURRENT))
 check('sauvegarde automatique écrite', keys.includes('apex.backup.v1'))
 const v1After = await page.evaluate(() => localStorage.getItem('apex.v1'))
 check('apex.v1 octet pour octet identique', v1After === JSON.stringify(v1))
-const migrated = await page.evaluate(() => JSON.parse(localStorage.getItem('apex.v3')))
+const migrated = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)), CURRENT)
 check('sections Phase 1 ajoutées vides', migrated.body.weight.length === 0 && migrated.goals.length === 0)
+check(
+  'section nutrition ajoutée sans cible inventée',
+  !!migrated.nutrition && migrated.nutrition.targets.mode === null && Object.keys(migrated.nutrition.days).length === 0
+)
 check('poids utilisateur conservé (55 kg)', migrated.program[0].exercises[0].weight === 55)
 check('note utilisateur conservée', migrated.program[0].exercises[0].note === 'coudes serrés')
 check('historique conservé', migrated.history.length === 1)
@@ -165,7 +171,7 @@ await page.locator('.set').first().locator('.set__ok').click()
 const validated = await page.locator('.set').first().evaluate((el) => el.classList.contains('is-done'))
 check('B2 — le tap suivant une saisie valide bien la série', validated)
 const repsStored = await page.evaluate(
-  () => JSON.parse(localStorage.getItem('apex.live.v3')).entries[0].sets[0].reps
+  () => JSON.parse(localStorage.getItem('apex.live.v4')).entries[0].sets[0].reps
 )
 check('reps saisies enregistrées', repsStored === 7, `reps=${repsStored}`)
 
@@ -190,7 +196,7 @@ check('résumé affiché', (await page.locator('.result').count()) > 0)
 await page.click('[data-act="archive"]')
 await page.waitForSelector('.today')
 
-const after = await page.evaluate(() => JSON.parse(localStorage.getItem('apex.v3')))
+const after = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)), CURRENT)
 check('séance archivée', after.history.length === 2)
 check('archive rattachée au mouvement', after.history[0].entries.every((e) => !!e.exerciseId && !e.exerciseId.startsWith('push-')))
 
@@ -226,7 +232,7 @@ for (let i = 1; i < days.length; i++) {
   await page.waitForSelector('.sheet', { state: 'detached' })
 }
 
-const stored = await page.evaluate(() => JSON.parse(localStorage.getItem('apex.v3')).body.weight)
+const stored = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).body.weight, CURRENT)
 check('4 pesées enregistrées, une par jour', stored.length === 4, `${stored.length} entrées`)
 // Moyenne 7 jours au 15/08 : les pesées des 09, 12 et 15 -> (80 + 79,6 + 79,2) / 3.
 const avgShown = (await page.locator('.tile__value').first().textContent()).trim()
@@ -242,7 +248,7 @@ await page.fill('[name="value"]', '79')
 await page.fill('[name="date"]', '2026-08-15')
 await page.locator('.sheet [type="submit"]').click()
 await page.waitForSelector('.sheet', { state: 'detached' })
-const afterUpsert = await page.evaluate(() => JSON.parse(localStorage.getItem('apex.v3')).body.weight)
+const afterUpsert = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).body.weight, CURRENT)
 check('une seule mesure par jour', afterUpsert.length === 4 && afterUpsert.at(-1).value === 79)
 
 /* --- objectifs --- */
@@ -255,7 +261,7 @@ await page.fill('[name="target"]', '75')
 await page.locator('.sheet [type="submit"]').click()
 await page.waitForSelector('.sheet', { state: 'detached' })
 check('objectif créé', (await page.locator('.goal-card').count()) === 1)
-const goalStored = await page.evaluate(() => JSON.parse(localStorage.getItem('apex.v3')).goals[0])
+const goalStored = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).goals[0], CURRENT)
 check('point de départ capturé depuis les données réelles', goalStored.start !== null, `start=${goalStored.start}`)
 check('avancement calculé', (await page.locator('.meter__fill').first().getAttribute('style')).includes('width'))
 
@@ -271,7 +277,7 @@ await page.fill('[name="height"]', '178')
 await page.selectOption('[name="goal"]', 'seche')
 await page.locator('.sheet [type="submit"]').click()
 await page.waitForSelector('.sheet', { state: 'detached' })
-const profile = await page.evaluate(() => JSON.parse(localStorage.getItem('apex.v3')).profile)
+const profile = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).profile, CURRENT)
 check('profil enregistré', profile.height === 178 && profile.goal === 'seche')
 
 /* --- le tableau de bord reflète les nouvelles données --- */
@@ -307,7 +313,7 @@ const [download] = await Promise.all([
   page.locator('[data-act="export"]').click()
 ])
 const exported = JSON.parse(await (await import('node:fs/promises')).readFile(await download.path(), 'utf8'))
-check('export : fichier téléchargé et lisible', exported.version === 3, `version ${exported.version}`)
+check('export : fichier téléchargé et lisible', exported.version === 4, `version ${exported.version}`)
 check(
   'export : contient programme, historique, mesures et objectifs',
   Array.isArray(exported.program) && Array.isArray(exported.history) && !!exported.body && Array.isArray(exported.goals)
@@ -320,13 +326,13 @@ await page.locator('.details summary').click()
 await page.fill('[data-paste]', patched)
 await page.locator('[data-act="import-paste"]').click()
 await page.waitForSelector('.today', { timeout: 5000 })
-const reimported = await page.evaluate(() => JSON.parse(localStorage.getItem('apex.v3')).body.weight)
+const reimported = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).body.weight, CURRENT)
 check('import : les données remplacent bien l’état courant', reimported.length === 1 && reimported[0].value === 70)
 check('import : le tableau de bord affiche la donnée importée', (await page.locator('.tile__value').first().textContent()).includes('70'))
 
 await page.goto(`${BASE}#/reglages`, { waitUntil: 'networkidle' })
 await page.locator('.details summary').click()
-await page.fill('[data-paste]', '{"version":3,"program":"pas un tableau"}')
+await page.fill('[data-paste]', '{"version":4,"program":"pas un tableau"}')
 await page.locator('[data-act="import-paste"]').click()
 await page.waitForSelector('.toast')
 const importError = await page.locator('.toast').last().textContent()
@@ -346,14 +352,14 @@ await ctx.setOffline(false)
 
 /* --- écran d'erreur si les données sont corrompues --- */
 expectingErrors = true
-await page.evaluate(() => localStorage.setItem('apex.v3', '{cassé'))
+await page.evaluate((k) => localStorage.setItem(k, '{cassé'), CURRENT)
 await page.goto(BASE, { waitUntil: 'networkidle' })
 await page.waitForSelector('.fatal', { timeout: 5000 })
 check('écran d’erreur clair sur données corrompues', await page.locator('.fatal__title').isVisible())
 check('sortie de secours proposée', await page.locator('[data-act="export"]').isVisible())
 
 await shot('fatal')
-await page.evaluate(() => localStorage.removeItem('apex.v3'))
+await page.evaluate((k) => localStorage.removeItem(k), CURRENT)
 expectingErrors = false
 await page.goto(BASE, { waitUntil: 'networkidle' })
 await page.waitForSelector('.today')

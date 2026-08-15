@@ -1,6 +1,6 @@
 /* SCHÉMA v2 — forme des données, hydratation, validation.
 
-   Forme persistée (v3) :
+   Forme persistée (v4) :
    {
      version: 3,
      createdAt, migratedFrom, migratedAt,
@@ -10,11 +10,12 @@
      profile: { sex, birthYear, height, goal, experience, activity, ... },
      body:    { weight: [ {date, value} ], waist: [ {date, value} ] },
      goals:   [ { id, kind, title, target, ... } ],
+     nutrition: { targets, preferences, foods, usage, meals, recipes, days },
      settings: { sound, vibration }
    }
 
-   v2 = tout sauf profile/body/goals. Les deux versions restent validables :
-   la v2 est ce que produit la migration depuis la v1, avant d'être portée en v3.
+   Les versions intermédiaires restent validables : chacune est ce que produit
+   l'étape précédente de la chaîne de migration, avant d'être portée plus loin.
 
    Une instance ne stocke QUE ce qui lui appartient (paramètres de travail).
    Le nom, le mode et la nature assistée sont branchés à la lecture depuis le
@@ -24,7 +25,7 @@
 import { buildCatalog } from './catalog.js'
 import { buildProgram } from './program.js'
 
-export const STATE_VERSION = 3
+export const STATE_VERSION = 4
 
 /** Champs réellement persistés d'une instance d'exercice. */
 const INSTANCE_KEYS = [
@@ -62,6 +63,31 @@ export function emptyBody() {
   return { weight: [], waist: [] }
 }
 
+/** Section nutrition vide : aucune cible inventée, aucune collection pré-remplie.
+ *  `targets.mode` à null signifie « pas encore configuré », et l'app doit le dire
+ *  ainsi plutôt que d'afficher des zéros. */
+export function emptyNutrition() {
+  return {
+    targets: {
+      mode: null, // null | 'manual' | 'estimated'
+      kcal: null,
+      protein: null,
+      carbs: null,
+      fat: null,
+      fiber: null,
+      mealsPerDay: 4,
+      basis: null, // ce qui a servi au calcul, pour pouvoir l'expliquer
+      updatedAt: null
+    },
+    preferences: { excluded: [], diet: null },
+    foods: {}, // aliments créés par l'utilisateur — jamais dans le cache jetable
+    usage: {}, // mémoire alimentaire : fréquence, dernière fois, dernière quantité, favori
+    meals: [],
+    recipes: [],
+    days: {} // 'AAAA-MM-JJ' -> { date, entries: [], note }
+  }
+}
+
 export function freshState(now = new Date()) {
   return {
     version: STATE_VERSION,
@@ -74,6 +100,7 @@ export function freshState(now = new Date()) {
     profile: emptyProfile(),
     body: emptyBody(),
     goals: [],
+    nutrition: emptyNutrition(),
     settings: { sound: true, vibration: true }
   }
 }
@@ -134,6 +161,7 @@ export function dehydrate(state) {
     profile: state.profile ?? emptyProfile(),
     body: state.body ?? emptyBody(),
     goals: state.goals ?? [],
+    nutrition: state.nutrition ?? emptyNutrition(),
     settings: state.settings
   }
 }
@@ -153,8 +181,9 @@ export function validateState(state) {
   const fail = (m) => errors.push(m)
 
   if (!isObj(state)) return { ok: false, errors: ['Données illisibles : ce n’est pas un objet JSON.'] }
-  // La v2 reste validable : c'est l'étape intermédiaire de la chaîne de migration.
-  if (state.version !== 2 && state.version !== 3) {
+  // Les versions intermédiaires restent validables : ce sont les étapes de la
+  // chaîne de migration, chacune contrôlée avant de passer à la suivante.
+  if (![2, 3, 4].includes(state.version)) {
     fail(`Version attendue ${STATE_VERSION}, reçue ${state.version}.`)
   }
 
@@ -221,7 +250,7 @@ export function validateState(state) {
 
   if (!isObj(state.settings)) fail('Réglages manquants.')
 
-  if (state.version === 3) {
+  if (state.version >= 3) {
     if (!isObj(state.profile)) fail('Profil manquant.')
     if (!isObj(state.body) || !Array.isArray(state.body.weight) || !Array.isArray(state.body.waist)) {
       fail('Mesures corporelles manquantes.')
@@ -250,5 +279,55 @@ export function validateState(state) {
     }
   }
 
+  if (state.version >= 4) validateNutrition(state.nutrition, fail)
+
   return { ok: errors.length === 0, errors }
+}
+
+/** Contrôles propres à la section nutrition. */
+function validateNutrition(nutrition, fail) {
+  if (!isObj(nutrition)) return fail('Section nutrition manquante.')
+
+  const t = nutrition.targets
+  if (!isObj(t)) fail('Cibles nutritionnelles manquantes.')
+  else {
+    if (t.mode !== null && t.mode !== 'manual' && t.mode !== 'estimated') {
+      fail(`Cibles : mode inconnu (${t.mode}).`)
+    }
+    for (const key of ['kcal', 'protein', 'carbs', 'fat', 'fiber']) {
+      if (t[key] !== null && (!isNum(t[key]) || t[key] < 0)) fail(`Cible « ${key} » invalide.`)
+    }
+  }
+
+  if (!isObj(nutrition.foods)) fail('Aliments personnels manquants.')
+  else {
+    for (const [id, food] of Object.entries(nutrition.foods)) {
+      if (!isObj(food) || food.id !== id) fail(`Aliment « ${id} » : id incohérent.`)
+      else if (!isStr(food.name)) fail(`Aliment « ${id} » : nom manquant.`)
+      else if (!isNum(food.per) || food.per <= 0) fail(`Aliment « ${id} » : base de référence invalide.`)
+      else if (!isNum(food.kcal) || food.kcal < 0) fail(`Aliment « ${id} » : calories invalides.`)
+    }
+  }
+
+  if (!isObj(nutrition.usage)) fail('Mémoire alimentaire manquante.')
+  if (!Array.isArray(nutrition.meals)) fail('Repas enregistrés manquants.')
+  if (!Array.isArray(nutrition.recipes)) fail('Recettes manquantes.')
+
+  if (!isObj(nutrition.days)) fail('Journal alimentaire manquant.')
+  else {
+    for (const [date, day] of Object.entries(nutrition.days)) {
+      if (!isObj(day) || !Array.isArray(day.entries)) {
+        fail(`Journée « ${date} » illisible.`)
+        break
+      }
+      const bad = day.entries.find(
+        (e) => !isObj(e) || !isStr(e.id) || !isNum(e.qty) || !isObj(e.snapshot) || !isNum(e.snapshot.kcal)
+      )
+      if (bad) {
+        // Sans instantané, une ligne de journal dépendrait du catalogue : refusé.
+        fail(`Journée « ${date} » : une ligne est incomplète (instantané nutritionnel manquant).`)
+        break
+      }
+    }
+  }
 }
