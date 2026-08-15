@@ -529,6 +529,83 @@
   gap: var(--sp-3);
 }
 
+/* ---------- Feuille d'ajout d'aliment ---------- */
+
+.picks {
+  max-height: 46vh;
+  overflow-y: auto;
+  margin-top: var(--sp-3);
+  -webkit-overflow-scrolling: touch;
+}
+
+.pick {
+  display: flex;
+  align-items: stretch;
+  gap: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.pick:last-child {
+  border-bottom: 0;
+}
+
+.pick__main {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: var(--sp-3) 0;
+  min-height: var(--tap);
+  cursor: pointer;
+}
+
+.pick__name {
+  display: block;
+  font-size: var(--fs-md);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pick__meta {
+  display: block;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  margin-top: 2px;
+}
+
+.pick__qty {
+  flex: none;
+  align-self: center;
+  min-height: 38px;
+  padding: 0 var(--sp-3);
+  border-radius: var(--r-full);
+  border: 1px solid var(--gold-line);
+  background: var(--gold-dim);
+  color: var(--gold);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* ---------- Navigation par jour ---------- */
+
+.daynav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.daynav__label {
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  text-transform: capitalize;
+}
+
 /* ---------- Apparition en cascade ---------- */
 
 .reveal {

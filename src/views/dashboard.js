@@ -10,6 +10,9 @@ import { getState, getLive } from '../state.js'
 import { nextSession, sessionsThisWeek, estimateDuration, pendingCount } from '../core/today.js'
 import { currentAverage, latest, trend, latestChange, series } from '../core/body.js'
 import { evaluateGoal } from '../core/goals.js'
+import { dayOf } from '../core/nutrition/journal.js'
+import { dayTotals, remaining, display } from '../core/nutrition/calculations.js'
+import { today } from '../core/body.js'
 import { esc, logoMark, num, duration } from '../ui.js'
 import { tile, meter, blank, sectionTitle, sparkline } from '../ui/components.js'
 
@@ -113,6 +116,48 @@ function bodyBlock(state) {
     </div>`
 }
 
+/** Une seule ligne : où j'en suis aujourd'hui côté nutrition. Le détail est
+ *  dans l'écran Nutrition — le tableau de bord n'est pas un tableur. */
+function nutritionBlock(state) {
+  const day = dayOf(state.nutrition.days, today())
+  const { total } = dayTotals(day)
+  const left = remaining(state.nutrition.targets, total)
+
+  if (!day.entries.length && !left) {
+    return `
+      ${sectionTitle('Nutrition', { href: '#/nutrition', linkLabel: 'Ouvrir' })}
+      <a class="row reveal" href="#/nutrition">
+        <div class="row__main">
+          <p class="row__title">Rien enregistré aujourd'hui</p>
+          <p class="row__meta">Ajoute ton premier aliment, APEX retiendra la quantité</p>
+        </div>
+        <span class="row__go">›</span>
+      </a>`
+  }
+
+  const kcal = left?.kcal
+  const line = kcal
+    ? `${display(kcal.eaten, 'kcal')} / ${kcal.target} kcal`
+    : `${total.kcal === null ? '—' : display(total.kcal, 'kcal')} kcal`
+  const protein = total.protein === null ? null : `${display(total.protein)} g protéines`
+
+  return `
+    ${sectionTitle('Nutrition', { href: '#/nutrition', linkLabel: 'Voir' })}
+    <a class="card reveal" href="#/nutrition">
+      <div class="goal">
+        <div class="goal__head">
+          <span class="goal__title">${esc(line)}</span>
+          <span class="goal__values">${esc(protein || '')}</span>
+        </div>
+        ${kcal ? meter(kcal.pct) : ''}
+        <div class="goal__foot">
+          <span>${day.entries.length} aliment${day.entries.length > 1 ? 's' : ''} aujourd'hui</span>
+          ${kcal ? `<span>${kcal.left >= 0 ? `reste ${display(kcal.left, 'kcal')} kcal` : `+${display(-kcal.left, 'kcal')} kcal`}</span>` : '<span>sans objectif défini</span>'}
+        </div>
+      </div>
+    </a>`
+}
+
 function goalsBlock(state) {
   if (!state.goals.length) {
     return `
@@ -173,6 +218,7 @@ export default function dashboardView(root) {
       }${state.history.length ? ` · ${state.history.length} au total` : ''}</p>
 
       ${bodyBlock(state)}
+      ${nutritionBlock(state)}
       ${goalsBlock(state)}
 
       <nav class="dash-links">

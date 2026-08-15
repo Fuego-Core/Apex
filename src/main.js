@@ -11,6 +11,7 @@ import sessionsView from './views/sessions.js'
 import bodyView from './views/body.js'
 import goalsView from './views/goals.js'
 import profileView from './views/profile.js'
+import nutritionView from './views/nutrition.js'
 import probeView from './views/probe.js'
 import prepView from './views/prep.js'
 import workoutView from './views/workout.js'
@@ -30,6 +31,7 @@ const ROUTES = [
   { re: /^\/objectifs$/, view: goalsView },
   { re: /^\/objectifs\/nouveau$/, view: goalsView, keys: [], create: true },
   { re: /^\/profil$/, view: profileView },
+  { re: /^\/nutrition$/, view: nutritionView },
   // Écran temporaire de l'étape 0 de la Phase 2, non lié depuis l'app.
   { re: /^\/sonde$/, view: probeView },
   { re: /^\/seance\/([^/]+)$/, view: prepView, keys: ['sessionId'] },

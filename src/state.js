@@ -7,3 +7,4 @@
 export * from './state/index.js'
 export * from './state/body.js'
 export * from './state/goals.js'
+export * from './state/nutrition.js'

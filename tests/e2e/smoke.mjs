@@ -312,6 +312,68 @@ await page.waitForSelector('.hlist')
 const timeline = await page.locator('.hrow').count()
 check('timeline commune aux deux séances', timeline >= 2, `${timeline} entrées`)
 
+/* --- nutrition : journal, mémoire alimentaire, cibles --- */
+await page.goto(`${BASE}#/nutrition`, { waitUntil: 'networkidle' })
+await page.waitForSelector('[data-act="add"]')
+check('journal vide annoncé comme tel', await page.locator('.blank__title').isVisible())
+check('aucune cible inventée', (await page.locator('.card').first().textContent()).includes('Pas encore configurés'))
+
+// Création d'un aliment personnel, puis ajout au journal.
+await page.locator('.sticky-actions [data-act="add"]').click()
+await page.waitForSelector('.sheet')
+await page.locator('[data-act="create"]').click()
+await page.waitForSelector('[name="name"]')
+await page.fill('[name="name"]', 'Skyr nature')
+await page.fill('[name="kcal"]', '62')
+await page.fill('[name="protein"]', '10')
+await page.fill('[name="carbs"]', '4')
+await page.fill('[name="fat"]', '0,2')
+await page.locator('.sheet [type="submit"]').last().click()
+await page.waitForSelector('[name="qty"]')
+await page.fill('[name="qty"]', '250')
+await page.locator('.sheet [type="submit"]').last().click()
+await page.waitForSelector('.sheet', { state: 'detached' })
+
+const logged = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).nutrition, CURRENT)
+const firstDay = Object.values(logged.days)[0]
+check('aliment enregistré dans la journée', firstDay.entries.length === 1, `${firstDay.entries.length} ligne(s)`)
+check('instantané figé sur la ligne', firstDay.entries[0].snapshot.kcal === 62)
+check('mémoire alimentaire alimentée', Object.values(logged.usage)[0].lastQty === 250)
+check('total du jour calculé', (await page.locator('.tile__value').first().textContent()).includes('155'), (await page.locator('.tile__value').first().textContent()).trim())
+
+// Le geste unique : le récent se ré-ajoute avec sa quantité, sans saisie.
+await page.locator('.sticky-actions [data-act="add"]').click()
+await page.waitForSelector('.pick')
+check('récent proposé avec sa quantité', (await page.locator('.pick__qty').first().textContent()).includes('250'))
+await page.locator('.pick__main').first().click()
+await page.waitForSelector('.sheet', { state: 'detached' })
+const twice = await page.evaluate((k) => Object.values(JSON.parse(localStorage.getItem(k)).nutrition.days)[0].entries.length, CURRENT)
+check('ré-ajout en un seul tap', twice === 2, `${twice} lignes`)
+
+// Suppression d'une ligne.
+await page.locator('[data-act="remove-entry"]').first().click()
+await page.locator('[data-act="yes"]').click()
+await page.waitForTimeout(200)
+const afterRemove = await page.evaluate((k) => Object.values(JSON.parse(localStorage.getItem(k)).nutrition.days)[0].entries.length, CURRENT)
+check('ligne retirée', afterRemove === 1, `${afterRemove} ligne`)
+
+// Cibles manuelles.
+await page.locator('[data-act="targets"]').click()
+await page.waitForSelector('[name="kcal"]')
+await page.fill('[name="kcal"]', '2400')
+await page.fill('[name="protein"]', '160')
+await page.locator('.sheet [type="submit"]').last().click()
+await page.waitForSelector('.sheet', { state: 'detached' })
+const targets = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).nutrition.targets, CURRENT)
+check('cibles manuelles enregistrées', targets.mode === 'manual' && targets.kcal === 2400)
+check('avancement affiché', (await page.locator('.meter__fill').first().getAttribute('style')).includes('width'))
+
+// Le tableau de bord ne montre qu'un résumé.
+await page.goto(BASE, { waitUntil: 'networkidle' })
+await page.waitForSelector('.today')
+const dashText = await page.locator('body').innerText()
+check('résumé nutrition sur le tableau de bord', /2400 kcal|2 400 kcal|\/ 2400/.test(dashText.replace(/\u202f|\u00a0/g, ' ')), dashText.split('\n').find((l) => l.includes('kcal')) || '')
+
 /* --- export / import --- */
 await page.goto(`${BASE}#/reglages`, { waitUntil: 'networkidle' })
 await page.waitForSelector('[data-act="export"]')
