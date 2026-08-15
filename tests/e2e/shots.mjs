@@ -52,7 +52,7 @@ async function seed(page) {
     // Poids sur 3 semaines, en légère baisse.
     state.body.weight = Array.from({ length: 21 }, (_, i) => ({ date: day(20 - i), value: Math.round((81.6 - i * 0.06 + Math.sin(i) * 0.25) * 10) / 10 }))
     state.body.waist = [ { date: day(14), value: 84 }, { date: day(0), value: 83.2 } ]
-    state.profile = { ...state.profile, sex: 'homme', birthYear: 1994, height: 178, goal: 'seche', activity: 'modere', updatedAt: new Date().toISOString() }
+    state.profile = { ...state.profile, sex: 'homme', birthYear: 1994, height: 178, goal: 'seche', activity: 'modere', trainingDays: 4, updatedAt: new Date().toISOString() }
     state.goals = [
       { id: 'g1', kind: 'weight', title: 'Descendre à 78 kg', metric: 'weight', direction: 'down', target: 78, unit: 'kg', createdAt: new Date().toISOString() }
     ]

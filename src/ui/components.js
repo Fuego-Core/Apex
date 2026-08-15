@@ -59,6 +59,31 @@ export function sectionTitle(text, { href = null, linkLabel = 'Voir tout' } = {}
     </div>`
 }
 
+
+/**
+ * Anneau de performance — fin, architectural, or.
+ * Ne s'affiche qu'avec un pourcentage réel : pas de score inventé.
+ * @param {object} opts
+ * @param {number} opts.pct 0..100
+ * @param {number} [opts.size]
+ * @param {string} [opts.value] texte au centre (défaut : « NN% »)
+ */
+export function ring({ pct, size = 60, value = null }) {
+  const clamped = Math.max(0, Math.min(100, Math.round(pct)))
+  const r = (size - 4) / 2
+  const c = 2 * Math.PI * r
+  const offset = c * (1 - clamped / 100)
+  return `
+    <span class="ring" role="img" aria-label="${clamped} %">
+      <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"
+           style="--ring-c:${c.toFixed(1)};--ring-o:${offset.toFixed(1)}">
+        <circle class="ring__bg" cx="${size / 2}" cy="${size / 2}" r="${r}"/>
+        <circle class="ring__fg" cx="${size / 2}" cy="${size / 2}" r="${r}"/>
+      </svg>
+      <span class="ring__value" style="font-size:${Math.round(size / 4)}px">${esc(value ?? `${clamped}%`)}</span>
+    </span>`
+}
+
 /* ---------- graphiques ---------- */
 
 const W = 320

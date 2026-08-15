@@ -1,4 +1,4 @@
-import { getLive, setLive, findSession, save } from '../state.js'
+import { getLive, setLive, findSession, save, getState } from '../state.js'
 import { navigate } from '../main.js'
 import { openTimer } from '../timer.js'
 import { isMixedWeight, round } from '../core/engine.js'
@@ -222,6 +222,15 @@ export default function workoutView(root, { sessionId }) {
     refreshCard(ex.id)
 
     if (!s.done) return
+
+    // Récompense courte : un trait d'or balaye la ligne, un retour tactile
+    // discret si l'appareil le permet — puis le calme.
+    const row = root.querySelector(`[data-set="${CSS.escape(`${ex.id}-${i}`)}"]`)
+    if (row) {
+      row.classList.add('set--celebrate')
+      setTimeout(() => row.classList.remove('set--celebrate'), 700)
+    }
+    if (getState().settings.vibration) navigator.vibrate?.(12)
 
     // Repos automatique, sauf si tout est terminé ou si l'exo n'a pas de repos.
     if (ex.rest > 0 && anySetLeft()) {

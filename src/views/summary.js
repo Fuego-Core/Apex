@@ -83,6 +83,32 @@ export default function summaryView(root, { sessionId }) {
     })
     .join('')
 
+  /* Le moment record : quand la séance en contient un, l'écran s'assombrit,
+     le chiffre apparaît, une ligne d'or se dessine — puis tout revient au
+     calme. Une seule fois, ~1,5 s, et jamais si l'utilisateur préfère
+     réduire les animations (le badge Record reste, lui, toujours visible). */
+  function prMoment() {
+    const best = results.find((r) => r.record)
+    if (!best || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const el = document.createElement('div')
+    el.className = 'pr-moment'
+    el.innerHTML = `
+      <div>
+        <p class="pr-moment__kicker">Record personnel</p>
+        <p class="pr-moment__value">${esc(kg(best.verdict.weightUsed))}</p>
+        <p class="pr-moment__name">${esc(best.ex.name)}</p>
+        <div class="pr-moment__line"></div>
+      </div>`
+    document.getElementById('overlay').appendChild(el)
+    requestAnimationFrame(() => el.classList.add('is-in'))
+    if (getState().settings.vibration) navigator.vibrate?.([14, 60, 14])
+    setTimeout(() => {
+      el.classList.remove('is-in')
+      setTimeout(() => el.remove(), 320)
+    }, 1500)
+  }
+  prMoment()
+
   root.innerHTML = `
     <div class="page">
       ${header({ back: `#/seance/${esc(sessionId)}/workout`, title: 'Résumé', sub: session.name })}

@@ -1,6 +1,6 @@
 import { getLive, setLive, findSession, save } from '../state.js'
 import { navigate } from '../main.js'
-import { esc, header, kg, mmss, restLabel, toast, confirmDialog, relativeDays } from '../ui.js'
+import { esc, header, kg, mmss, restLabel, toast, confirmDialog, relativeDays, transitionTo } from '../ui.js'
 
 /** Prépare les séries pré-remplies d'une séance à partir du programme. */
 function buildLive(session) {
@@ -189,7 +189,8 @@ export default function prepView(root, { sessionId }) {
       })
       save()
       setLive(buildLive(s))
-      navigate(`#/seance/${sessionId}/workout`)
+      // On entre dans la séance : voile, fil d'or, puis l'effort.
+      transitionTo(`#/seance/${sessionId}/workout`)
     }
   }
 

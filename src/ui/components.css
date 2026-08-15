@@ -427,6 +427,323 @@
   margin: calc(var(--sp-2) * -1);
 }
 
+/* ---------- Visuels : le traitement APEX ----------
+   Toute image traverse le même traitement — désaturation légère, contraste,
+   voile noir, dégradé, lumière chaude. Des sources différentes appartiennent
+   ainsi à la même application. L'information reste toujours au-dessus. */
+
+.visual {
+  position: relative;
+  overflow: hidden;
+  background: #0a0a0b;
+}
+
+.visual__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  filter: saturate(0.8) contrast(1.1) brightness(0.88);
+  opacity: 0;
+  transform: scale(1.045);
+  transition: opacity 600ms ease, transform 1100ms var(--t-slow, ease);
+}
+
+.visual.is-loaded .visual__img {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Voile noir + lumière chaude, par-dessus l'image, sous le texte. */
+.visual::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(120% 90% at 20% 0%, rgba(212, 175, 55, 0.05), transparent 55%),
+    linear-gradient(180deg, rgba(7, 7, 8, 0.45), rgba(7, 7, 8, 0.72) 62%, rgba(7, 7, 8, 0.94));
+  pointer-events: none;
+}
+
+.visual--soft::after {
+  background:
+    radial-gradient(120% 90% at 20% 0%, rgba(212, 175, 55, 0.04), transparent 55%),
+    linear-gradient(180deg, rgba(7, 7, 8, 0.3), rgba(7, 7, 8, 0.55) 62%, rgba(7, 7, 8, 0.85));
+}
+
+/* ---------- Anneau de performance ----------
+   Un cercle très fin, architectural : fond presque invisible, progression or.
+   Il se dessine lentement — jamais de compteur qui s'agite. */
+
+.ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.ring svg {
+  display: block;
+  transform: rotate(-90deg);
+}
+
+.ring__bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.07);
+  stroke-width: 2.5;
+}
+
+.ring__fg {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: var(--ring-c);
+  stroke-dashoffset: var(--ring-c);
+  animation: ring-draw 1.1s var(--t-slow) 250ms forwards;
+}
+
+@keyframes ring-draw {
+  to {
+    stroke-dashoffset: var(--ring-o);
+  }
+}
+
+.ring__value {
+  position: absolute;
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Séquences d'entrée ----------
+   Les éléments d'un héros n'apparaissent pas tous en même temps : fond, image,
+   label, titre, métadonnées, action — dans cet ordre, très naturellement. */
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.stagger > * {
+  opacity: 0;
+  animation: rise-in 420ms var(--t-slow) forwards;
+}
+
+.stagger > :nth-child(1) { animation-delay: 140ms; }
+.stagger > :nth-child(2) { animation-delay: 200ms; }
+.stagger > :nth-child(3) { animation-delay: 260ms; }
+.stagger > :nth-child(4) { animation-delay: 320ms; }
+.stagger > :nth-child(5) { animation-delay: 380ms; }
+.stagger > :nth-child(6) { animation-delay: 440ms; }
+
+/* ---------- Voile de transition ----------
+   Entrer en séance est un passage, pas un changement de page. */
+
+.veil {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  background: #070708;
+  opacity: 0;
+  transition: opacity 200ms ease;
+  pointer-events: none;
+}
+
+.veil.is-in {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.veil::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 1.5px;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.7), transparent);
+  transition: width 260ms var(--t-slow) 80ms;
+}
+
+.veil.is-in::after {
+  width: min(46vw, 260px);
+}
+
+/* ---------- Récompense d'une série validée ----------
+   Un trait d'or balaye la ligne, puis tout revient au calme. */
+
+@keyframes set-sweep {
+  from {
+    transform: scaleX(0);
+    opacity: 1;
+  }
+  70% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 0;
+  }
+}
+
+.set {
+  position: relative;
+}
+
+.set--celebrate::after {
+  content: '';
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: -4px;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.8), transparent);
+  transform-origin: left;
+  animation: set-sweep 620ms var(--t-slow) forwards;
+  pointer-events: none;
+}
+
+/* ---------- Le moment record ----------
+   Une lumière, un chiffre, une ligne qui se dessine. ~1,5 s, puis le calme. */
+
+.pr-moment {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: grid;
+  place-items: center;
+  background: radial-gradient(600px 420px at 50% 42%, rgba(212, 175, 55, 0.09), rgba(7, 7, 8, 0.94) 70%);
+  opacity: 0;
+  transition: opacity 300ms ease;
+  pointer-events: none;
+  text-align: center;
+}
+
+.pr-moment.is-in {
+  opacity: 1;
+}
+
+.pr-moment__kicker {
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.pr-moment__value {
+  font-family: var(--font-title);
+  font-size: 64px;
+  font-weight: 700;
+  margin: var(--sp-3) 0 var(--sp-1);
+  animation: rise-in 500ms var(--t-slow) 150ms both;
+}
+
+.pr-moment__name {
+  color: var(--muted);
+  font-size: var(--fs-md);
+}
+
+.pr-moment__line {
+  width: 0;
+  height: 1.5px;
+  margin: var(--sp-4) auto 0;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.8), transparent);
+  transition: width 700ms var(--t-slow) 300ms;
+}
+
+.pr-moment.is-in .pr-moment__line {
+  width: 180px;
+}
+
+/* ---------- Jalons de progression ----------
+   Un fil très fin, des points, le présent en grand. Le passé reste discret. */
+
+.miles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+.miles::before {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 10px;
+  bottom: 14px;
+  width: 1px;
+  background: var(--line-strong);
+}
+
+.miles__step {
+  position: relative;
+  display: flex;
+  gap: var(--sp-4);
+  padding: var(--sp-2) 0 var(--sp-4);
+}
+
+.miles__dot {
+  position: relative;
+  z-index: 1;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1.5px solid var(--line-strong);
+  margin-top: 6px;
+  flex: none;
+}
+
+.miles__step--gold .miles__dot {
+  border-color: var(--gold);
+}
+
+.miles__step--now .miles__dot {
+  border-color: var(--gold);
+  background: var(--gold);
+  box-shadow: 0 0 12px rgba(212, 175, 55, 0.35);
+}
+
+.miles__tag {
+  font-size: var(--fs-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.miles__value {
+  font-family: var(--font-title);
+  font-weight: 700;
+  font-size: var(--fs-lg);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.miles__unit {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  margin-left: 4px;
+  color: var(--faint);
+}
+
+.miles__step--now .miles__value {
+  font-size: var(--fs-2xl);
+  color: var(--text);
+}
+
+.miles__step--now .miles__tag {
+  color: var(--gold);
+}
+
 /* ---------- Carte du jour ---------- */
 
 /* La carte principale de l'accueil : élevée, sobre — l'or reste sur le
@@ -436,9 +753,20 @@
   background: var(--surface-2);
   border-color: var(--line-strong);
   border-radius: var(--r-lg);
-  padding: var(--sp-5);
+  padding: 0;
   box-shadow: var(--shadow-2);
   overflow: hidden;
+}
+
+/* Le visuel vit derrière : l'image donne l'ambiance, le texte garde l'écran. */
+.today__visual {
+  position: absolute;
+  inset: 0;
+}
+
+.today__content {
+  position: relative;
+  padding: var(--sp-6) var(--sp-5) var(--sp-5);
 }
 
 /* Le héros respire : le nom de la séance est l'élément graphique. */
@@ -541,7 +869,10 @@
 /* ---------- Petits blocs de texte ---------- */
 
 .week-line {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
   color: var(--muted);
   font-size: var(--fs-sm);
   margin: var(--sp-4) 0 var(--sp-2);

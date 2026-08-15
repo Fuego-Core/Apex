@@ -13,8 +13,9 @@ import { evaluateGoal } from '../core/goals.js'
 import { dayOf, loggedCount } from '../core/nutrition/journal.js'
 import { dayTotals, remaining, display } from '../core/nutrition/calculations.js'
 import { today } from '../core/body.js'
-import { esc, logoMark, num, duration } from '../ui.js'
-import { meter, blank, sectionTitle, sparkline } from '../ui/components.js'
+import { esc, logoMark, num, duration, transitionTo } from '../ui.js'
+import { meter, blank, sectionTitle, sparkline, ring } from '../ui/components.js'
+import { heroVisual } from '../ui/visuals.js'
 
 /** Le corps bouge-t-il dans le sens voulu ? Sans objectif déclaré, on ne juge pas. */
 function toneForTrend(direction, profileGoal) {
@@ -48,20 +49,23 @@ function todayBlock(state, live) {
         : 'Séance en cours'
 
   return `
-    <section class="card today reveal">
-      <p class="today__kicker">${resuming ? 'Séance en cours' : "Aujourd'hui"}</p>
-      <h2 class="today__name">${esc(session.name)}</h2>
-      <p class="today__sub">${esc(session.subtitle || '')}</p>
-      <div class="today__meta">
-        <span>${session.exercises.length} exercice${session.exercises.length > 1 ? 's' : ''}</span>
-        ${est ? `<span>~ ${esc(duration(est))}</span>` : ''}
-        <span>${esc(why)}</span>
+    <section class="card today">
+      ${heroVisual(session.id, { className: 'today__visual' })}
+      <div class="today__content stagger">
+        <p class="today__kicker">${resuming ? 'Séance en cours' : "Aujourd'hui"}</p>
+        <h2 class="today__name">${esc(session.name)}</h2>
+        <p class="today__sub">${esc(session.subtitle || '')}</p>
+        <div class="today__meta">
+          <span>${session.exercises.length} exercice${session.exercises.length > 1 ? 's' : ''}</span>
+          ${est ? `<span>~ ${esc(duration(est))}</span>` : ''}
+          <span>${esc(why)}</span>
+        </div>
+        <a class="btn btn--gold btn--block btn--lg" data-enter
+           href="#/seance/${esc(session.id)}${resuming ? '/workout' : ''}">
+          ${resuming ? 'Reprendre la séance' : 'Commencer la séance'}
+        </a>
+        ${pending ? `<p class="today__why">🎯 ${pending} ajustement${pending > 1 ? 's' : ''} proposé${pending > 1 ? 's' : ''}</p>` : ''}
       </div>
-      <a class="btn btn--gold btn--block btn--lg"
-         href="#/seance/${esc(session.id)}${resuming ? '/workout' : ''}">
-        ${resuming ? 'Reprendre la séance' : 'Commencer la séance'}
-      </a>
-      ${pending ? `<p class="today__why">🎯 ${pending} ajustement${pending > 1 ? 's' : ''} proposé${pending > 1 ? 's' : ''}</p>` : ''}
     </section>`
 }
 
@@ -204,9 +208,16 @@ export default function dashboardView(root) {
 
       ${todayBlock(state, live)}
 
-      <p class="week-line">${
-        week ? `${week} séance${week > 1 ? 's' : ''} cette semaine` : 'Aucune séance cette semaine'
-      }${state.history.length ? ` · ${state.history.length} au total` : ''}</p>
+      <div class="week-line">
+        ${
+          state.profile.trainingDays
+            ? ring({ pct: (week / state.profile.trainingDays) * 100, size: 44, value: `${week}/${state.profile.trainingDays}` })
+            : ''
+        }
+        <span>${
+          week ? `${week} séance${week > 1 ? 's' : ''} cette semaine` : 'Aucune séance cette semaine'
+        }${state.history.length ? ` · ${state.history.length} au total` : ''}</span>
+      </div>
 
       ${bodyBlock(state)}
       ${nutritionBlock(state)}
@@ -222,4 +233,28 @@ export default function dashboardView(root) {
   root.querySelector('[data-act="add-goal"]')?.addEventListener('click', () => {
     location.hash = '#/objectifs/nouveau'
   })
+
+  // Commencer une séance est un passage : voile, fil d'or, puis l'écran suivant.
+  const enter = root.querySelector('[data-enter]')
+  enter?.addEventListener('click', (e) => {
+    e.preventDefault()
+    transitionTo(enter.getAttribute('href'))
+  })
+
+  /* Parallax de quelques pixels sur le visuel du héros : l'image semble
+     derrière l'interface, le contenu ne bouge pas. Désactivé si l'utilisateur
+     préfère réduire les animations. */
+  const heroImg = root.querySelector('.today__visual .visual__img')
+  let onScroll = null
+  if (heroImg && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    onScroll = () => {
+      const shift = Math.min(12, window.scrollY * 0.08)
+      heroImg.style.translate = `0 ${shift.toFixed(1)}px`
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+  }
+
+  return () => {
+    if (onScroll) window.removeEventListener('scroll', onScroll)
+  }
 }

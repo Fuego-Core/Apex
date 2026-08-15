@@ -203,6 +203,28 @@ export function logoMark(size = 28) {
   </svg>`
 }
 
+
+/** Entrer quelque part, plutôt que changer de page : un voile noir, un fil
+ *  d'or, puis l'écran suivant. Respecte prefers-reduced-motion. */
+export function transitionTo(hash) {
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  if (reduced) {
+    location.hash = hash
+    return
+  }
+  const veil = document.createElement('div')
+  veil.className = 'veil'
+  document.getElementById('overlay').appendChild(veil)
+  requestAnimationFrame(() => veil.classList.add('is-in'))
+  setTimeout(() => {
+    location.hash = hash
+    setTimeout(() => {
+      veil.classList.remove('is-in')
+      setTimeout(() => veil.remove(), 260)
+    }, 160)
+  }, 240)
+}
+
 /** En-tête de page réutilisable.
  *  Sans `back`, c'est un écran de premier niveau : grand titre aligné à
  *  gauche, pas de flèche — la navigation principale est déjà là.

@@ -127,6 +127,8 @@ export function openTimer({ seconds, kind = 'repos', title = '', sub = '' }) {
       const remainingMs = target - Date.now()
       const remaining = Math.max(0, Math.ceil(remainingMs / 1000))
       valueEl.textContent = mmss(remaining)
+      // Les cinq dernières secondes s'éclairent doucement — aucun flash.
+      el.classList.toggle('timer--closing', remaining <= 5 && remainingMs > 0)
       const ratio = Math.max(0, Math.min(1, remainingMs / (total * 1000)))
       ringEl.style.strokeDashoffset = String(CIRC * (1 - ratio))
 

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800" role="img" aria-label="">
+  <!-- PLACEHOLDER APEX (lower) : ambiance générée, à remplacer par la
+       photographie décrite dans public/images/apex/README.md. -->
+  <defs>
+    <radialGradient id="l1" cx="0.75" cy="0.80" r="0.85">
+      <stop offset="0" stop-color="rgba(218,180,96,0.30)"/>
+      <stop offset="0.45" stop-color="rgba(218,180,96,0.10)"/>
+      <stop offset="1" stop-color="rgba(0,0,0,0)"/>
+    </radialGradient>
+    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0.55" stop-color="rgba(0,0,0,0)"/>
+      <stop offset="1" stop-color="rgba(0,0,0,0.75)"/>
+    </linearGradient>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.05"/></feComponentTransfer>
+      <feComposite operator="over" in2="SourceGraphic"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="800" fill="#070708"/>
+  <rect width="1200" height="800" fill="url(#l1)"/>
+  <g transform="rotate(7 600 400)" stroke="rgba(255,255,255,0.05)" stroke-width="2" fill="none">
+    <path d="M180 760 L600 90 L1020 760"/>
+    <path d="M600 90 L600 760" stroke="rgba(255,255,255,0.028)"/>
+    <path d="M300 680 H900" stroke="rgba(212,175,55,0.09)"/>
+  </g>
+  <rect width="1200" height="800" fill="url(#floor)"/>
+  <rect width="1200" height="800" filter="url(#grain)" opacity="0.5" fill="#070708"/>
+</svg>

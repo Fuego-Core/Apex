@@ -53,6 +53,40 @@ function chart(points) {
     </div>`
 }
 
+
+/** La narration : d'où l'on vient, où l'on est. Premier poids, records
+ *  intermédiaires, valeur actuelle — reliés par un fil. Le passé est discret,
+ *  le présent est grand. Rien n'est calculé ici : ce sont les séances. */
+function milestones(rows) {
+  if (rows.length < 2) return ''
+
+  const picks = []
+  picks.push({ ...rows[0], tag: 'Départ' })
+  rows.slice(1, -1).forEach((r) => {
+    if (r.record) picks.push({ ...r, tag: 'Record' })
+  })
+  picks.push({ ...rows[rows.length - 1], tag: 'Maintenant', now: true })
+  // Cinq jalons suffisent à raconter : départ, trois records au plus, présent.
+  const kept = picks.length > 5 ? [picks[0], ...picks.slice(1, -1).slice(-3), picks[picks.length - 1]] : picks
+
+  return `
+    <h3 class="section-title">Le chemin</h3>
+    <ol class="miles">
+      ${kept
+        .map(
+          (m) => `
+        <li class="miles__step ${m.now ? 'miles__step--now' : ''} ${m.record && !m.now ? 'miles__step--gold' : ''}">
+          <span class="miles__dot" aria-hidden="true"></span>
+          <div>
+            <p class="miles__tag">${esc(m.tag)} · ${esc(formatDate(m.date))}</p>
+            <p class="miles__value">${esc(num(m.weight))}<span class="miles__unit">kg</span></p>
+          </div>
+        </li>`
+        )
+        .join('')}
+    </ol>`
+}
+
 export default function exerciseView(root, { exerciseId }) {
   const state = getState()
   const movement = state.catalog[exerciseId] || null
@@ -124,6 +158,8 @@ export default function exerciseView(root, { exerciseId }) {
       </section>
 
       <div class="card chart-card">${chart(rows)}</div>
+
+      ${milestones(rows)}
 
       <h3 class="section-title">Détail</h3>
       <ul class="card hlist">${list}</ul>

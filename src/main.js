@@ -7,6 +7,7 @@ import { initState, onStorageError, getBootInfo } from './state.js'
 import { downloadEmergencyExport } from './data/rescue.js'
 import { banner, fatalScreen, toast } from './ui.js'
 import { initNav, syncNav } from './ui/nav.js'
+import { initVisuals } from './ui/visuals.js'
 import { measureLocal, storageAdvice } from './data/storageInfo.js'
 import dashboardView from './views/dashboard.js'
 import sessionsView from './views/sessions.js'
@@ -125,6 +126,7 @@ async function boot() {
 
   ready = true
   initNav()
+  initVisuals()
 
   // Un échec d'enregistrement ne doit jamais rester invisible.
   onStorageError((error) => {
