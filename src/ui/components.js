@@ -170,10 +170,20 @@ function fieldHTML(f, value) {
 /**
  * Feuille du bas contenant un formulaire.
  * @param {object} opts
+ * @param {string} [opts.body] HTML déjà échappé, inséré avant les champs — sert
+ *        aux feuilles qui montrent quelque chose à valider avant de saisir.
  * @param {Function} [opts.validate] (values) => { champ: message } | null
  * @returns {Promise<object|null>} valeurs saisies, ou null si annulé.
  */
-export function openSheet({ title, subtitle = '', fields, values = {}, submitLabel = 'Enregistrer', validate = null }) {
+export function openSheet({
+  title,
+  subtitle = '',
+  body = '',
+  fields = [],
+  values = {},
+  submitLabel = 'Enregistrer',
+  validate = null
+}) {
   return new Promise((resolve) => {
     const host = document.getElementById('overlay')
     const wrap = document.createElement('div')
@@ -183,6 +193,7 @@ export function openSheet({ title, subtitle = '', fields, values = {}, submitLab
         <div class="sheet__grip"></div>
         <h3 class="sheet__title">${esc(title)}</h3>
         ${subtitle ? `<p class="sheet__sub">${esc(subtitle)}</p>` : ''}
+        ${body}
         ${fields.map((f) => fieldHTML(f, values[f.name])).join('')}
         <div class="sheet__actions">
           <button type="button" class="btn btn--ghost" data-act="cancel">Annuler</button>

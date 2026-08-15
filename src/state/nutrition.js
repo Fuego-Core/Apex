@@ -131,11 +131,18 @@ export function resolveFood(id) {
 /** Une fiche extérieure ramenée au format des lignes du sélecteur. */
 function externalRow(food) {
   const remembered = getState().nutrition.usage[food.id]
+  // L'attribution suit la provenance : on ne va pas attribuer à Open Food Facts
+  // un aliment que l'utilisateur a saisi lui-même.
+  const fromOff = (food.source ?? '') === 'open-food-facts'
   return {
     id: food.id,
     name: food.name,
     brand: food.brand,
-    snapshot: { ...snapshotOf(food), license: food.license ?? null, attribution: food.attribution ?? ATTRIBUTION },
+    snapshot: {
+      ...snapshotOf(food),
+      license: fromOff ? food.license ?? 'ODbL 1.0' : null,
+      attribution: fromOff ? food.attribution ?? ATTRIBUTION : null
+    },
     // Si on l'a déjà mangé, sa quantité habituelle prime sur toute suggestion.
     lastQty: remembered?.lastQty ?? null,
     unit: food.unit || 'g',
@@ -193,7 +200,37 @@ export async function searchFoodsOnline(query) {
  * @returns {Promise<{ok: true, row, fromCache: boolean} | {ok: false, code: string, message: string}>}
  */
 export async function lookupBarcode(code) {
-  const cached = await foodCache().getByBarcode(String(code ?? '').trim())
+  const barcode = String(code ?? '').trim()
+  const n = getState().nutrition
+
+  // Ce que TU as saisi passe avant tout le reste : si tu as créé cet aliment
+  // parce qu'Open Food Facts ne l'avait pas, il ne faut plus jamais te
+  // reposer la question.
+  const own = Object.values(n.foods).find((f) => f.barcode && String(f.barcode) === barcode)
+  if (own) return { ok: true, row: { ...externalRow(own), external: false }, fromCache: true }
+
+  // Puis ce que la mémoire d'usage a déjà retenu : ni réseau, ni cache requis.
+  const [id, remembered] =
+    Object.entries(n.usage).find(([, e]) => e.snapshot?.barcode && String(e.snapshot.barcode) === barcode) || []
+  if (remembered) {
+    return {
+      ok: true,
+      fromCache: true,
+      row: {
+        id,
+        name: remembered.snapshot.name,
+        brand: remembered.snapshot.brand,
+        snapshot: remembered.snapshot,
+        lastQty: remembered.lastQty,
+        unit: remembered.unit || remembered.snapshot.unit || 'g',
+        count: remembered.count,
+        lastAt: remembered.lastAt,
+        favorite: !!remembered.favorite
+      }
+    }
+  }
+
+  const cached = await foodCache().getByBarcode(barcode)
   if (cached) return { ok: true, row: externalRow(cached), fromCache: true }
 
   try {

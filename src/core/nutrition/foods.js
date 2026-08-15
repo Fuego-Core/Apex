@@ -64,6 +64,9 @@ export function snapshotOf(food) {
     name: food.name,
     brand: food.brand ?? null,
     source: food.source ?? sourceOf(food.id),
+    // Le code-barres voyage avec l'instantané : un produit scanné une fois se
+    // retrouve au scan suivant, même sans réseau et même sans cache.
+    barcode: food.barcode ?? null,
     per: num(food.per) ?? 100,
     unit: food.unit || 'g',
     servingSize: num(food.servingSize),

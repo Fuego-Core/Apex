@@ -12,8 +12,8 @@
    serait une requête vers un tiers. Il faut la déclencher. */
 
 import { esc, num } from '../ui.js'
-import { openSheet, parseNumber } from './components.js'
 import { scale, display } from '../core/nutrition/calculations.js'
+import { askQuantity } from './product-card.js'
 
 /** Ligne d'aliment : nom, marque, et la quantité mémorisée bien en évidence. */
 function rowHTML(row) {
@@ -46,10 +46,11 @@ function rowHTML(row) {
  * @param {Function} opts.favorites () => rows
  * @param {Function} opts.search   (query) => rows
  * @param {Function} [opts.online] (query) => Promise<{rows, warning, message}> — sur demande seulement
+ * @param {object} [opts.scan] { supported, reason, run: () => Promise<row|null> }
  * @param {Function} opts.onCreate () => Promise<row|null> — création d'un aliment
  * @returns {Promise<{id, snapshot, qty, unit}|null>}
  */
-export function openFoodPicker({ recents, favorites, search, online = null, onCreate }) {
+export function openFoodPicker({ recents, favorites, search, online = null, scan = null, onCreate }) {
   return new Promise((resolve) => {
     const host = document.getElementById('overlay')
     const wrap = document.createElement('div')
@@ -72,6 +73,13 @@ export function openFoodPicker({ recents, favorites, search, online = null, onCr
         </div>
 
         <div data-online hidden>
+          ${
+            scan
+              ? scan.supported
+                ? '<button type="button" class="btn btn--gold btn--block" data-act="scan">Scanner un code-barres</button>'
+                : `<p class="note scan__fallback">${esc(scan.reason || 'Ce navigateur ne sait pas lire les codes-barres.')} Tape le code du produit ci-dessous : APEX ira le chercher.</p>`
+              : ''
+          }
           <div class="pick-search">
             <input class="fld__input" type="search" inputmode="search" autocomplete="off"
                    placeholder="Nom, marque ou code-barres…" data-online-query
@@ -162,24 +170,6 @@ export function openFoodPicker({ recents, favorites, search, online = null, onCr
       render()
     }
 
-    /** Demande la quantité, pré-remplie avec l'habitude. */
-    async function askQuantity(row) {
-      const values = await openSheet({
-        title: row.name,
-        subtitle: row.brand || '',
-        submitLabel: 'Ajouter',
-        fields: [{ name: 'qty', label: `Quantité (${row.unit || 'g'})`, type: 'number' }],
-        values: { qty: row.lastQty ? num(row.lastQty) : '' },
-        validate: (data) => {
-          const qty = parseNumber(data.qty)
-          if (qty === null || qty <= 0) return { qty: 'Indique une quantité.' }
-          if (qty > 5000) return { qty: 'Au-delà de 5 000, c’est probablement une faute de frappe.' }
-          return {}
-        }
-      })
-      return values ? parseNumber(values.qty) : null
-    }
-
     wrap.addEventListener('click', async (e) => {
       const tabBtn = e.target.closest('[data-tab]')
       if (tabBtn) {
@@ -209,6 +199,16 @@ export function openFoodPicker({ recents, favorites, search, online = null, onCr
         const qty = await askQuantity(created)
         if (qty === null) return
         return close({ id: created.id, snapshot: created.snapshot, qty, unit: created.unit || 'g' })
+      }
+
+      // Scanner : le code lu ne devient une ligne qu'après la fiche produit,
+      // sa validation, puis la quantité. Rien n'est ajouté tout seul.
+      if (act === 'scan') {
+        const scanned = await scan.run()
+        if (!scanned) return
+        const qty = await askQuantity(scanned)
+        if (qty === null) return
+        return close({ id: scanned.id, snapshot: scanned.snapshot, qty, unit: scanned.unit || 'g' })
       }
 
       const row = rowsFor().find((r) => r.id === btn.dataset.id)

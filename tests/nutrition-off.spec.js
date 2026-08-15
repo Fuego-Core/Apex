@@ -447,3 +447,63 @@ describe('la source extérieure vue depuis l’état', () => {
     expect(Object.keys(mod.getState().nutrition.foods)).toHaveLength(0)
   })
 })
+
+describe('retrouver un produit par son code, sans réseau', () => {
+  /* Le scan doit fonctionner hors ligne pour ce qu'on connaît déjà. Ici encore,
+     aucun IndexedDB : ce qui répond, c'est la mémoire — pas le cache. */
+
+  let mod
+  const realFetch = globalThis.fetch
+
+  beforeEach(async () => {
+    vi.resetModules()
+    mod = await import('../src/state.js')
+    const { createDataStore } = await import('../src/data/dataStore.js')
+    const { createLocalAdapter } = await import('../src/data/adapters/local.js')
+    await mod.initState(createDataStore(createLocalAdapter(new MemoryStorage())))
+  })
+
+  afterEach(() => {
+    globalThis.fetch = realFetch
+  })
+
+  const noNetwork = () => {
+    globalThis.fetch = vi.fn(async () => {
+      throw new TypeError('Failed to fetch')
+    })
+    return globalThis.fetch
+  }
+
+  it('fait primer un aliment que tu as créé toi-même', async () => {
+    await mod.createFood({ name: 'Skyr maison', barcode: '3017620422003', per: 100, kcal: 62, protein: 10, carbs: 4, fat: 0.2 })
+    const fetchImpl = noNetwork()
+
+    const res = await mod.lookupBarcode('3017620422003')
+    expect(res.ok).toBe(true)
+    expect(res.row.name).toBe('Skyr maison')
+    expect(fetchImpl).not.toHaveBeenCalled()
+    // Et on ne lui colle pas une attribution qui n'est pas la sienne.
+    expect(res.row.snapshot.attribution).toBeNull()
+  })
+
+  it('retrouve un produit déjà mangé sans réseau ni cache', async () => {
+    globalThis.fetch = async () => jsonResponse({ status: 1, product: nutella })
+    const first = await mod.lookupBarcode('3017620422003')
+    await mod.logFood({ foodId: first.row.id, snapshot: first.row.snapshot, qty: 30, date: '2026-08-15' })
+
+    const fetchImpl = noNetwork()
+    const again = await mod.lookupBarcode('3017620422003')
+    expect(again.ok).toBe(true)
+    expect(again.fromCache).toBe(true)
+    expect(again.row.snapshot.kcal).toBe(539)
+    expect(again.row.lastQty).toBe(30)
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it('n’invente rien pour un code jamais vu quand le réseau est absent', async () => {
+    noNetwork()
+    const res = await mod.lookupBarcode('5449000000996')
+    expect(res.ok).toBe(false)
+    expect(res.code).toBe('network')
+  })
+})

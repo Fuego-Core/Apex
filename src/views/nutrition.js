@@ -25,6 +25,8 @@ import { today, currentAverage } from '../core/body.js'
 import { esc, header, num, formatDate, toast, confirmDialog } from '../ui.js'
 import { tile, meter, blank, openSheet, parseNumber } from '../ui/components.js'
 import { openFoodPicker } from '../ui/food-picker.js'
+import { openScanner, scannerSupport } from '../ui/scanner.js'
+import { confirmProduct } from '../ui/product-card.js'
 
 const MACRO_LABELS = { kcal: 'Calories', protein: 'Protéines', carbs: 'Glucides', fat: 'Lipides' }
 const MACRO_UNITS = { kcal: 'kcal', protein: 'g', carbs: 'g', fat: 'g' }
@@ -88,10 +90,12 @@ export default function nutritionView(root, { date: initialDate } = {}) {
 
   /* ---------- ajout ---------- */
 
-  async function openCreateFoodSheet() {
+  async function openCreateFoodSheet({ barcode = null } = {}) {
     const values = await openSheet({
       title: 'Nouvel aliment',
-      subtitle: 'Les valeurs telles qu’elles figurent sur l’emballage.',
+      subtitle: barcode
+        ? `Code ${barcode} — les valeurs telles qu’elles figurent sur l’emballage.`
+        : 'Les valeurs telles qu’elles figurent sur l’emballage.',
       submitLabel: 'Créer',
       fields: [
         { name: 'name', label: 'Nom', type: 'text', placeholder: 'Skyr maison' },
@@ -111,6 +115,7 @@ export default function nutritionView(root, { date: initialDate } = {}) {
     const res = await createFood({
       name: values.name,
       brand: values.brand,
+      barcode,
       per: parseNumber(values.per),
       kcal: parseNumber(values.kcal),
       protein: parseNumber(values.protein),
@@ -139,13 +144,52 @@ export default function nutritionView(root, { date: initialDate } = {}) {
     return { rows, message: note }
   }
 
+  /* Le chemin complet d'un scan, dans cet ordre et sans raccourci :
+     lecture réelle → code → cache → Open Food Facts si nécessaire → fiche
+     produit → validation explicite → (la quantité est demandée ensuite par le
+     sélecteur). Un code lu n'ajoute jamais rien tout seul. */
+  async function scanFlow() {
+    const scanned = await openScanner()
+    if (!scanned) return null
+
+    const code = scanned.manual ? await askBarcode() : scanned.code
+    if (!code) return null
+
+    const found = await lookupBarcode(code)
+    if (!found.ok) {
+      // Inconnu ou fiche incomplète : on le dit, et on propose de le créer —
+      // avec le code sous les yeux, l'emballage est là de toute façon.
+      toast(found.message, 'warn')
+      return openCreateFoodSheet({ barcode: code })
+    }
+
+    const confirmed = await confirmProduct(found.row, { title: found.row.name })
+    if (!confirmed) return null
+    if (found.fromCache) toast('Fiche retrouvée sans réseau')
+    return found.row
+  }
+
+  /** Saisie du code à la main : le repli quand l'appareil ne sait pas lire. */
+  async function askBarcode() {
+    const values = await openSheet({
+      title: 'Code-barres',
+      subtitle: 'Les chiffres imprimés sous les barres, sur l’emballage.',
+      submitLabel: 'Chercher',
+      fields: [{ name: 'code', label: 'Code-barres', type: 'text', placeholder: '3017620422003' }],
+      validate: (data) => (isBarcode(data.code?.trim()) ? {} : { code: 'Un code-barres compte 8 à 14 chiffres.' })
+    })
+    return values ? values.code.trim() : null
+  }
+
   async function addFood(meal = null) {
     const state = getState()
+    const support = await scannerSupport()
     const chosen = await openFoodPicker({
       recents: () => recents(state.nutrition.usage),
       favorites: () => favorites(state.nutrition.usage),
       search: (query) => searchLocal(state.nutrition, query),
       online: onlineSearch,
+      scan: { supported: support.ok, reason: support.reason, run: scanFlow },
       onCreate: openCreateFoodSheet
     })
     if (!chosen) return

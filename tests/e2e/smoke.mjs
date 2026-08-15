@@ -80,7 +80,12 @@ const v1 = {
   settings: { sound: false, vibration: true }
 }
 
-const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' })
+const browser = await chromium.launch({
+  executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  // Caméra factice : elle sert au parcours de scan, où le détecteur est injecté.
+  // Le reste des vérifications tourne sans y toucher.
+  args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream']
+})
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true })
 const page = await ctx.newPage()
 
@@ -100,8 +105,9 @@ page.on('console', (m) => {
 })
 
 /** Capture d'écran seulement si on a demandé un dossier de sortie. */
-const shot = (name) =>
-  process.env.APEX_SHOTS ? page.screenshot({ path: `${process.env.APEX_SHOTS}/${name}.png` }) : Promise.resolve()
+const shotOf = (target, name) =>
+  process.env.APEX_SHOTS ? target.screenshot({ path: `${process.env.APEX_SHOTS}/${name}.png` }) : Promise.resolve()
+const shot = (name) => shotOf(page, name)
 
 const checks = []
 const check = (name, ok, extra = '') => {
@@ -533,9 +539,146 @@ check(
   'produit inconnu renvoyé vers la création manuelle',
   (await page.locator('[data-list]').innerText()).includes('créer à la main')
 )
+const fallbackText = (await page.locator('.scan__fallback').count()) ? await page.locator('.scan__fallback').innerText() : ''
+check(
+  'sans BarcodeDetector : pas de bouton de scan, mais un repli explicite',
+  (await page.locator('[data-act="scan"]').count()) === 0 && fallbackText.includes('Tape le code'),
+  fallbackText.slice(0, 70)
+)
 await page.locator('[data-act="cancel"]').click()
 await page.waitForSelector('.sheet', { state: 'detached' })
 await page.unroute(/openfoodfacts\.org/)
+
+/* --- scanner : la chaîne complète, avec un détecteur injecté ---
+
+   Chromium sous Linux n'a pas BarcodeDetector : la vérification ci-dessus
+   couvre donc le repli réel. Pour le parcours de scan lui-même, on injecte un
+   détecteur — ce qui est testé ici, ce n'est pas la reconnaissance d'image,
+   c'est NOTRE enchaînement : lecture confirmée → fiche → validation explicite
+   → quantité → journal, et rien avant. */
+
+const scanCtx = await browser.newContext({
+  viewport: { width: 390, height: 844 },
+  deviceScaleFactor: 2,
+  isMobile: true,
+  hasTouch: true,
+  permissions: ['camera']
+})
+await scanCtx.addInitScript(() => {
+  // Deux comportements : un code stable (lecture confirmable) et des codes qui
+  // changent à chaque image (rien ne doit jamais être confirmé).
+  window.__APEX_SCAN = 'stable'
+  window.__APEX_DETECTS = 0
+  class FakeBarcodeDetector {
+    static async getSupportedFormats() {
+      return ['ean_13', 'ean_8', 'upc_a', 'upc_e']
+    }
+    async detect() {
+      window.__APEX_DETECTS++
+      if (window.__APEX_SCAN === 'alternating') {
+        return [{ rawValue: window.__APEX_DETECTS % 2 ? '3017620422003' : '5449000000996', format: 'ean_13' }]
+      }
+      // La première image ne donne rien : le cadrage n'est jamais instantané.
+      return window.__APEX_DETECTS < 2 ? [] : [{ rawValue: '3017620422003', format: 'ean_13' }]
+    }
+  }
+  window.BarcodeDetector = FakeBarcodeDetector
+})
+
+const scanPage = await scanCtx.newPage()
+let scanOffCalls = []
+await scanPage.route(/openfoodfacts\.org/, (route) => {
+  scanOffCalls.push(route.request().url())
+  return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(OFF_NUTELLA) })
+})
+await scanPage.goto(`${BASE}#/nutrition`, { waitUntil: 'networkidle' })
+await scanPage.waitForSelector('[data-act="add"]')
+
+const openScanTab = async () => {
+  await scanPage.locator('.sticky-actions [data-act="add"]').click()
+  await scanPage.waitForSelector('.sheet')
+  await scanPage.locator('[data-tab="online"]').click()
+}
+
+// 1. Des lectures qui se contredisent ne doivent JAMAIS produire un résultat.
+await scanPage.evaluate(() => {
+  window.__APEX_SCAN = 'alternating'
+})
+await openScanTab()
+check('BarcodeDetector présent : bouton de scan proposé', await scanPage.locator('[data-act="scan"]').isVisible())
+await scanPage.locator('[data-act="scan"]').click()
+await scanPage.waitForSelector('.scan__video')
+await scanPage.waitForTimeout(1500)
+const detects = await scanPage.evaluate(() => window.__APEX_DETECTS)
+check('lectures contradictoires : aucune détection annoncée', detects > 3 && (await scanPage.locator('.scan').count()) === 1, `${detects} images lues`)
+check(
+  'le scanner ne dit pas avoir lu ce qu’il n’a pas lu',
+  !(await scanPage.locator('[data-status]').innerText()).includes('Code lu'),
+  (await scanPage.locator('[data-status]').innerText()).trim()
+)
+await shotOf(scanPage, 'scanner')
+await scanPage.locator('.scan [data-act="cancel"]').click()
+await scanPage.waitForSelector('.scan', { state: 'detached' })
+
+// 2. Un code stable : lecture confirmée, puis la fiche — et rien de plus.
+await scanPage.evaluate(() => {
+  window.__APEX_SCAN = 'stable'
+  window.__APEX_DETECTS = 0
+})
+await scanPage.locator('[data-act="scan"]').click()
+await scanPage.waitForSelector('.prod', { timeout: 5000 })
+check('code confirmé : fiche produit affichée', (await scanPage.locator('.prod').innerText()).includes('539'))
+check('provenance annoncée sur la fiche', (await scanPage.locator('.prod').innerText()).includes('Open Food Facts'))
+check('code-barres rappelé sur la fiche', (await scanPage.locator('.sheet__sub').last().innerText()).includes('3017620422003'))
+const nothingYet = await scanPage.evaluate((k) => Object.keys(JSON.parse(localStorage.getItem(k)).nutrition.days).length, CURRENT)
+check('un scan seul n’ajoute rien au journal', nothingYet === 0, `${nothingYet} journée(s)`)
+await scanPage.waitForTimeout(350)
+await shotOf(scanPage, 'fiche-produit')
+
+// 3. Refus explicite : toujours rien.
+await scanPage.locator('.sheet [data-act="cancel"]').last().click()
+await scanPage.waitForTimeout(300)
+const stillNothing = await scanPage.evaluate((k) => Object.keys(JSON.parse(localStorage.getItem(k)).nutrition.days).length, CURRENT)
+check('fiche refusée : rien n’est enregistré', stillNothing === 0)
+
+// 4. Le parcours complet, jusqu'à la quantité.
+await scanPage.evaluate(() => {
+  window.__APEX_DETECTS = 0
+})
+await scanPage.locator('[data-act="scan"]').click()
+await scanPage.waitForSelector('.prod', { timeout: 5000 })
+await scanPage.locator('.sheet [type="submit"]').last().click()
+await scanPage.waitForSelector('[name="qty"]')
+await scanPage.fill('[name="qty"]', '30')
+await scanPage.locator('.sheet [type="submit"]').last().click()
+await scanPage.waitForSelector('.sheet', { state: 'detached' })
+
+const scanned = await scanPage.evaluate((k) => JSON.parse(localStorage.getItem(k)).nutrition, CURRENT)
+const scanEntry = Object.values(scanned.days).flatMap((d) => d.entries)[0]
+check('scan → validation → quantité → journal', scanEntry?.qty === 30 && scanEntry?.snapshot.kcal === 539)
+check('provenance conservée depuis le scan', scanEntry?.snapshot.source === 'open-food-facts')
+check('code-barres conservé dans l’instantané', scanEntry?.snapshot.barcode === '3017620422003')
+
+// 5. Hors réseau : le produit déjà connu doit se retrouver sans requête.
+await scanPage.unroute(/openfoodfacts\.org/)
+await scanPage.route(/openfoodfacts\.org/, (route) => {
+  scanOffCalls.push(route.request().url())
+  return route.abort()
+})
+scanOffCalls = []
+await scanPage.evaluate(() => {
+  window.__APEX_DETECTS = 0
+})
+await openScanTab()
+await scanPage.locator('[data-act="scan"]').click()
+await scanPage.waitForSelector('.prod', { timeout: 5000 })
+check('hors réseau, le produit déjà scanné revient', (await scanPage.locator('.prod').innerText()).includes('539'))
+check('et sans la moindre requête', scanOffCalls.length === 0, `${scanOffCalls.length} requête(s)`)
+await scanPage.locator('.sheet [type="submit"]').last().click()
+await scanPage.waitForSelector('[name="qty"]')
+const rememberedQty = await scanPage.locator('[name="qty"]').inputValue()
+check('la quantité habituelle est déjà là', rememberedQty === '30', rememberedQty)
+await scanCtx.close()
 
 /* --- export / import --- */
 await page.goto(`${BASE}#/reglages`, { waitUntil: 'networkidle' })
