@@ -402,15 +402,22 @@
 
 /* ---------- En-tête de section ---------- */
 
+/* Quand le label a un lien « Voir », c'est l'en-tête entier qui porte la
+   ligne de lumière — elle traverse tout l'écran, pas juste le mot. */
 .section-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--sp-3);
+  border-top: 1px solid var(--line);
+  padding-top: var(--sp-5);
+  margin-top: var(--sp-6);
 }
 
 .section-head .section-title {
-  margin-bottom: var(--sp-3);
+  margin: 0 0 var(--sp-3);
+  padding-top: 0;
+  border-top: 0;
 }
 
 .section-link {
@@ -434,16 +441,19 @@
   overflow: hidden;
 }
 
+/* Le héros respire : le nom de la séance est l'élément graphique. */
+.today__name {
+  font-size: 36px;
+}
+
 .today::before {
   content: '';
   position: absolute;
   top: 0;
   left: var(--sp-5);
   right: var(--sp-5);
-  height: 2px;
-  background: var(--gold-grad);
-  border-radius: var(--r-full);
-  opacity: 0.9;
+  height: 1.5px;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.55), transparent);
 }
 
 .today__kicker {

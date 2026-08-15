@@ -25,6 +25,15 @@ body {
   overscroll-behavior-y: contain;
 }
 
+/* Le noir n'est pas plat : deux lueurs radiales à la limite du perceptible.
+   On sent la profondeur, on ne la voit pas. */
+body {
+  background-image:
+    radial-gradient(1100px 520px at 50% -8%, rgba(255, 255, 255, 0.025), transparent 62%),
+    radial-gradient(900px 700px at 85% 108%, rgba(212, 175, 55, 0.02), transparent 55%);
+  background-attachment: fixed;
+}
+
 body {
   min-height: 100dvh;
 }
@@ -98,13 +107,25 @@ p {
   display: block;
 }
 
+/* Les labels sont des annotations éditoriales : petits, espacés, en
+   capitales, posés sur une ligne de lumière. Ils structurent l'écran sans
+   l'enfermer dans des boîtes. */
 .section-title {
-  font-size: 13px;
-  letter-spacing: 0.18em;
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   color: var(--muted);
-  margin: 26px 0 10px;
-  font-weight: 500;
+  margin: var(--sp-6) 0 var(--sp-3);
+  padding-top: var(--sp-5);
+  border-top: 1px solid var(--line);
+  font-weight: 600;
+}
+
+/* Une section peut poser son contenu directement sur le fond : le label et
+   l'espace suffisent. La carte n'est plus le réflexe. */
+.strip {
+  display: block;
+  padding: var(--sp-1) 0;
 }
 
 .muted {
@@ -366,16 +387,21 @@ p {
   transform: scale(0.985);
 }
 
-/* L'action principale : la seule chose dorée de l'écran. */
+/* L'action principale : une surface sombre qui porte la lumière — accent
+   or, aura discrète. Pas une dalle dorée : l'or éclaire, il ne peint pas. */
 .btn--gold {
-  background: var(--gold-grad);
-  border-color: transparent;
-  color: #131208;
-  box-shadow: 0 4px 18px rgba(212, 175, 55, 0.18);
+  background: linear-gradient(180deg, var(--gold-16), var(--gold-06));
+  border-color: var(--gold-line);
+  color: var(--gold-soft);
+  box-shadow: 0 0 24px rgba(212, 175, 55, 0.08);
+}
+
+.btn--gold:hover {
+  background: linear-gradient(180deg, rgba(212, 175, 55, 0.22), var(--gold-10));
 }
 
 .btn--gold:active {
-  box-shadow: 0 2px 8px rgba(212, 175, 55, 0.14);
+  transform: scale(0.98);
 }
 
 .btn--ghost {
@@ -955,9 +981,11 @@ p {
 }
 
 .badge--gold {
-  color: var(--gold);
+  color: var(--gold-soft);
   border-color: var(--gold-line);
-  background: var(--gold-dim);
+  background: var(--gold-06);
+  /* Un record mérite une lumière — presque imperceptible. */
+  box-shadow: 0 0 14px rgba(212, 175, 55, 0.12);
 }
 
 .badge--warn {
@@ -1284,9 +1312,7 @@ p {
 }
 
 .modal__card {
-  background: var(--glass);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
+  background: var(--panel);
   border: 1px solid var(--line-strong);
   border-radius: var(--r-lg);
   padding: 20px;
@@ -1608,8 +1634,26 @@ p {
   max-width: 100%;
 }
 
+.tabbar__item {
+  position: relative;
+}
+
 .tabbar__item.is-on {
-  color: var(--gold);
+  color: var(--text);
+}
+
+/* L'or : un fil de lumière au-dessus de l'item actif, rien de plus. */
+.tabbar__item.is-on::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 2px;
+  border-radius: var(--r-full);
+  background: var(--gold);
+  box-shadow: 0 0 10px rgba(212, 175, 55, 0.35);
 }
 
 /* Quand la navigation est là, tout ce qui colle au bas se pose dessus. */
@@ -1682,8 +1726,16 @@ body.has-nav .toast-stack {
   }
 
   .tabbar__item.is-on {
-    color: var(--gold);
-    background: var(--gold-dim);
+    color: var(--text);
+    background: var(--gold-06);
+  }
+
+  .tabbar__item.is-on::before {
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 2px;
+    height: 18px;
   }
 
   .tabbar__icon svg {

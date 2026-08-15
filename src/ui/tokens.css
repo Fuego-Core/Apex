@@ -1,72 +1,80 @@
 /* ===========================================================
-   APEX — jetons de design.  « POWER WITHOUT NOISE. »
+   APEX — jetons de design.
 
-   Un seul endroit décide des couleurs, des espacements, des rayons et des
-   durées. Les écrans ne choisissent plus de valeurs : ils choisissent un jeton.
+   L'ordre de la direction artistique, et donc l'ordre de décision :
+   NOIR → ESPACE → TYPOGRAPHIE → INFORMATION → LUMIÈRE → OR.
 
-   Direction : LUXURY PERFORMANCE. Noir profond, surfaces à peine plus
-   claires, traits presque invisibles — et l'or en accent, jamais en décor.
+   Le fond est presque noir, les surfaces sont des voiles de blanc à peine
+   perceptibles — on sent la profondeur, on ne voit pas des boîtes. L'or
+   n'est jamais un décor : c'est la récompense. Action, progression, record,
+   timer actif. Tout le reste reste sous-éclairé, et c'est cette opposition
+   qui fait le luxe.
 
-   Répartition volontaire : ~80 % noir/gris, ~15 % blanc/gris clair, ~5 % or.
-   L'or est réservé à ce qui a de la valeur : l'action principale, le timer
-   actif, la progression, un record. Un écran où tout brille est un écran où
-   plus rien ne ressort.
+   Si on hésite entre or et noir : noir. Entre carte et espace : espace.
    =========================================================== */
 
 :root {
-  /* Fonds et surfaces — trois niveaux, pas plus */
-  --bg: #070707;
-  --surface: #101010;
-  --surface-2: #151515;
-  --surface-3: #1c1c1c;
+  /* Le noir — profond mais pas plat : la profondeur vient des voiles */
+  --bg: #070708;
+  --surface: rgba(255, 255, 255, 0.035);
+  --surface-2: rgba(255, 255, 255, 0.055);
+  --surface-3: rgba(255, 255, 255, 0.07);
+  /* Équivalents opaques, pour ce qui doit couvrir (barres fixes, feuilles) */
+  --panel: #0e0e0f;
+  --panel-2: #131314;
 
   /* Texte */
   --text: #f5f5f5;
   --muted: #858585;
   --faint: #5a5a5a;
 
-  /* Or — l'accent, 5 % de l'écran maximum */
+  /* L'or — quatre intensités de lumière, jamais un aplat décoratif */
   --gold: #d4af37;
   --gold-soft: #e6c766;
-  --gold-dim: rgba(212, 175, 55, 0.12);
-  --gold-line: rgba(212, 175, 55, 0.38);
-  --gold-grad: linear-gradient(160deg, #e6c766 0%, #d4af37 55%, #b8952d 100%);
+  --gold-06: rgba(212, 175, 55, 0.06);
+  --gold-10: rgba(212, 175, 55, 0.1);
+  --gold-16: rgba(212, 175, 55, 0.16);
+  --gold-line: rgba(212, 175, 55, 0.35);
+  /* alias historiques consommés par l'existant */
+  --gold-dim: rgba(212, 175, 55, 0.1);
+  --gold-grad: linear-gradient(180deg, rgba(212, 175, 55, 0.16), rgba(212, 175, 55, 0.07));
 
-  /* Traits — présents mais presque invisibles */
-  --line: rgba(255, 255, 255, 0.07);
-  --line-strong: rgba(255, 255, 255, 0.14);
+  /* Les traits : des lignes de lumière, pas des cadres */
+  --line: rgba(255, 255, 255, 0.06);
+  --line-strong: rgba(255, 255, 255, 0.12);
 
   /* États — discrets, uniquement quand nécessaire */
   --success: #4f9d69;
   --warning: #c9922f;
   --danger: #b3503c;
 
-  /* Espacement — une seule suite, pas de valeurs au hasard */
+  /* Espacement — le vide fait partie du design */
   --sp-1: 4px;
   --sp-2: 8px;
   --sp-3: 12px;
   --sp-4: 16px;
   --sp-5: 20px;
-  --sp-6: 28px;
-  --sp-7: 40px;
+  --sp-6: 32px;
+  --sp-7: 48px;
 
-  /* Rayons — les mêmes partout */
-  --r-sm: 10px;
-  --r-md: 16px;
-  --r-lg: 22px;
+  /* Rayons — contrôlés, architecturaux. Pas de pilule généralisée. */
+  --r-sm: 12px;
+  --r-md: 14px;
+  --r-lg: 18px;
+  --r-xl: 22px;
   --r-full: 999px;
 
-  /* Ombres — la profondeur remplace la décoration */
+  /* Ombres — de la profondeur, jamais du spectacle */
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --shadow-2: 0 12px 32px rgba(0, 0, 0, 0.55);
-  --shadow-3: 0 24px 60px rgba(0, 0, 0, 0.7);
+  --shadow-2: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-3: 0 16px 48px rgba(0, 0, 0, 0.55);
 
-  /* Mouvement — 150–250 ms, jamais décoratif */
-  --t-fast: 150ms ease;
-  --t-base: 200ms ease;
-  --t-slow: 250ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  /* Mouvement — 120 / 220 / 420, easing naturel, rien ne pulse */
+  --t-fast: 120ms cubic-bezier(0.3, 0, 0.4, 1);
+  --t-base: 220ms cubic-bezier(0.3, 0, 0.2, 1);
+  --t-slow: 420ms cubic-bezier(0.22, 0.61, 0.36, 1);
 
-  /* Typographie — hiérarchie forte, chiffres puissants */
+  /* Typographie — la hiérarchie est le premier outil de design */
   --font-title: 'Space Grotesk', 'Inter', system-ui, sans-serif;
   --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --fs-xs: 11px;
@@ -74,21 +82,22 @@
   --fs-md: 15px;
   --fs-lg: 20px;
   --fs-xl: 28px;
-  --fs-2xl: 40px;
-  --fs-display: 56px;
+  --fs-2xl: 44px;
+  --fs-display: 58px;
+  --tracking-label: 0.22em;
   --tracking-wide: 0.14em;
   --tracking-brand: 0.34em;
 
-  /* Plans — un seul ordre, décidé ici */
+  /* Plans */
   --z-nav: 40;
   --z-banner: 60;
   --z-sheet: 70;
   --z-modal: 80;
   --z-toast: 90;
 
-  /* Verre — réservé aux plans flottants (feuilles, navigation) */
-  --glass: rgba(16, 16, 16, 0.82);
-  --glass-blur: saturate(1.4) blur(18px);
+  /* Flou — de la profondeur, pas du glassmorphism */
+  --glass: rgba(10, 10, 11, 0.86);
+  --glass-blur: saturate(1.2) blur(16px);
 
   /* Cible tactile minimale : une série se valide avec le pouce, en sueur. */
   --tap: 44px;

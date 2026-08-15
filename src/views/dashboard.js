@@ -87,7 +87,7 @@ function bodyBlock(state) {
 
   return `
     ${sectionTitle('Progression', { href: '#/progression', linkLabel: 'Voir' })}
-    <a class="card metric reveal" href="#/progression">
+    <a class="strip metric reveal" href="#/progression">
       <div class="metric__main">
         <p class="metric__value">${wAvg === null ? '—' : num(wAvg)}<span class="metric__unit">kg</span></p>
         <p class="metric__hint ${wTrend.status === 'ok' ? `metric__hint--${toneForTrend(wTrend.direction, state.profile.goal)}` : ''}">${esc(trendLabel(wTrend, 'kg'))}</p>
@@ -124,7 +124,7 @@ function nutritionBlock(state) {
 
   return `
     ${sectionTitle('Nutrition', { href: '#/nutrition', linkLabel: 'Voir' })}
-    <a class="card reveal" href="#/nutrition">
+    <a class="strip reveal" href="#/nutrition">
       <div class="goal">
         <div class="goal__head">
           <span class="goal__title">${esc(line)}</span>
@@ -179,7 +179,7 @@ function goalsBlock(state) {
 
   return `
     ${sectionTitle('Objectifs', { href: '#/objectifs', linkLabel: state.goals.length > 3 ? `Les ${state.goals.length}` : 'Gérer' })}
-    <div class="card reveal">${rows}</div>`
+    <div class="strip reveal">${rows}</div>`
 }
 
 export default function dashboardView(root) {

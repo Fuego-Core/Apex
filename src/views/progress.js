@@ -38,7 +38,7 @@ function weightSection(state) {
 
   return `
     ${sectionTitle('Poids', { href: '#/corps', linkLabel: 'Détail' })}
-    <a class="card metric reveal" href="#/corps">
+    <a class="strip metric reveal" href="#/corps">
       <div class="metric__main">
         <p class="metric__value">${avg === null ? '—' : num(avg)}<span class="metric__unit">kg</span></p>
         <p class="metric__hint">moyenne 7 jours · ${esc(trendLabel(t, 'kg'))}</p>
@@ -55,7 +55,7 @@ function waistSection(state) {
   const change = latestChange(waist)
   return `
     ${sectionTitle('Mesures', { href: '#/corps', linkLabel: 'Détail' })}
-    <a class="card metric reveal" href="#/corps">
+    <a class="strip metric reveal" href="#/corps">
       <div class="metric__main">
         <p class="metric__value">${num(last.value)}<span class="metric__unit">cm</span></p>
         <p class="metric__hint">tour de taille · ${
@@ -88,7 +88,7 @@ function strengthSection(state) {
 
   return `
     ${sectionTitle('Force', { href: '#/historique', linkLabel: 'Historique' })}
-    <a class="card metric reveal" href="#/historique">
+    <a class="strip metric reveal" href="#/historique">
       <div class="metric__main">
         <p class="metric__value">${monthCount}<span class="metric__unit">séance${monthCount > 1 ? 's' : ''} / 30 j</span></p>
         <p class="metric__hint">
@@ -130,7 +130,7 @@ function goalsSection(state) {
 
   return `
     ${sectionTitle('Objectifs', { href: '#/objectifs', linkLabel: state.goals.length > 3 ? `Les ${state.goals.length}` : 'Gérer' })}
-    <a class="card reveal" href="#/objectifs">${rows}</a>`
+    <a class="strip reveal" href="#/objectifs">${rows}</a>`
 }
 
 export default function progressView(root) {
