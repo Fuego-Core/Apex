@@ -680,6 +680,239 @@ const rememberedQty = await scanPage.locator('[name="qty"]').inputValue()
 check('la quantité habituelle est déjà là', rememberedQty === '30', rememberedQty)
 await scanCtx.close()
 
+/* --- recettes : composer une fois, réutiliser ensuite --- */
+
+await page.goto(`${BASE}#/recettes`, { waitUntil: 'networkidle' })
+await page.waitForSelector('[data-act="new"]')
+check('recettes : état vide expliqué', (await page.locator('.blank__title').innerText()).includes('Aucune recette'))
+
+await page.locator('[data-act="new"]').click()
+await page.waitForSelector('[name="name"]')
+await page.fill('[name="name"]', 'Poulet riz')
+await page.fill('[name="servings"]', '4')
+await page.locator('.sheet [type="submit"]').last().click()
+await page.waitForSelector('[data-act="add-item"]')
+
+// Ingrédient pris dans les récents : 250 g de Skyr à 62 kcal/100 g = 155 kcal.
+await page.locator('[data-act="add-item"]').click()
+await page.waitForSelector('.pick')
+await page.locator('.pick__main').filter({ hasText: 'Skyr' }).first().click()
+await page.waitForSelector('.sheet', { state: 'detached' })
+check('ingrédient ajouté au brouillon', (await page.locator('.hrow__name').first().innerText()).includes('Skyr'))
+check('total et portion calculés avant enregistrement', (await page.locator('.prod').innerText()).includes('155'))
+check(
+  'une portion vaut le quart du plat',
+  (await page.locator('.prod').innerText()).includes('39'),
+  (await page.locator('.prod').innerText()).replace(/\n/g, ' ')
+)
+await shot('recette')
+
+await page.locator('[data-act="save-draft"]').click()
+await page.waitForSelector('[data-act="new"]')
+const savedRecipe = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).nutrition.recipes, CURRENT)
+check('recette enregistrée avec ses portions', savedRecipe.length === 1 && savedRecipe[0].servings === 4)
+check('ingrédient figé par son instantané', savedRecipe[0].items[0].snapshot.kcal === 62)
+
+// Une portion s'ajoute au journal comme n'importe quel aliment.
+await page.goto(`${BASE}#/nutrition`, { waitUntil: 'networkidle' })
+await page.locator('.sticky-actions [data-act="add"]').click()
+await page.waitForSelector('.sheet')
+await page.locator('[data-tab="search"]').click()
+await page.fill('[data-query]', 'poulet')
+await page.waitForSelector('.pick')
+check('la recette se cherche comme un aliment', (await page.locator('.pick__name').first().innerText()).includes('Poulet riz'))
+await page.locator('.pick__main').first().click()
+await page.waitForSelector('[name="qty"]')
+await page.fill('[name="qty"]', '2')
+await page.locator('.sheet [type="submit"]').last().click()
+await page.waitForSelector('.sheet', { state: 'detached' })
+
+const withRecipe = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)).nutrition, CURRENT)
+const portion = Object.values(withRecipe.days)
+  .flatMap((d) => d.entries)
+  .find((e) => e.foodId.startsWith('recipe:'))
+check('portion enregistrée en portions, pas en grammes', portion?.unit === 'portion' && portion?.qty === 2)
+check('valeur de la portion figée', Math.round(portion.snapshot.kcal * 10) / 10 === 38.8, String(portion?.snapshot.kcal))
+check('composition conservée avec la ligne', portion?.snapshot.ingredients?.[0]?.name === 'Skyr nature')
+
+// La recette change : ce qui est déjà mangé ne bouge pas.
+await page.goto(`${BASE}#/recettes`, { waitUntil: 'networkidle' })
+await page.locator('.hrow__main').first().click()
+await page.waitForSelector('[name="servings"]')
+await page.fill('[name="servings"]', '2')
+await page.locator('.sheet [type="submit"]').last().click()
+await page.waitForSelector('[data-act="save-draft"]')
+await page.locator('[data-act="save-draft"]').click()
+await page.waitForSelector('[data-act="new"]')
+const afterEdit = await page.evaluate((k) => {
+  const n = JSON.parse(localStorage.getItem(k)).nutrition
+  return {
+    recipeKcal: n.recipes[0].servings,
+    entry: Object.values(n.days).flatMap((d) => d.entries).find((e) => e.foodId.startsWith('recipe:'))
+  }
+}, CURRENT)
+check('recette modifiée', afterEdit.recipeKcal === 2)
+check('la portion déjà mangée n’a pas bougé', Math.round(afterEdit.entry.snapshot.kcal * 10) / 10 === 38.8)
+
+// Et sa suppression n'efface pas le passé.
+await page.locator('[data-act="remove"]').first().click()
+await page.locator('[data-act="yes"]').click()
+await page.waitForTimeout(250)
+const afterDelete = await page.evaluate((k) => {
+  const n = JSON.parse(localStorage.getItem(k)).nutrition
+  return {
+    recipes: n.recipes.length,
+    entry: Object.values(n.days).flatMap((d) => d.entries).find((e) => e.foodId.startsWith('recipe:'))
+  }
+}, CURRENT)
+check('recette supprimée', afterDelete.recipes === 0)
+check('la portion reste lisible après suppression', Math.round(afterDelete.entry.snapshot.kcal * 10) / 10 === 38.8)
+
+/* --- repas : refaire, corriger --- */
+
+await page.goto(`${BASE}#/nutrition`, { waitUntil: 'networkidle' })
+await page.waitForSelector('[data-act="add"]')
+
+// Une journée plus tôt, pour avoir quelque chose à refaire.
+await page.locator('[data-act="prev-day"]').click()
+await page.locator('.sticky-actions [data-act="add"]').click()
+await page.waitForSelector('.pick')
+await page.locator('.pick__main').filter({ hasText: 'Skyr' }).first().click()
+await page.waitForSelector('.sheet', { state: 'detached' })
+const beforeRepeat = await page.evaluate((k) => Object.keys(JSON.parse(localStorage.getItem(k)).nutrition.days).length, CURRENT)
+check('journée précédente enregistrée', beforeRepeat >= 2, `${beforeRepeat} journées`)
+
+await page.locator('[data-act="next-day"]').click()
+await page.waitForSelector('[data-act="repeat-meal"]')
+const entriesBefore = await page.locator('.hrow__main').count()
+await page.locator('[data-act="repeat-meal"]').first().click()
+await page.waitForTimeout(300)
+const entriesAfter = await page.locator('.hrow__main').count()
+check('refaire un repas recopie ses lignes', entriesAfter > entriesBefore, `${entriesBefore} → ${entriesAfter}`)
+const repeated = await page.evaluate((k) => {
+  const days = JSON.parse(localStorage.getItem(k)).nutrition.days
+  const dates = Object.keys(days).sort()
+  return { source: days[dates[0]].entries.length, target: days[dates[dates.length - 1]].entries.length }
+}, CURRENT)
+check('le jour d’origine n’a pas bougé', repeated.source === 1, `${repeated.source} ligne`)
+
+// Corriger une ligne : quantité et repas, jamais les valeurs.
+await page.locator('.hrow__main').first().click()
+await page.waitForSelector('[name="qty"]')
+await page.fill('[name="qty"]', '300')
+await page.locator('.sheet [data-seg-value="diner"]').click()
+await page.locator('.sheet [type="submit"]').last().click()
+await page.waitForSelector('.sheet', { state: 'detached' })
+const edited = await page.evaluate((k) => {
+  const days = JSON.parse(localStorage.getItem(k)).nutrition.days
+  const dates = Object.keys(days).sort()
+  return days[dates[dates.length - 1]].entries.find((e) => e.qty === 300)
+}, CURRENT)
+check('quantité corrigée', edited?.qty === 300)
+check('ligne déplacée de repas', edited?.meal === 'diner')
+check('valeurs de la ligne inchangées', edited?.snapshot.kcal === 62, String(edited?.snapshot.kcal))
+await page.waitForTimeout(3400)
+await shot('nutrition-repas')
+
+/* --- historique alimentaire --- */
+
+await page.goto(`${BASE}#/nutrition/historique`, { waitUntil: 'networkidle' })
+await page.waitForSelector('.hrow')
+const histText = await page.locator('body').innerText()
+check('historique : moyenne sur la fenêtre', /moyenne 30 jours/i.test(histText))
+check('historique : objectif rappelé', histText.includes('2400'))
+const histDays = await page.locator('.hlist .hrow').count()
+check('historique : une ligne par journée enregistrée', histDays >= 2, `${histDays} journées`)
+check('pas plus de trois messages empilés à l’écran', (await page.locator('.toast').count()) <= 3, `${await page.locator('.toast').count()} toasts`)
+await page.waitForTimeout(3400) // les messages s'effacent avant la capture
+await shot('nutrition-historique')
+
+await page.locator('.hlist .hrow').first().click()
+await page.waitForSelector('.daynav')
+check('une journée de l’historique s’ouvre telle qu’elle', (await page.locator('.tile__value').first().innerText()).length > 0)
+
+/* --- stockage --- */
+
+// On remet une fiche dans le cache : le vider n'a d'intérêt que s'il contient
+// quelque chose, et c'est ce chemin-là qu'on veut vérifier.
+await page.route(/openfoodfacts\.org/, (route) =>
+  route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(OFF_SEARCH) })
+)
+await page.goto(`${BASE}#/nutrition`, { waitUntil: 'networkidle' })
+await page.locator('.sticky-actions [data-act="add"]').click()
+await page.waitForSelector('.sheet')
+await page.locator('[data-tab="online"]').click()
+await page.fill('[data-online-query]', 'nutella')
+await page.locator('[data-act="run-online"]').click()
+await page.waitForSelector('.pick')
+await page.locator('[data-act="cancel"]').click()
+await page.waitForSelector('.sheet', { state: 'detached' })
+await page.unroute(/openfoodfacts\.org/)
+
+await page.goto(`${BASE}#/reglages`, { waitUntil: 'networkidle' })
+await page.waitForSelector('[data-storage] .meter')
+const storageText = await page.locator('[data-storage]').innerText()
+check('jauge : données APEX mesurées', /Données APEX/.test(storageText) && /\d+ %/.test(storageText), storageText.split('\n')[1] || '')
+check('jauge : détail par nature de donnée', storageText.includes('Sauvegarde v1'))
+check('jauge : cache alimentaire compté à part', /Cache alimentaire/.test(storageText))
+check('jauge : le cache est annoncé comme jetable', storageText.includes('jetable'))
+await page.locator('[data-storage]').scrollIntoViewIfNeeded()
+await page.waitForTimeout(2600) // laisser les toasts s'effacer avant la capture
+await shot('stockage')
+
+const cacheCountBefore = await page.evaluate(
+  () =>
+    new Promise((resolve) => {
+      const req = indexedDB.open('apex-foods')
+      req.onsuccess = () => {
+        const db = req.result
+        const c = db.transaction('foods', 'readonly').objectStore('foods').count()
+        c.onsuccess = () => {
+          db.close()
+          resolve(c.result)
+        }
+      }
+      req.onerror = () => resolve(0)
+    })
+)
+await page.locator('[data-act="clear-cache"]').click()
+await page.waitForTimeout(400)
+const journalAfterClear = await page.evaluate((k) => {
+  const n = JSON.parse(localStorage.getItem(k)).nutrition
+  return Object.values(n.days).flatMap((d) => d.entries).length
+}, CURRENT)
+check('cache vidable depuis les réglages', cacheCountBefore >= 0)
+check('vider le cache ne touche pas au journal', journalAfterClear > 0, `${journalAfterClear} lignes`)
+
+// L'avertissement doit arriver AVANT la limite, pas au moment de l'échec.
+const filled = await page.evaluate(() => {
+  try {
+    // ~4,4 Mo en UTF-16 : au-delà du seuil critique, sous la limite réelle.
+    localStorage.setItem('apex.test-filler', 'x'.repeat(2_250_000))
+    return true
+  } catch (e) {
+    return false
+  }
+})
+if (filled) {
+  await page.goto(BASE, { waitUntil: 'networkidle' })
+  await page.waitForSelector('.today')
+  await page.waitForTimeout(300)
+  const bannerText = (await page.locator('.banner').count()) ? await page.locator('.banner__text').innerText() : ''
+  check('stockage presque plein : alerte au démarrage', /presque plein/.test(bannerText), bannerText.slice(0, 60))
+  await shot('stockage-alerte')
+
+  await page.goto(`${BASE}#/reglages`, { waitUntil: 'networkidle' })
+  await page.waitForSelector('[data-storage] .meter')
+  check(
+    'réglages : conseil d’export affiché',
+    (await page.locator('[data-storage]').innerText()).includes('Exporte tes données')
+  )
+  await page.evaluate(() => localStorage.removeItem('apex.test-filler'))
+} else {
+  check('stockage presque plein : alerte au démarrage', false, 'remplissage impossible dans ce navigateur')
+}
+
 /* --- export / import --- */
 await page.goto(`${BASE}#/reglages`, { waitUntil: 'networkidle' })
 await page.waitForSelector('[data-act="export"]')

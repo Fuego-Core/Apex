@@ -10,6 +10,9 @@ import {
 } from '../state.js'
 import { navigate } from '../main.js'
 import { esc, header, toast, confirmDialog, formatDateTime } from '../ui.js'
+import { meter } from '../ui/components.js'
+import { measureLocal, deviceEstimate, storageAdvice, formatBytes } from '../data/storageInfo.js'
+import { foodCache } from '../data/foodCache.js'
 
 function download(filename, text) {
   const blob = new Blob([text], { type: 'application/json' })
@@ -69,6 +72,11 @@ export default function settingsView(root) {
         <button class="btn btn--ghost btn--block" data-act="export-v1">Exporter la sauvegarde v1</button>
       </div>
 
+      <h3 class="section-title">Stockage</h3>
+      <div class="card stack-sm" data-storage>
+        <p class="muted">Mesure en cours…</p>
+      </div>
+
       <h3 class="section-title">Zone rouge</h3>
       <div class="card stack-sm">
         <button class="btn btn--ghost btn--block" data-act="reset-program">Réinitialiser le programme</button>
@@ -79,6 +87,71 @@ export default function settingsView(root) {
 
       <p class="footnote">APEX · 100% local, aucune donnée ne quitte l'appareil.</p>
     </div>`
+
+  /* La jauge de stockage. Elle sépare volontairement les deux limites : celle
+     qui peut réellement bloquer une écriture (localStorage, où vivent toutes
+     tes données) et celle de l'appareil (où vit le cache alimentaire, jetable).
+     Seule la première déclenche un avertissement. */
+  async function renderStorage() {
+    const box = root.querySelector('[data-storage]')
+    if (!box) return
+
+    const local = measureLocal(globalThis.localStorage)
+    const device = await deviceEstimate()
+    const cache = foodCache()
+    const cached = await cache.count()
+    const advice = storageAdvice(local)
+    const pct = local.ratio === null ? null : Math.round(local.ratio * 100)
+
+    const lines = local.byKey
+      .map(
+        (k) => `
+        <div class="prod__row">
+          <span>${esc(k.label)}</span>
+          <strong>${esc(formatBytes(k.bytes))}</strong>
+        </div>`
+      )
+      .join('')
+
+    box.innerHTML = `
+      <div class="goal">
+        <div class="goal__head">
+          <span class="goal__title">Données APEX</span>
+          <span class="goal__values">
+            <strong>${esc(formatBytes(local.total))}</strong> / ${esc(formatBytes(local.limit))}
+          </span>
+        </div>
+        ${meter(pct)}
+        <div class="goal__foot">
+          <span>Programme, historique, mesures, journal alimentaire</span>
+          <span>${pct === null ? '—' : `${pct} %`}</span>
+        </div>
+      </div>
+
+      ${advice ? `<p class="note ${advice.tone === 'danger' ? 'note--danger' : 'note--warn'}">${esc(advice.text)}</p>` : ''}
+
+      <div class="prod">${lines}</div>
+
+      <div class="prod__row">
+        <span>Cache alimentaire (jetable)</span>
+        <strong>${cached} fiche${cached > 1 ? 's' : ''}</strong>
+      </div>
+      <p class="note">
+        Ce cache accélère la recherche de produits. Le vider ne change rien à ton journal ni à tes récents :
+        chaque ligne enregistrée porte ses propres valeurs.
+      </p>
+      <button class="btn btn--ghost btn--block btn--sm" data-act="clear-cache" ${cached ? '' : 'disabled'}>
+        Vider le cache alimentaire
+      </button>
+
+      <p class="note">
+        Espace de l'appareil :
+        ${device.quota ? `${esc(formatBytes(device.usage))} utilisés sur ${esc(formatBytes(device.quota))}` : 'non mesurable sur ce navigateur'}${
+          device.persisted === true ? ' · stockage marqué comme durable' : device.persisted === false ? ' · le navigateur peut le libérer' : ''
+        }.
+      </p>`
+  }
+  renderStorage()
 
   // La sauvegarde v1 vit dans le stockage : on la lit sans bloquer le rendu.
   getBackupInfo()
@@ -135,6 +208,12 @@ export default function settingsView(root) {
       }
     } else if (act === 'import') {
       fileInput.click()
+    } else if (act === 'clear-cache') {
+      // Sans confirmation : c'est une action sans perte, et le dire vaut mieux
+      // que de faire semblant qu'elle est grave.
+      await foodCache().clear()
+      toast('Cache alimentaire vidé · ton journal est intact')
+      renderStorage()
     } else if (act === 'import-paste') {
       const text = root.querySelector('[data-paste]').value.trim()
       if (!text) return toast('Rien à importer', 'warn')

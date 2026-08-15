@@ -10,7 +10,7 @@ import { getState, getLive } from '../state.js'
 import { nextSession, sessionsThisWeek, estimateDuration, pendingCount } from '../core/today.js'
 import { currentAverage, latest, trend, latestChange, series } from '../core/body.js'
 import { evaluateGoal } from '../core/goals.js'
-import { dayOf } from '../core/nutrition/journal.js'
+import { dayOf, loggedCount } from '../core/nutrition/journal.js'
 import { dayTotals, remaining, display } from '../core/nutrition/calculations.js'
 import { today } from '../core/body.js'
 import { esc, logoMark, num, duration } from '../ui.js'
@@ -135,6 +135,7 @@ function nutritionBlock(state) {
       </a>`
   }
 
+  const logged = loggedCount(state.nutrition.days, 7)
   const kcal = left?.kcal
   const line = kcal
     ? `${display(kcal.eaten, 'kcal')} / ${kcal.target} kcal`
@@ -151,7 +152,9 @@ function nutritionBlock(state) {
         </div>
         ${kcal ? meter(kcal.pct) : ''}
         <div class="goal__foot">
-          <span>${day.entries.length} aliment${day.entries.length > 1 ? 's' : ''} aujourd'hui</span>
+          <span>${day.entries.length} aliment${day.entries.length > 1 ? 's' : ''} aujourd'hui${
+            logged > 1 ? ` · ${logged} jours notés sur 7` : ''
+          }</span>
           ${kcal ? `<span>${kcal.left >= 0 ? `reste ${display(kcal.left, 'kcal')} kcal` : `+${display(-kcal.left, 'kcal')} kcal`}</span>` : '<span>sans objectif défini</span>'}
         </div>
       </div>

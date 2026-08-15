@@ -656,6 +656,51 @@
   margin-bottom: var(--sp-3);
 }
 
+/* ---------- Repas et recettes ---------- */
+
+/* Une ligne de journal ou de recette : tout le bloc gauche est tapable pour
+   corriger, la croix reste séparée pour ne jamais supprimer par erreur. */
+.hrow__main {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  min-height: var(--tap);
+  cursor: pointer;
+}
+
+.hrow:has(.hrow__main),
+a.hrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.mealbar {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+.mealbar .btn--block {
+  flex: 1;
+}
+
+.row-links {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: var(--sp-5);
+}
+
+.row-links .btn {
+  flex: 1;
+}
+
 /* ---------- Fiche produit ---------- */
 
 .prod {
@@ -682,6 +727,15 @@
 
 .prod__note {
   margin-top: var(--sp-2);
+}
+
+/* Un avertissement se voit sans hurler : la couleur porte le niveau. */
+.note--warn {
+  color: var(--warning);
+}
+
+.note--danger {
+  color: var(--danger);
 }
 
 /* ---------- Navigation par jour ---------- */

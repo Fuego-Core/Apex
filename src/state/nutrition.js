@@ -18,7 +18,8 @@ import {
 } from '../core/nutrition/foods.js'
 import { fetchProduct, searchOnline, OffError, ATTRIBUTION } from '../data/openFoodFacts.js'
 import { foodCache } from '../data/foodCache.js'
-import { dayOf, addEntry, updateEntry, removeEntry, suggestedMeal } from '../core/nutrition/journal.js'
+import { makeRecipe, validateRecipeInput, recipeAsFood, isRecipeId, makeItem } from '../core/nutrition/recipes.js'
+import { dayOf, addEntry, updateEntry, removeEntry, suggestedMeal, entriesOfMeal, loggedDays } from '../core/nutrition/journal.js'
 import { estimateTargets } from '../core/nutrition/targets.js'
 import { currentAverage } from '../core/body.js'
 
@@ -118,8 +119,59 @@ export function removeFood(id) {
 export function resolveFood(id) {
   const n = getState().nutrition
   if (n.foods[id]) return { ...snapshotOf(n.foods[id]), id }
+  if (isRecipeId(id)) {
+    const recipe = n.recipes.find((r) => r.id === id)
+    if (recipe) return { ...snapshotOf(recipeAsFood(recipe)), id }
+  }
   const remembered = n.usage[id]?.snapshot
   return remembered ? { ...remembered, id } : null
+}
+
+/* ---------- recettes ---------- */
+
+/**
+ * Crée une recette. Chaque ingrédient garde son instantané : la recette ne
+ * dépend plus de rien après sa création.
+ * @returns {Promise<{ok: boolean, errors?: object, recipe?: object}>}
+ */
+export async function createRecipe(input) {
+  const check = validateRecipeInput(input)
+  if (!check.ok) return { ok: false, errors: check.errors }
+
+  const state = getState()
+  const recipe = makeRecipe(input, { existing: state.nutrition.recipes })
+  state.nutrition.recipes.push(recipe)
+  await save()
+  return { ok: true, recipe }
+}
+
+export async function updateRecipe(id, patch) {
+  const state = getState()
+  const index = state.nutrition.recipes.findIndex((r) => r.id === id)
+  if (index < 0) return { ok: false, errors: { name: 'Recette introuvable.' } }
+
+  const merged = { ...state.nutrition.recipes[index], ...patch }
+  const check = validateRecipeInput(merged)
+  if (!check.ok) return { ok: false, errors: check.errors }
+
+  // Les portions déjà enregistrées ne bougent pas : elles ont leur instantané.
+  state.nutrition.recipes[index] = { ...merged, items: merged.items.map(makeItem), updatedAt: new Date().toISOString() }
+  await save()
+  return { ok: true, recipe: state.nutrition.recipes[index] }
+}
+
+export function removeRecipe(id) {
+  const state = getState()
+  state.nutrition.recipes = state.nutrition.recipes.filter((r) => r.id !== id)
+  return save()
+}
+
+/** Les recettes vues comme des aliments : c'est sous cette forme que le reste
+ *  de l'app les manipule, sans avoir à savoir ce qu'est une recette. */
+export function recipeFoods() {
+  const out = {}
+  for (const recipe of getState().nutrition.recipes) out[recipe.id] = recipeAsFood(recipe)
+  return out
 }
 
 /* ---------- source extérieure (Open Food Facts) ---------- */
@@ -276,6 +328,47 @@ export async function logFood({ foodId, snapshot = null, qty, unit = null, meal 
   })
   await save()
   return { ok: true, entry }
+}
+
+/**
+ * Retrouve le dernier repas de ce type réellement enregistré avant cette date.
+ * @returns {{date: string, entries: object[]}|null}
+ */
+export function lastMealBefore(meal, date) {
+  const days = loggedDays(getState().nutrition.days).filter((d) => d.date < date)
+  for (const day of days) {
+    const entries = entriesOfMeal(day, meal)
+    if (entries.length) return { date: day.date, entries }
+  }
+  return null
+}
+
+/**
+ * Refait un repas déjà enregistré : les lignes sont RECOPIÉES avec leurs
+ * instantanés d'origine, pas re-calculées. Le repas d'hier reste le repas
+ * d'hier, et celui d'aujourd'hui vaut exactement ce qu'il valait.
+ * @returns {Promise<{ok: boolean, added?: number, reason?: string}>}
+ */
+export async function repeatMeal({ meal, date = null, now = new Date() }) {
+  const state = getState()
+  const target = date || today(now)
+  const source = lastMealBefore(meal, target)
+  if (!source) return { ok: false, reason: 'Aucun repas de ce type enregistré avant cette date.' }
+
+  let day = dayOf(state.nutrition.days, target)
+  for (const entry of source.entries) {
+    const copy = { ...entry, id: uid('nl'), at: now.toISOString(), meal }
+    day = addEntry(day, copy)
+    state.nutrition.usage = touchUsage(state.nutrition.usage, copy.foodId, {
+      qty: copy.qty,
+      unit: copy.unit,
+      snapshot: copy.snapshot,
+      now
+    })
+  }
+  state.nutrition.days[target] = day
+  await save()
+  return { ok: true, added: source.entries.length, from: source.date }
 }
 
 export function updateLogEntry(date, entryId, patch) {

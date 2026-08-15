@@ -9,24 +9,20 @@
 import {
   getState,
   logFood,
+  updateLogEntry,
   removeLogEntry,
-  createFood,
+  repeatMeal,
+  lastMealBefore,
   applyEstimatedTargets,
-  setManualTargets,
-  searchFoodsOnline,
-  lookupBarcode
+  setManualTargets
 } from '../state.js'
-import { isBarcode } from '../data/openFoodFacts.js'
-import { dayOf, MEAL_LABELS, usedMeals, entriesOfMeal, shiftDate, suggestedMeal } from '../core/nutrition/journal.js'
+import { dayOf, MEALS, MEAL_LABELS, usedMeals, entriesOfMeal, shiftDate, suggestedMeal } from '../core/nutrition/journal.js'
 import { dayTotals, remaining, display, entryMacros } from '../core/nutrition/calculations.js'
-import { recents, favorites, searchLocal, snapshotOf } from '../core/nutrition/foods.js'
 import { estimateTargets, explain } from '../core/nutrition/targets.js'
 import { today, currentAverage } from '../core/body.js'
 import { esc, header, num, formatDate, toast, confirmDialog } from '../ui.js'
 import { tile, meter, blank, openSheet, parseNumber } from '../ui/components.js'
-import { openFoodPicker } from '../ui/food-picker.js'
-import { openScanner, scannerSupport } from '../ui/scanner.js'
-import { confirmProduct } from '../ui/product-card.js'
+import { pickFood } from '../ui/food-flow.js'
 
 const MACRO_LABELS = { kcal: 'Calories', protein: 'Protéines', carbs: 'Glucides', fat: 'Lipides' }
 const MACRO_UNITS = { kcal: 'kcal', protein: 'g', carbs: 'g', fat: 'g' }
@@ -90,108 +86,8 @@ export default function nutritionView(root, { date: initialDate } = {}) {
 
   /* ---------- ajout ---------- */
 
-  async function openCreateFoodSheet({ barcode = null } = {}) {
-    const values = await openSheet({
-      title: 'Nouvel aliment',
-      subtitle: barcode
-        ? `Code ${barcode} — les valeurs telles qu’elles figurent sur l’emballage.`
-        : 'Les valeurs telles qu’elles figurent sur l’emballage.',
-      submitLabel: 'Créer',
-      fields: [
-        { name: 'name', label: 'Nom', type: 'text', placeholder: 'Skyr maison' },
-        { name: 'brand', label: 'Marque (facultatif)', type: 'text' },
-        { name: 'per', label: 'Valeurs pour (g)', type: 'number', hint: 'En général 100' },
-        { name: 'kcal', label: 'Calories (kcal)', type: 'number' },
-        { name: 'protein', label: 'Protéines (g)', type: 'number' },
-        { name: 'carbs', label: 'Glucides (g)', type: 'number' },
-        { name: 'fat', label: 'Lipides (g)', type: 'number' },
-        { name: 'fiber', label: 'Fibres (g, facultatif)', type: 'number' }
-      ],
-      values: { per: '100' },
-      validate: () => ({})
-    })
-    if (!values) return null
-
-    const res = await createFood({
-      name: values.name,
-      brand: values.brand,
-      barcode,
-      per: parseNumber(values.per),
-      kcal: parseNumber(values.kcal),
-      protein: parseNumber(values.protein),
-      carbs: parseNumber(values.carbs),
-      fat: parseNumber(values.fat),
-      fiber: values.fiber === '' ? null : parseNumber(values.fiber)
-    })
-
-    if (!res.ok) {
-      toast(Object.values(res.errors)[0], 'warn')
-      return null
-    }
-    toast('Aliment créé', 'gold')
-    return { id: res.food.id, name: res.food.name, brand: res.food.brand, snapshot: snapshotOf(res.food), unit: res.food.unit, lastQty: null }
-  }
-
-  /* Un code-barres tapé à la main est une lecture directe, pas une recherche :
-     on ne fait pas chercher « 3017620422003 » à un moteur de texte. */
-  async function onlineSearch(query) {
-    if (isBarcode(query)) {
-      const found = await lookupBarcode(query)
-      return found.ok ? { rows: [found.row], message: '' } : { rows: [], message: found.message }
-    }
-    const { rows, warning, skipped } = await searchFoodsOnline(query)
-    const note = warning || (skipped ? `${skipped} fiche${skipped > 1 ? 's' : ''} écartée${skipped > 1 ? 's' : ''} : valeurs manquantes.` : '')
-    return { rows, message: note }
-  }
-
-  /* Le chemin complet d'un scan, dans cet ordre et sans raccourci :
-     lecture réelle → code → cache → Open Food Facts si nécessaire → fiche
-     produit → validation explicite → (la quantité est demandée ensuite par le
-     sélecteur). Un code lu n'ajoute jamais rien tout seul. */
-  async function scanFlow() {
-    const scanned = await openScanner()
-    if (!scanned) return null
-
-    const code = scanned.manual ? await askBarcode() : scanned.code
-    if (!code) return null
-
-    const found = await lookupBarcode(code)
-    if (!found.ok) {
-      // Inconnu ou fiche incomplète : on le dit, et on propose de le créer —
-      // avec le code sous les yeux, l'emballage est là de toute façon.
-      toast(found.message, 'warn')
-      return openCreateFoodSheet({ barcode: code })
-    }
-
-    const confirmed = await confirmProduct(found.row, { title: found.row.name })
-    if (!confirmed) return null
-    if (found.fromCache) toast('Fiche retrouvée sans réseau')
-    return found.row
-  }
-
-  /** Saisie du code à la main : le repli quand l'appareil ne sait pas lire. */
-  async function askBarcode() {
-    const values = await openSheet({
-      title: 'Code-barres',
-      subtitle: 'Les chiffres imprimés sous les barres, sur l’emballage.',
-      submitLabel: 'Chercher',
-      fields: [{ name: 'code', label: 'Code-barres', type: 'text', placeholder: '3017620422003' }],
-      validate: (data) => (isBarcode(data.code?.trim()) ? {} : { code: 'Un code-barres compte 8 à 14 chiffres.' })
-    })
-    return values ? values.code.trim() : null
-  }
-
   async function addFood(meal = null) {
-    const state = getState()
-    const support = await scannerSupport()
-    const chosen = await openFoodPicker({
-      recents: () => recents(state.nutrition.usage),
-      favorites: () => favorites(state.nutrition.usage),
-      search: (query) => searchLocal(state.nutrition, query),
-      online: onlineSearch,
-      scan: { supported: support.ok, reason: support.reason, run: scanFlow },
-      onCreate: openCreateFoodSheet
-    })
+    const chosen = await pickFood()
     if (!chosen) return
 
     await logFood({
@@ -204,6 +100,47 @@ export default function nutritionView(root, { date: initialDate } = {}) {
     })
     toast(`${chosen.snapshot?.name || 'Aliment'} ajouté`, 'gold')
     render()
+  }
+
+  /** Corriger une ligne : la quantité, ou le repas où elle est rangée.
+   *  L'instantané, lui, ne change jamais — c'est ce qu'on a mangé. */
+  async function editEntry(entry) {
+    const values = await openSheet({
+      title: entry.snapshot?.name || 'Ligne',
+      subtitle: `Enregistré dans ${MEAL_LABELS[entry.meal]?.toLowerCase() || 'ce repas'}`,
+      submitLabel: 'Enregistrer',
+      fields: [
+        { name: 'qty', label: `Quantité (${entry.unit})`, type: 'number' },
+        {
+          name: 'meal',
+          label: 'Repas',
+          type: 'segmented',
+          options: MEALS.map((m) => ({ value: m, label: MEAL_LABELS[m] }))
+        }
+      ],
+      values: { qty: num(entry.qty), meal: entry.meal },
+      validate: (data) => {
+        const qty = parseNumber(data.qty)
+        if (qty === null || qty <= 0) return { qty: 'Indique une quantité.' }
+        if (qty > 5000) return { qty: 'Au-delà de 5 000, c’est probablement une faute de frappe.' }
+        return {}
+      }
+    })
+    if (!values) return
+
+    await updateLogEntry(date, entry.id, { qty: parseNumber(values.qty), meal: values.meal })
+    toast('Ligne modifiée')
+    render()
+  }
+
+  /** Refaire un repas : les lignes sont recopiées telles quelles, pas recalculées. */
+  async function onRepeatMeal(meal) {
+    const res = await repeatMeal({ meal, date })
+    toast(
+      res.ok ? `${res.added} ligne${res.added > 1 ? 's' : ''} reprise${res.added > 1 ? 's' : ''} du ${formatDate(`${res.from}T12:00:00`)}` : res.reason,
+      res.ok ? 'gold' : 'warn'
+    )
+    if (res.ok) render()
   }
 
   async function confirmRemove(entry) {
@@ -276,30 +213,54 @@ export default function nutritionView(root, { date: initialDate } = {}) {
     const lines = entries
       .map((entry) => {
         const values = entryMacros(entry)
+        // Une recette dit ce qu'il y avait dedans, depuis son propre instantané.
+        const composition = entry.snapshot?.ingredients?.length
+          ? `<p class="hrow__sets">${esc(entry.snapshot.ingredients.map((i) => i.name).join(' · '))}</p>`
+          : ''
         return `
           <li class="hrow measure">
-            <div>
+            <button class="hrow__main" data-act="edit-entry" data-entry="${esc(entry.id)}">
               <span class="hrow__name">${esc(entry.snapshot?.name || 'Aliment')}</span>
               <p class="hrow__sets">
-                ${esc(num(entry.qty))} ${esc(entry.unit)}
+                ${esc(num(entry.qty))} ${esc(entry.unit)}${entry.unit === 'portion' && entry.qty > 1 ? 's' : ''}
                 ${values?.kcal != null ? ` · ${display(values.kcal, 'kcal')} kcal` : ''}
                 ${values?.protein != null ? ` · ${display(values.protein)} g prot.` : ''}
               </p>
-            </div>
+              ${composition}
+            </button>
             <button class="icon-btn" data-act="remove-entry" data-entry="${esc(entry.id)}"
                     aria-label="Retirer ${esc(entry.snapshot?.name || 'cet aliment')}">×</button>
           </li>`
       })
       .join('')
 
+    const canRepeat = !entries.length && !!lastMealBefore(meal, date)
     return `
       <div class="section-head" style="margin-top:var(--sp-5)">
         <h3 class="section-title">${esc(MEAL_LABELS[meal])}</h3>
-        <span class="section-link">${totals.kcal != null ? `${display(totals.kcal, 'kcal')} kcal` : ''}</span>
+        <span class="section-link">
+          ${totals.kcal != null ? `${display(totals.kcal, 'kcal')} kcal` : ''}${totals.protein != null ? ` · ${display(totals.protein)} g prot.` : ''}
+        </span>
       </div>
-      <ul class="card hlist">${lines}</ul>
-      <button class="btn btn--ghost btn--block btn--sm" data-act="add" data-meal="${esc(meal)}"
-              style="margin-top:var(--sp-2)">+ Ajouter à ${esc(MEAL_LABELS[meal].toLowerCase())}</button>`
+      ${entries.length ? `<ul class="card hlist">${lines}</ul>` : ''}
+      <div class="mealbar">
+        <button class="btn btn--ghost btn--block btn--sm" data-act="add" data-meal="${esc(meal)}">
+          + Ajouter à ${esc(MEAL_LABELS[meal].toLowerCase())}
+        </button>
+        ${
+          entries.length || canRepeat
+            ? `<button class="btn btn--ghost btn--sm" data-act="repeat-meal" data-meal="${esc(meal)}">Refaire</button>`
+            : ''
+        }
+      </div>`
+  }
+
+  /** Les repas à afficher : ceux du jour, plus ceux qu'on peut refaire. */
+  function mealsToShow(day) {
+    const used = usedMeals(day)
+    if (!used.length) return []
+    const repeatable = MEALS.filter((m) => !used.includes(m) && lastMealBefore(m, date))
+    return MEALS.filter((m) => used.includes(m) || repeatable.includes(m))
   }
 
   function render() {
@@ -307,7 +268,7 @@ export default function nutritionView(root, { date: initialDate } = {}) {
     const day = dayOf(state.nutrition.days, date)
     const { total } = dayTotals(day)
     const isToday = date === today()
-    const meals = usedMeals(day)
+    const meals = mealsToShow(day)
 
     root.innerHTML = `
       <div class="page">
@@ -350,6 +311,11 @@ export default function nutritionView(root, { date: initialDate } = {}) {
               })
         }
 
+        <div class="row-links">
+          <a class="btn btn--ghost btn--sm" href="#/recettes">Mes recettes</a>
+          <a class="btn btn--ghost btn--sm" href="#/nutrition/historique">Historique</a>
+        </div>
+
         <div class="sticky-actions">
           <button class="btn btn--gold btn--block btn--lg" data-act="add">Ajouter un aliment</button>
         </div>
@@ -373,6 +339,11 @@ export default function nutritionView(root, { date: initialDate } = {}) {
     } else if (act === 'remove-entry') {
       const entry = dayOf(getState().nutrition.days, date).entries.find((x) => x.id === btn.dataset.entry)
       if (entry) await confirmRemove(entry)
+    } else if (act === 'edit-entry') {
+      const entry = dayOf(getState().nutrition.days, date).entries.find((x) => x.id === btn.dataset.entry)
+      if (entry) await editEntry(entry)
+    } else if (act === 'repeat-meal') {
+      await onRepeatMeal(btn.dataset.meal)
     }
   }
 

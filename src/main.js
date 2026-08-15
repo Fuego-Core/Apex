@@ -6,12 +6,15 @@ import { primeAudio } from './timer.js'
 import { initState, onStorageError, getBootInfo } from './state.js'
 import { downloadEmergencyExport } from './data/rescue.js'
 import { banner, fatalScreen, toast } from './ui.js'
+import { measureLocal, storageAdvice } from './data/storageInfo.js'
 import dashboardView from './views/dashboard.js'
 import sessionsView from './views/sessions.js'
 import bodyView from './views/body.js'
 import goalsView from './views/goals.js'
 import profileView from './views/profile.js'
 import nutritionView from './views/nutrition.js'
+import nutritionHistoryView from './views/nutrition-history.js'
+import recipesView from './views/recipes.js'
 import prepView from './views/prep.js'
 import workoutView from './views/workout.js'
 import summaryView from './views/summary.js'
@@ -31,6 +34,9 @@ const ROUTES = [
   { re: /^\/objectifs\/nouveau$/, view: goalsView, keys: [], create: true },
   { re: /^\/profil$/, view: profileView },
   { re: /^\/nutrition$/, view: nutritionView },
+  { re: /^\/nutrition\/historique$/, view: nutritionHistoryView },
+  { re: /^\/nutrition\/(\d{4}-\d{2}-\d{2})$/, view: nutritionView, keys: ['date'] },
+  { re: /^\/recettes$/, view: recipesView },
   { re: /^\/seance\/([^/]+)$/, view: prepView, keys: ['sessionId'] },
   { re: /^\/seance\/([^/]+)\/workout$/, view: workoutView, keys: ['sessionId'] },
   { re: /^\/seance\/([^/]+)\/resume$/, view: summaryView, keys: ['sessionId'] },
@@ -122,6 +128,14 @@ async function boot() {
 
   window.addEventListener('hashchange', render)
   render()
+
+  /* Le stockage se remplit sans prévenir : on prévient. Seul le niveau
+     critique interrompt — l'avertissement plus doux vit dans les réglages,
+     avec le détail et le bouton d'export. */
+  const local = measureLocal(globalThis.localStorage)
+  if (local.level === 'critical') {
+    banner(storageAdvice(local).text, { tone: 'danger', id: 'storage-full' })
+  }
 
   const info = getBootInfo()
   if (info.migrated) {

@@ -98,6 +98,11 @@ export function toast(message, tone = 'neutral') {
   el.className = `toast toast--${tone}`
   el.textContent = message
   host.appendChild(el)
+
+  // Trois messages empilés suffisent : au-delà, ils masquent l'écran qu'ils
+  // sont censés commenter. Les plus anciens partent en premier.
+  const stacked = host.querySelectorAll('.toast')
+  for (let i = 0; i < stacked.length - 3; i++) stacked[i].remove()
   requestAnimationFrame(() => el.classList.add('is-in'))
   setTimeout(() => {
     el.classList.remove('is-in')

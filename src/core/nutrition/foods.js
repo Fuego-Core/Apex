@@ -74,7 +74,10 @@ export function snapshotOf(food) {
     protein: num(food.protein),
     carbs: num(food.carbs),
     fat: num(food.fat),
-    fiber: num(food.fiber)
+    fiber: num(food.fiber),
+    // Une recette emporte sa composition : la ligne restera lisible même si la
+    // recette est modifiée ou supprimée plus tard.
+    ingredients: food.ingredients ?? null
   }
 }
 

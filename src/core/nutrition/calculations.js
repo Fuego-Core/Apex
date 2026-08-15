@@ -130,6 +130,20 @@ export function dayTotals(day) {
 }
 
 /**
+ * Une valeur par journée enregistrée, du plus ancien au plus récent.
+ * Les journées sans donnée exploitable sont absentes — pas à zéro : ne rien
+ * avoir mangé et ne rien avoir noté ne sont pas la même chose.
+ * @returns {{date: string, value: number}[]}
+ */
+export function dailySeries(days, macro = 'kcal') {
+  return Object.values(days || {})
+    .filter((day) => day?.entries?.length)
+    .map((day) => ({ date: day.date, value: totalsOf(day.entries)[macro] }))
+    .filter((point) => point.value !== null)
+    .sort((a, b) => a.date.localeCompare(b.date))
+}
+
+/**
  * Valeurs d'une recette, au total et par portion.
  * @param {Function} resolveFood id -> aliment, ou null si introuvable.
  * @returns {{total, perServing, servings, unresolved: string[]}}
