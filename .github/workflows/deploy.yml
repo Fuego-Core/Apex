@@ -17,7 +17,9 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  # Le groupe est propre à chaque branche : un build de la branche de
+  # développement ne doit JAMAIS annuler un déploiement de production en cours.
+  group: pages-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
