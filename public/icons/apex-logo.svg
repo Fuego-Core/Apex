@@ -1,24 +1,49 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 116 34" width="232" height="68" role="img" aria-label="APEX">
-  <!-- Wordmark : symbole + lettres géométriques tracées (aucune police requise). -->
-  <g fill="#D4AF37">
-    <g transform="translate(0 -2) scale(0.79)">
-      <path d="M24 4.5 L42.5 43 H36 L24 17.9 L12 43 H5.5 Z"/>
-      <path d="M24 22.4 L28.2 31.2 H19.8 Z"/>
-      <rect x="9" y="33.8" width="30" height="3.2"/>
-      <rect x="5.4" y="30.9" width="2.7" height="9"/>
-      <rect x="39.9" y="30.9" width="2.7" height="9"/>
-    </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 470" width="340" height="470" role="img" aria-label="APEX — Your body. Your rules.">
+  <!-- Lockup de marque : symbole facetté, wordmark au E à barres, devise. -->
+  <defs>
+    <linearGradient id="agL" x1="0" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#f9e893"/><stop offset="0.5" stop-color="#d4af37"/><stop offset="1" stop-color="#8a6a1c"/>
+    </linearGradient>
+    <linearGradient id="agR" x1="1" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff7c4"/><stop offset="0.55" stop-color="#e2bf49"/><stop offset="1" stop-color="#9a7a22"/>
+    </linearGradient>
+    <radialGradient id="agGlow" cx="0.5" cy="0.3" r="0.65">
+      <stop offset="0" stop-color="rgba(246,225,122,0.2)"/><stop offset="1" stop-color="rgba(0,0,0,0)"/>
+    </radialGradient>
+  </defs>
+  <defs>
+    <linearGradient id="agW" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f3dd80"/><stop offset="1" stop-color="#b08c26"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(50 20) scale(5)">
+    <path d="M24 0 L12.6 24.6 H16.6 L24 8.6 Z" fill="url(#agL)"/>
+    <path d="M24 0 L35.4 24.6 H31.4 L24 8.6 Z" fill="url(#agR)"/>
+    <path d="M12.6 24.6 L5.5 40 H10.6 L16.6 24.6 Z" fill="url(#agL)"/>
+    <path d="M35.4 24.6 L42.5 40 H37.4 L31.4 24.6 Z" fill="url(#agR)"/>
+    <path d="M24 11.5 L33.5 34 H14.5 Z" fill="#0b0b0c" stroke="#26262a" stroke-width="0.4"/>
+    <path d="M24 17 L29.4 30 H26.6 L24 23.6 L21.4 30 H18.6 Z" fill="url(#agL)"/>
+    <rect x="2.4" y="31.4" width="43.2" height="2.1" rx="0.5" fill="url(#agL)"/>
+    <rect x="6.2" y="28.6" width="2.3" height="7.7" rx="0.6" fill="url(#agR)"/>
+    <rect x="2.6" y="29.6" width="2" height="5.7" rx="0.55" fill="url(#agL)"/>
+    <rect x="39.5" y="28.6" width="2.3" height="7.7" rx="0.6" fill="url(#agR)"/>
+    <rect x="43.4" y="29.6" width="2" height="5.7" rx="0.55" fill="url(#agL)"/>
   </g>
-  <g fill="none" stroke="#F5F5F5" stroke-width="2.6">
+  <!-- APEX — lettres géométriques tracées -->
+  <g transform="translate(38 300)" fill="url(#agW)">
     <!-- A -->
-    <path d="M46 26.7 L51.5 7.3 L57 26.7"/>
-    <path d="M48.6 20.4 H54.4"/>
+    <path d="M0 52 L20.4 0 H31.6 L52 52 H41 L26 12.4 L11 52 Z"/>
+    <path d="M15.5 40.5 L19 31.5 H33 L36.5 40.5 Z"/>
     <!-- P -->
-    <path d="M64.5 28 V6.7 H70.7 A5.15 5.15 0 0 1 70.7 17 H64.5"/>
-    <!-- E -->
-    <path d="M89.9 6.7 H82.5 V26.7 H89.9"/>
-    <path d="M82.5 16.4 H88.7"/>
+    <path d="M70 52 V0 H100 A16 16 0 0 1 100 32 H80 V52 Z M80 9 V23 H98 A7 7 0 0 0 98 9 Z"/>
+    <!-- E : trois barres -->
+    <rect x="126" y="0" width="34" height="10"/>
+    <rect x="126" y="21" width="30" height="10"/>
+    <rect x="126" y="42" width="34" height="10"/>
     <!-- X -->
-    <path d="M98.5 6.7 L108.5 26.7 M108.5 6.7 L98.5 26.7"/>
+    <path d="M180 0 H192 L202 17.8 L212 0 H224 L208.5 26 L224 52 H212 L202 34.2 L192 52 H180 L195.5 26 Z"/>
   </g>
+  <!-- devise -->
+  <text x="170" y="401" text-anchor="middle" font-family="'Inter','Helvetica Neue',Arial,sans-serif"
+        font-size="13" letter-spacing="5" fill="#c9a532">YOUR BODY. YOUR RULES.</text>
 </svg>

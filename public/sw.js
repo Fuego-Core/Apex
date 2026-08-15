@@ -21,6 +21,8 @@ const PRECACHE = [
   './icons/apex-icon.svg',
   './icons/apex-maskable.svg',
   './icons/apex-logo.svg',
+  './icons/apex-touch-180.png',
+  './icons/apex-touch-512.png',
   // Sous-ensemble latin : ce que le français utilise au quotidien. Le latin-ext
   // est mis en cache à la volée le jour où un caractère l'exige.
   './fonts/inter-400-latin.woff2',
