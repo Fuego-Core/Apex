@@ -1,10 +1,16 @@
 import './fonts.css'
+import './ui/tokens.css'
 import './styles.css'
+import './ui/components.css'
 import { primeAudio } from './timer.js'
 import { initState, onStorageError, getBootInfo } from './state.js'
 import { downloadEmergencyExport } from './data/rescue.js'
 import { banner, fatalScreen, toast } from './ui.js'
-import homeView from './views/home.js'
+import dashboardView from './views/dashboard.js'
+import sessionsView from './views/sessions.js'
+import bodyView from './views/body.js'
+import goalsView from './views/goals.js'
+import profileView from './views/profile.js'
 import prepView from './views/prep.js'
 import workoutView from './views/workout.js'
 import summaryView from './views/summary.js'
@@ -16,7 +22,13 @@ const app = document.getElementById('app')
 
 /* Routeur hash minimal : '/seance/push/workout' -> view + params */
 const ROUTES = [
-  { re: /^\/?$/, view: homeView },
+  { re: /^\/?$/, view: dashboardView },
+  { re: /^\/seances$/, view: sessionsView },
+  { re: /^\/corps$/, view: bodyView },
+  { re: /^\/corps\/ajouter\/(poids|taille)$/, view: bodyView, keys: ['add'] },
+  { re: /^\/objectifs$/, view: goalsView },
+  { re: /^\/objectifs\/nouveau$/, view: goalsView, keys: [], create: true },
+  { re: /^\/profil$/, view: profileView },
   { re: /^\/seance\/([^/]+)$/, view: prepView, keys: ['sessionId'] },
   { re: /^\/seance\/([^/]+)\/workout$/, view: workoutView, keys: ['sessionId'] },
   { re: /^\/seance\/([^/]+)\/resume$/, view: summaryView, keys: ['sessionId'] },
@@ -66,6 +78,9 @@ function render() {
 
   app.scrollTop = 0
   window.scrollTo(0, 0)
+
+  if (match.r.create) params.create = true
+  if (params.add) params.kind = params.add === 'taille' ? 'waist' : 'weight'
 
   try {
     cleanup = match.r.view(app, params) || null

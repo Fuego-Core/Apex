@@ -1,7 +1,11 @@
-import { getState, getLive, findSession } from '../state.js'
-import { esc, logoMark, relativeDays, formatDate } from '../ui.js'
+/* LISTE DES SÉANCES — le programme complet.
+   Le tableau de bord ne montre que la séance du jour ; ici on voit les cinq,
+   avec la date du dernier passage et les ajustements en attente. */
 
-export default function homeView(root) {
+import { getState, getLive, findSession } from '../state.js'
+import { esc, header, relativeDays, formatDate } from '../ui.js'
+
+export default function sessionsView(root) {
   const state = getState()
   const live = getLive()
   const liveSession = live ? findSession(live.sessionId) : null
@@ -29,12 +33,8 @@ export default function homeView(root) {
     .join('')
 
   root.innerHTML = `
-    <div class="page page--home">
-      <header class="brand">
-        <span class="brand__mark">${logoMark(34)}</span>
-        <span class="brand__word">APEX</span>
-      </header>
-      <p class="brand__tagline">Le poids monte quand les reps sont là.</p>
+    <div class="page">
+      ${header({ back: '#/', title: 'Séances', sub: `${state.program.length} séances au programme` })}
 
       ${
         live && liveSession
@@ -48,20 +48,8 @@ export default function homeView(root) {
           : ''
       }
 
-      <h3 class="section-title">Séances</h3>
       <div class="stack">${cards}</div>
 
-      <nav class="home-nav">
-        <a class="card nav-card" href="#/historique">
-          <span class="nav-card__label">Historique</span>
-          <span class="nav-card__meta">${state.history.length} séance${state.history.length > 1 ? 's' : ''}</span>
-        </a>
-        <a class="card nav-card" href="#/reglages">
-          <span class="nav-card__label">Réglages</span>
-          <span class="nav-card__meta">Sauvegarde &amp; données</span>
-        </a>
-      </nav>
-
-      <p class="footnote">Données stockées sur cet appareil uniquement.</p>
+      <p class="footnote">Le poids monte quand les reps sont là.</p>
     </div>`
 }

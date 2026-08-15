@@ -6,25 +6,38 @@
    frontière asynchrone, pas les 7 vues.
 
    Clés utilisées :
-     apex.v2            état courant
-     apex.live.v2       séance en cours
-     apex.backup.v1     copie brute de l'état v1, écrite AVANT toute migration
-     apex.v1            état d'origine — jamais modifié, jamais supprimé */
+     apex.v3            état courant
+     apex.live.v3       séance en cours
+     apex.backup.vN     copie brute de l'état vN, écrite AVANT de le migrer
+     apex.v1, apex.v2   états des versions précédentes — jamais modifiés,
+                        jamais supprimés. On lit, on migre à côté. */
 
 import { createDataStore } from './data/dataStore.js'
 import { StateError, StorageError } from './data/errors.js'
-import { freshState, hydrate, dehydrate, validateState } from './core/schema.js'
+import { freshState, hydrate, dehydrate, validateState, STATE_VERSION } from './core/schema.js'
 import { buildProgram } from './core/program.js'
-import { migrateV1toV2, migrateLiveV1toV2, MigrationError } from './core/migrate.js'
+import { migrateToCurrent, migrateLiveV1toV2, MigrationError } from './core/migrate.js'
+import { upsert as upsertEntry, removeAt as removeEntryAt } from './core/body.js'
 
 export const KEYS = {
+  /** Là où vit l'état courant. */
+  state: `apex.v${STATE_VERSION}`,
+  live: `apex.live.v${STATE_VERSION}`,
   v1: 'apex.v1',
   live1: 'apex.live.v1',
   v2: 'apex.v2',
   live2: 'apex.live.v2',
   backup: 'apex.backup.v1',
-  backupAt: 'apex.backup.v1.at'
+  backupAt: 'apex.backup.v1.at',
+  backupFor: (version) => `apex.backup.v${version}`,
+  backupAtFor: (version) => `apex.backup.v${version}.at`
 }
+
+/** Versions antérieures, de la plus récente à la plus ancienne. */
+const LEGACY_SOURCES = [
+  { key: KEYS.v2, version: 2, live: KEYS.live2 },
+  { key: KEYS.v1, version: 1, live: KEYS.live1 }
+]
 
 let store = null
 let state = null
@@ -60,78 +73,89 @@ function notifyError(error) {
 export async function initState(customStore) {
   store = customStore || createDataStore()
 
-  const existing = await store.get(KEYS.v2)
+  const existing = await store.get(KEYS.state)
   if (existing && existing.__corrupt) {
     throw new StateError('Les données APEX enregistrées sont illisibles (JSON corrompu).', [
-      'Le fichier apex.v2 n’a pas pu être relu.'
+      `Le fichier ${KEYS.state} n’a pas pu être relu.`
     ])
   }
 
   if (existing) {
     const check = validateState(existing)
     if (!check.ok) throw new StateError('Les données APEX enregistrées sont invalides.', check.errors)
+    if (existing.version !== STATE_VERSION) {
+      throw new StateError(`Version de données inattendue (v${existing.version}).`, [
+        `APEX attend la v${STATE_VERSION}.`
+      ])
+    }
     state = hydrate(existing)
     live = await readLive()
-    boot = { source: 'v2', migrated: false, report: null, backupKey: null }
+    boot = { source: 'current', migrated: false, from: STATE_VERSION, report: null, backupKey: null }
     return boot
   }
 
-  const rawV1 = await store.getRaw(KEYS.v1)
-  if (rawV1) {
-    boot = await migrateFromV1(rawV1)
-    return boot
+  for (const legacy of LEGACY_SOURCES) {
+    const raw = await store.getRaw(legacy.key)
+    if (raw) {
+      boot = await migrateFrom(legacy, raw)
+      return boot
+    }
   }
 
   state = freshState()
   live = null
   await save()
-  boot = { source: 'fresh', migrated: false, report: null, backupKey: null }
+  boot = { source: 'fresh', migrated: false, from: STATE_VERSION, report: null, backupKey: null }
   return boot
 }
 
-async function migrateFromV1(rawV1) {
+/** Migration non destructive depuis une version antérieure. À aucun moment la
+ *  source n'est modifiée : on sauvegarde, on convertit, on valide, on écrit
+ *  ailleurs, puis on relit ce qui a été écrit. Le moindre échec annule tout. */
+async function migrateFrom(legacy, raw) {
   let parsed
   try {
-    parsed = JSON.parse(rawV1)
+    parsed = JSON.parse(raw)
   } catch (e) {
-    throw new StateError('Les données APEX v1 sont illisibles (JSON corrompu).', [
+    throw new StateError(`Les données APEX v${legacy.version} sont illisibles (JSON corrompu).`, [
       'Elles n’ont pas été modifiées : tu peux les récupérer depuis le navigateur.'
     ])
   }
 
   // 1. Sauvegarde AVANT toute chose. Pas de sauvegarde => pas de migration.
+  const backupKey = KEYS.backupFor(legacy.version)
   try {
-    await store.setRaw(KEYS.backup, rawV1)
-    await store.setRaw(KEYS.backupAt, new Date().toISOString())
+    await store.setRaw(backupKey, raw)
+    await store.setRaw(KEYS.backupAtFor(legacy.version), new Date().toISOString())
   } catch (e) {
-    throw new StateError('Impossible de sauvegarder les données v1 avant migration.', [
+    throw new StateError(`Impossible de sauvegarder les données v${legacy.version} avant migration.`, [
       e instanceof StorageError ? e.userMessage : String(e.message || e),
       'La migration a été annulée : rien n’a été modifié.'
     ])
   }
 
-  // 2. Conversion + validation (migrateV1toV2 refuse de rendre un état invalide).
-  const { state: next, report } = migrateV1toV2(parsed)
+  // 2. Chaîne de conversion (v1 traverse v2 puis v3), validée à chaque étape.
+  const { state: next, reports, from } = migrateToCurrent(parsed)
 
-  // 3. Écriture sous une NOUVELLE clé — apex.v1 reste en place.
+  // 3. Écriture sous une NOUVELLE clé — la source reste en place.
   try {
-    await store.set(KEYS.v2, dehydrate(next))
+    await store.set(KEYS.state, dehydrate(next))
   } catch (e) {
     throw new StateError('Impossible d’écrire les données migrées.', [
       e instanceof StorageError ? e.userMessage : String(e.message || e),
-      'Tes données v1 sont intactes.'
+      `Tes données v${legacy.version} sont intactes.`
     ])
   }
 
-  // 4. Relecture de contrôle : on ne fait confiance qu'à ce qui est ressorti du disque.
-  const written = await store.get(KEYS.v2)
+  // 4. Relecture de contrôle : on ne fait confiance qu'à ce qui ressort du disque.
+  const written = await store.get(KEYS.state)
   const check = written && !written.__corrupt ? validateState(written) : { ok: false, errors: ['Relecture impossible.'] }
   if (!check.ok) {
-    // Rollback : on retire la v2 douteuse, la v1 reprend la main au prochain démarrage.
+    // Rollback : on retire l'état douteux, la source reprend la main au prochain démarrage.
     try {
-      await store.remove(KEYS.v2)
+      await store.remove(KEYS.state)
     } catch (e) {
-      /* le message d'erreur suffit, la v1 est intacte de toute façon */
+      /* le message d'erreur suffit, la source est intacte de toute façon */
     }
     throw new MigrationError('Vérification après migration échouée : migration annulée.', check.errors)
   }
@@ -139,22 +163,29 @@ async function migrateFromV1(rawV1) {
   state = hydrate(written)
 
   // 5. Une séance en cours au moment de la migration doit rester reprenable.
-  const oldLive = await store.get(KEYS.live1)
-  const migratedLive = oldLive && !oldLive.__corrupt ? migrateLiveV1toV2(oldLive) : null
+  const oldLive = await store.get(legacy.live)
+  const migratedLive =
+    oldLive && !oldLive.__corrupt
+      ? legacy.version === 1
+        ? migrateLiveV1toV2(oldLive)
+        : Array.isArray(oldLive.entries)
+          ? oldLive
+          : null
+      : null
   if (migratedLive) {
     try {
-      await store.set(KEYS.live2, migratedLive)
+      await store.set(KEYS.live, migratedLive)
     } catch (e) {
       /* la séance en cours n'est pas critique : on continue sans elle */
     }
   }
   live = migratedLive
 
-  return { source: 'migrated', migrated: true, report, backupKey: KEYS.backup }
+  return { source: 'migrated', migrated: true, from, report: reports[reports.length - 1], reports, backupKey }
 }
 
 async function readLive() {
-  const raw = await store.get(KEYS.live2)
+  const raw = await store.get(KEYS.live)
   if (!raw || raw.__corrupt || !Array.isArray(raw.entries)) return null
   return raw
 }
@@ -206,7 +237,7 @@ export async function save() {
     return false
   }
   try {
-    await store.set(KEYS.v2, payload)
+    await store.set(KEYS.state, payload)
     return true
   } catch (e) {
     notifyError(e)
@@ -218,13 +249,54 @@ export async function save() {
 export async function setLive(next) {
   live = next
   try {
-    if (next) await store.set(KEYS.live2, next)
-    else await store.remove(KEYS.live2)
+    if (next) await store.set(KEYS.live, next)
+    else await store.remove(KEYS.live)
     return true
   } catch (e) {
     notifyError(e)
     return false
   }
+}
+
+/* ---------- profil, mesures, objectifs ---------- */
+
+/** Met à jour le profil (fusion), horodate, enregistre. */
+export function updateProfile(patch) {
+  const s = getState()
+  s.profile = { ...s.profile, ...patch, updatedAt: new Date().toISOString() }
+  return save()
+}
+
+/** Ajoute ou remplace une mesure du jour. `kind` = 'weight' | 'waist'. */
+export function setBodyEntry(kind, { date, value, note = '' }) {
+  const s = getState()
+  s.body[kind] = upsertEntry(s.body[kind], { date, value, note })
+  return save()
+}
+
+export function removeBodyEntry(kind, date) {
+  const s = getState()
+  s.body[kind] = removeEntryAt(s.body[kind], date)
+  return save()
+}
+
+export function addGoal(goal) {
+  getState().goals.push(goal)
+  return save()
+}
+
+export function updateGoal(id, patch) {
+  const s = getState()
+  const i = s.goals.findIndex((g) => g.id === id)
+  if (i < 0) return Promise.resolve(false)
+  s.goals[i] = typeof patch === 'function' ? patch(s.goals[i]) : { ...s.goals[i], ...patch }
+  return save()
+}
+
+export function removeGoal(id) {
+  const s = getState()
+  s.goals = s.goals.filter((g) => g.id !== id)
+  return save()
 }
 
 /* ---------- sauvegarde / restauration ---------- */
@@ -246,28 +318,32 @@ export async function importJSON(text) {
   }
   if (!data || typeof data !== 'object') throw new Error('Fichier vide ou illisible.')
 
+  if (!Array.isArray(data.program)) {
+    throw new Error('Fichier non reconnu : ce n’est pas un export APEX.')
+  }
+
   let next
-  if (data.version === 2) {
+  if (data.version === STATE_VERSION) {
     const check = validateState(data)
-    if (!check.ok) throw new Error(`Fichier v2 invalide — ${check.errors.slice(0, 2).join(' ')}`)
+    if (!check.ok) throw new Error(`Fichier invalide — ${check.errors.slice(0, 2).join(' ')}`)
     next = data
-  } else if (Array.isArray(data.program)) {
+  } else {
+    // Export d'une version antérieure : on le fait passer par la même chaîne
+    // de migration que les données locales.
     try {
-      next = migrateV1toV2(data).state
+      next = migrateToCurrent(data).state
     } catch (e) {
       throw new Error(
         e instanceof MigrationError
-          ? `Conversion depuis l’ancien format impossible — ${(e.details[0] || e.message)}`
+          ? `Conversion depuis l’ancien format impossible — ${e.details[0] || e.message}`
           : 'Conversion depuis l’ancien format impossible.'
       )
     }
-  } else {
-    throw new Error('Fichier non reconnu : ni un export APEX v2, ni un export v1.')
   }
 
   const payload = dehydrate(next)
   try {
-    await store.set(KEYS.v2, payload)
+    await store.set(KEYS.state, payload)
   } catch (e) {
     throw new Error(e instanceof StorageError ? e.userMessage : 'Enregistrement impossible.')
   }
@@ -277,16 +353,22 @@ export async function importJSON(text) {
   return state
 }
 
-/** La sauvegarde automatique de l'état v1, si elle existe. */
+/** La sauvegarde automatique la plus récente laissée par une migration. */
 export async function getBackupInfo() {
-  const raw = await store.getRaw(KEYS.backup)
-  if (!raw) return null
-  return { at: await store.getRaw(KEYS.backupAt), bytes: raw.length }
+  for (const version of [2, 1]) {
+    const raw = await store.getRaw(KEYS.backupFor(version))
+    if (raw) {
+      return { version, at: await store.getRaw(KEYS.backupAtFor(version)), bytes: raw.length }
+    }
+  }
+  return null
 }
 
-/** Contenu brut de la sauvegarde v1, pour la réexporter telle quelle. */
-export function getBackupRaw() {
-  return store.getRaw(KEYS.backup)
+/** Contenu brut d'une sauvegarde, pour la réexporter telle quelle. */
+export async function getBackupRaw(version = null) {
+  if (version) return store.getRaw(KEYS.backupFor(version))
+  const info = await getBackupInfo()
+  return info ? store.getRaw(KEYS.backupFor(info.version)) : null
 }
 
 export async function resetAll() {

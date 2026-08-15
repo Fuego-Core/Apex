@@ -3,6 +3,7 @@
 Une app de suivi de musculation qui ne se contente pas de noter les séries : elle **applique les
 règles de progression et les explique**. Mobile-first, 100 % locale, utilisable hors ligne en salle.
 
+- Suivi du corps : poids, tour de taille, moyenne mobile 7 jours, tendance, objectifs.
 - Vanilla JS + HTML + CSS, build [Vite](https://vitejs.dev/). Aucun framework, aucun backend, aucun compte.
 - Aucune requête vers un tiers : polices auto-hébergées, tout est servi par l'app.
 - PWA installable sur Android (manifest + service worker), fonctionne sans réseau.
@@ -64,6 +65,32 @@ Puis `Settings → Pages → Source: Deploy from a branch → gh-pages / root`.
 3. L'app se lance en plein écran, sans barre d'adresse, et fonctionne ensuite hors ligne.
 
 ---
+
+## Les écrans
+
+| Écran | Route | Ce qu'il répond |
+| --- | --- | --- |
+| Tableau de bord | `#/` | Qu'est-ce que je fais aujourd'hui ? Où en est mon corps ? Est-ce que j'avance ? |
+| Séances | `#/seances` | Le programme complet, dernier passage et ajustements en attente |
+| Séance / Résumé | `#/seance/…` | Le déroulé et le verdict du moteur |
+| Corps | `#/corps` | Poids et tour de taille : moyenne 7 jours, tendance, courbe, historique |
+| Objectifs | `#/objectifs` | Où j'en suis par rapport à mes cibles, à partir de valeurs réelles |
+| Profil | `#/profil` | Ce qu'APEX sait de moi (tout est facultatif) |
+| Historique | `#/historique` | Séances archivées et progression par mouvement |
+
+### Corps : ce qu'APEX refuse de dire
+
+Une pesée isolée ne veut rien dire. APEX affiche donc la **moyenne mobile sur 7 jours
+calendaires** et n'annonce une **tendance** qu'à partir de 4 mesures réparties sur au moins
+7 jours — sinon il dit exactement ce qui manque. La variation est donnée sur la plus longue
+fenêtre réellement disponible (30, 14 ou 7 jours) plutôt qu'un tiret sur une fenêtre trop large.
+
+### Objectifs : aucune valeur inventée
+
+Chaque objectif lit une source réelle — moyenne 7 jours des pesées, dernière mesure de tour de
+taille, meilleur poids de travail d'un mouvement, nombre de séances des 28 derniers jours, ou une
+valeur saisie à la main. Tant que la source est muette, l'objectif affiche « pas encore de
+données » au lieu d'un 0 % trompeur.
 
 ## Le moteur de coaching
 
@@ -159,6 +186,19 @@ Forme du JSON exporté :
     }
   ],
   "history": [ /* séances archivées, séries incluses, rattachées à exerciseId */ ],
+  "profile": { "sex": null, "birthYear": null, "height": 178, "goal": "seche", "…": null },
+  "body": {
+    "weight": [ { "date": "2026-08-15", "value": 79.2 } ],
+    "waist":  [ { "date": "2026-08-15", "value": 87 } ]
+  },
+  "goals": [
+    {
+      "id": "goal_x", "kind": "weight",       // weight | waist | strength | sessions | manual
+      "title": "Descendre à 75 kg",
+      "unit": "kg", "target": 75, "start": 81.2, "direction": "down",
+      "deadline": null, "exerciseId": null, "value": null, "history": []
+    }
+  ],
   "settings": { "sound": true, "vibration": true }
 }
 ```
@@ -181,18 +221,26 @@ src/
     engine.js              moteur de progression
     catalog.js             catalogue des mouvements (ids stables)
     program.js             programme préchargé (5 séances)
-    schema.js              schéma v2, hydratation, validation
-    migrate.js             migration v1 → v2
+    body.js                moyenne mobile, tendance, variation
+    goals.js               objectifs et avancement réel
+    today.js               séance du jour, estimation de durée
+    schema.js              schéma v3, hydratation, validation
+    migrate.js             chaîne de migrations v1 → v2 → v3
   data/                    stockage
     dataStore.js           façade asynchrone (file d'écriture)
     adapters/local.js      adapter localStorage (IndexedDB viendra ici)
     errors.js              erreurs typées avec message utilisateur
     rescue.js              export de secours si l'app ne démarre pas
+  ui/                      design system
+    tokens.css             couleurs, espacements, rayons, durées — la seule source
+    components.css         styles des composants réutilisables
+    components.js          tuile, jauge, ligne, état vide, feuille de saisie, graphiques
   timer.js                 timer plein écran (repos / effort), son + vibration
   ui.js                    helpers de rendu, toasts, modales, bannières, écran d'erreur
   fonts.css                @font-face locales
-  styles.css               design system noir + or
-  views/                   home, prep (pense-bête), workout, summary, history, exercise, settings
+  styles.css               styles hérités des écrans de séance
+  views/                   dashboard, sessions, prep, workout, summary, history,
+                           exercise, body, goals, profile, settings
 tests/                     tests unitaires + parcours navigateur (tests/e2e)
 ```
 
@@ -206,16 +254,17 @@ travail. Renommer un mouvement ne casse rien, l'id ne bouge pas.
 
 | Clé | Contenu |
 | --- | --- |
-| `apex.v2` | état courant (catalogue, programme, historique, réglages) |
-| `apex.live.v2` | séance en cours |
-| `apex.backup.v1` | copie brute de l'état v1, écrite automatiquement avant la migration |
-| `apex.v1` | état d'origine — **jamais modifié, jamais supprimé** |
+| `apex.v3` | état courant (catalogue, programme, historique, profil, mesures, objectifs, réglages) |
+| `apex.live.v3` | séance en cours |
+| `apex.backup.vN` | copie brute de l'état vN, écrite automatiquement avant de le migrer |
+| `apex.v1`, `apex.v2` | états des versions précédentes — **jamais modifiés, jamais supprimés** |
 
-La migration v1 → v2 est non destructive et vérifiée : sauvegarde d'abord, conversion ensuite,
-validation du résultat, écriture sous une nouvelle clé, puis **relecture de contrôle**. Si une seule
-de ces étapes échoue, rien n'est écrit, `apex.v1` reste intact et l'app affiche un écran d'erreur
-avec un export de secours. Les anciens fichiers d'export v1 restent importables : ils sont convertis
-à la volée.
+Les migrations forment une chaîne (`v1 → v2 → v3`) : un état v1 traverse toutes les étapes en un
+seul démarrage. Chaque migration est non destructive et vérifiée : sauvegarde d'abord, conversion
+ensuite, validation du résultat, écriture sous une nouvelle clé, puis **relecture de contrôle**. Si
+une seule de ces étapes échoue, rien n'est écrit, la source reste intacte et l'app affiche un écran
+d'erreur avec un export de secours. Les anciens fichiers d'export restent importables : ils passent
+par la même chaîne.
 
 ## Logo
 

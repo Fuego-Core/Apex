@@ -1,0 +1,568 @@
+/* ===========================================================
+   APEX — composants réutilisables.
+
+   Chaque classe ici sert plusieurs écrans. Si un style n'existe que pour un
+   écran, il n'a rien à faire dans ce fichier : c'est le test qui empêche la
+   feuille de style de regonfler à chaque nouvelle page.
+   =========================================================== */
+
+/* ---------- Tuile de mesure ---------- */
+
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--sp-4);
+  display: block;
+  min-width: 0;
+}
+
+.tile__label {
+  font-size: var(--fs-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.tile__value {
+  font-family: var(--font-title);
+  font-size: var(--fs-xl);
+  line-height: 1.1;
+  margin-top: var(--sp-2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tile__unit {
+  font-size: var(--fs-md);
+  color: var(--muted);
+  margin-left: 3px;
+}
+
+.tile__hint {
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  margin-top: var(--sp-2);
+}
+
+.tile__hint--up {
+  color: var(--warning);
+}
+
+.tile__hint--down {
+  color: var(--success);
+}
+
+.tile__hint--gold {
+  color: var(--gold);
+}
+
+.tile--empty .tile__value {
+  color: var(--faint);
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+}
+
+/* ---------- Barre d'avancement ---------- */
+
+.meter {
+  height: 6px;
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+  overflow: hidden;
+}
+
+.meter__fill {
+  height: 100%;
+  background: var(--gold);
+  border-radius: inherit;
+  transition: width var(--t-slow);
+}
+
+.meter__fill--flat {
+  background: var(--line-strong);
+}
+
+.meter__fill--done {
+  background: var(--success);
+}
+
+/* ---------- Ligne d'objectif ---------- */
+
+.goal + .goal {
+  margin-top: var(--sp-4);
+}
+
+.goal__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-2);
+}
+
+.goal__title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.goal__values {
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.goal__values strong {
+  color: var(--text);
+}
+
+.goal__foot {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
+  font-size: var(--fs-xs);
+  color: var(--faint);
+}
+
+/* ---------- Ligne cliquable ---------- */
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  min-height: var(--tap);
+}
+
+.row__main {
+  min-width: 0;
+}
+
+.row__title {
+  font-size: var(--fs-md);
+  font-weight: 600;
+}
+
+.row__meta {
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.row__go {
+  color: var(--faint);
+  font-size: 24px;
+  line-height: 1;
+  flex: none;
+}
+
+/* ---------- État vide ---------- */
+
+.blank {
+  text-align: center;
+  padding: var(--sp-6) var(--sp-4);
+}
+
+.blank__title {
+  font-family: var(--font-title);
+  font-size: var(--fs-lg);
+  margin-bottom: var(--sp-2);
+}
+
+.blank__text {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  max-width: 34ch;
+  margin: 0 auto var(--sp-4);
+}
+
+/* ---------- Feuille du bas (formulaires) ---------- */
+
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transition: opacity var(--t-base);
+}
+
+.sheet.is-in {
+  opacity: 1;
+}
+
+.sheet__panel {
+  width: 100%;
+  max-width: 560px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  padding: var(--sp-5) var(--sp-5) calc(var(--sp-5) + var(--safe-b));
+  box-shadow: var(--shadow-2);
+  transform: translateY(16px);
+  transition: transform var(--t-slow);
+  max-height: 92vh;
+  overflow-y: auto;
+}
+
+.sheet.is-in .sheet__panel {
+  transform: translateY(0);
+}
+
+.sheet__grip {
+  width: 38px;
+  height: 4px;
+  border-radius: var(--r-full);
+  background: var(--surface-3);
+  margin: 0 auto var(--sp-4);
+}
+
+.sheet__title {
+  font-family: var(--font-title);
+  font-size: var(--fs-lg);
+  margin-bottom: var(--sp-2);
+}
+
+.sheet__sub {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  margin-bottom: var(--sp-5);
+}
+
+.sheet__actions {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: var(--sp-5);
+}
+
+.sheet__actions .btn {
+  flex: 1;
+}
+
+/* ---------- Champs ---------- */
+
+.fld + .fld {
+  margin-top: var(--sp-4);
+}
+
+.fld__label {
+  display: block;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  margin-bottom: var(--sp-2);
+}
+
+.fld__input,
+.fld__select {
+  width: 100%;
+  min-height: var(--tap);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  color: var(--text);
+  font-size: 17px; /* < 16px ferait zoomer iOS à la saisie */
+}
+
+.fld__input:focus,
+.fld__select:focus {
+  outline: none;
+  border-color: var(--gold-line);
+}
+
+.fld__input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+.fld__error {
+  display: block;
+  color: var(--danger);
+  font-size: var(--fs-sm);
+  margin-top: var(--sp-2);
+}
+
+.fld__hint {
+  display: block;
+  color: var(--faint);
+  font-size: var(--fs-xs);
+  margin-top: var(--sp-2);
+}
+
+/* ---------- Sélecteur segmenté ---------- */
+
+.seg {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+}
+
+.seg__opt {
+  flex: 1;
+  min-height: 38px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--t-fast), color var(--t-fast);
+}
+
+.seg__opt.is-on {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+/* En tête de page, le sélecteur a besoin d'air avant le contenu. */
+.seg--page {
+  margin-bottom: var(--sp-4);
+}
+
+/* ---------- En-tête de section ---------- */
+
+.section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.section-head .section-title {
+  margin-bottom: var(--sp-3);
+}
+
+.section-link {
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  padding: var(--sp-2);
+  margin: calc(var(--sp-2) * -1);
+}
+
+/* ---------- Carte du jour ---------- */
+
+.today {
+  border-color: var(--gold-line);
+  background: linear-gradient(180deg, var(--gold-dim), transparent 60%);
+  padding: var(--sp-5);
+}
+
+.today__kicker {
+  font-size: var(--fs-xs);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.today__name {
+  font-family: var(--font-title);
+  font-size: 32px;
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  line-height: 1.1;
+  margin-top: var(--sp-2);
+}
+
+.today__sub {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  margin-top: var(--sp-1);
+}
+
+.today__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-4);
+  margin: var(--sp-4) 0;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+
+.today__why {
+  font-size: var(--fs-sm);
+  color: var(--gold);
+  margin-top: var(--sp-3);
+  text-align: center;
+}
+
+.dash-links {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+  margin-top: var(--sp-6);
+}
+
+/* ---------- Graphiques ---------- */
+
+.plot {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+.plot__area {
+  fill: var(--gold-dim);
+}
+
+.plot__line {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.plot__raw {
+  fill: var(--faint);
+}
+
+.plot__axis {
+  fill: var(--faint);
+  font-size: 9px;
+  font-family: var(--font-body);
+}
+
+.plot__grid {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.spark {
+  display: block;
+  width: 100%;
+  height: 40px;
+  overflow: visible;
+}
+
+/* ---------- Petits blocs de texte ---------- */
+
+.week-line {
+  text-align: center;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  margin: var(--sp-4) 0 var(--sp-2);
+}
+
+.note {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+  margin-top: var(--sp-3);
+}
+
+.note strong {
+  color: var(--text);
+}
+
+/* ---------- Couple clé / valeur ---------- */
+
+.kv {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-4);
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.kv:last-child {
+  border-bottom: 0;
+}
+
+.kv__key {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+
+.kv__value {
+  font-weight: 600;
+  text-align: right;
+}
+
+.kv__value--empty {
+  color: var(--faint);
+  font-weight: 400;
+}
+
+/* ---------- Carte d'objectif ---------- */
+
+.goal__source {
+  color: var(--faint);
+  font-size: var(--fs-xs);
+  margin-top: var(--sp-3);
+}
+
+.goal-card__actions {
+  display: flex;
+  gap: var(--sp-2);
+  margin-top: var(--sp-4);
+}
+
+/* ---------- Ligne de mesure ---------- */
+
+.measure {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+/* ---------- Apparition en cascade ---------- */
+
+.reveal {
+  animation: reveal var(--t-slow) both;
+}
+
+.reveal:nth-child(2) {
+  animation-delay: 40ms;
+}
+.reveal:nth-child(3) {
+  animation-delay: 80ms;
+}
+.reveal:nth-child(4) {
+  animation-delay: 120ms;
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    animation: none;
+  }
+  .meter__fill,
+  .sheet,
+  .sheet__panel {
+    transition: none;
+  }
+}

@@ -1,14 +1,20 @@
 /* SCHÉMA v2 — forme des données, hydratation, validation.
 
-   Forme persistée :
+   Forme persistée (v3) :
    {
-     version: 2,
+     version: 3,
      createdAt, migratedFrom, migratedAt,
      catalog: { [exerciseId]: { id, name, mode, assisted, increment } },
      program: [ { id, name, subtitle, lastDoneAt, exercises: [ instance ] } ],
      history: [ ... ],
+     profile: { sex, birthYear, height, goal, experience, activity, ... },
+     body:    { weight: [ {date, value} ], waist: [ {date, value} ] },
+     goals:   [ { id, kind, title, target, ... } ],
      settings: { sound, vibration }
    }
+
+   v2 = tout sauf profile/body/goals. Les deux versions restent validables :
+   la v2 est ce que produit la migration depuis la v1, avant d'être portée en v3.
 
    Une instance ne stocke QUE ce qui lui appartient (paramètres de travail).
    Le nom, le mode et la nature assistée sont branchés à la lecture depuis le
@@ -18,7 +24,7 @@
 import { buildCatalog } from './catalog.js'
 import { buildProgram } from './program.js'
 
-export const STATE_VERSION = 2
+export const STATE_VERSION = 3
 
 /** Champs réellement persistés d'une instance d'exercice. */
 const INSTANCE_KEYS = [
@@ -36,6 +42,26 @@ const INSTANCE_KEYS = [
   'pending'
 ]
 
+/** Profil vide : rien n'est inventé, tout est à null tant que l'utilisateur
+ *  n'a rien saisi. Un champ absent doit s'afficher comme absent. */
+export function emptyProfile() {
+  return {
+    sex: null,
+    birthYear: null,
+    height: null,
+    goal: null,
+    experience: null,
+    activity: null,
+    trainingDays: null,
+    sessionDuration: null,
+    updatedAt: null
+  }
+}
+
+export function emptyBody() {
+  return { weight: [], waist: [] }
+}
+
 export function freshState(now = new Date()) {
   return {
     version: STATE_VERSION,
@@ -45,6 +71,9 @@ export function freshState(now = new Date()) {
     catalog: buildCatalog(),
     program: buildProgram(),
     history: [],
+    profile: emptyProfile(),
+    body: emptyBody(),
+    goals: [],
     settings: { sound: true, vibration: true }
   }
 }
@@ -102,6 +131,9 @@ export function dehydrate(state) {
       })
     })),
     history: state.history,
+    profile: state.profile ?? emptyProfile(),
+    body: state.body ?? emptyBody(),
+    goals: state.goals ?? [],
     settings: state.settings
   }
 }
@@ -121,7 +153,10 @@ export function validateState(state) {
   const fail = (m) => errors.push(m)
 
   if (!isObj(state)) return { ok: false, errors: ['Données illisibles : ce n’est pas un objet JSON.'] }
-  if (state.version !== STATE_VERSION) fail(`Version attendue ${STATE_VERSION}, reçue ${state.version}.`)
+  // La v2 reste validable : c'est l'étape intermédiaire de la chaîne de migration.
+  if (state.version !== 2 && state.version !== 3) {
+    fail(`Version attendue ${STATE_VERSION}, reçue ${state.version}.`)
+  }
 
   if (!isObj(state.catalog)) fail('Catalogue d’exercices manquant.')
   else {
@@ -185,6 +220,35 @@ export function validateState(state) {
   }
 
   if (!isObj(state.settings)) fail('Réglages manquants.')
+
+  if (state.version === 3) {
+    if (!isObj(state.profile)) fail('Profil manquant.')
+    if (!isObj(state.body) || !Array.isArray(state.body.weight) || !Array.isArray(state.body.waist)) {
+      fail('Mesures corporelles manquantes.')
+    } else {
+      for (const [name, list] of [['poids', state.body.weight], ['tour de taille', state.body.waist]]) {
+        for (const e of list) {
+          if (!isObj(e) || !isStr(e.date) || !isNum(e.value)) {
+            fail(`Une mesure de ${name} est illisible.`)
+            break
+          }
+        }
+      }
+    }
+    if (!Array.isArray(state.goals)) fail('Objectifs manquants.')
+    else {
+      for (const g of state.goals) {
+        if (!isObj(g) || !isStr(g.id) || !isStr(g.kind)) {
+          fail('Un objectif est illisible.')
+          break
+        }
+        if (!isNum(g.target)) {
+          fail(`Objectif « ${g.title || g.id} » : cible invalide.`)
+          break
+        }
+      }
+    }
+  }
 
   return { ok: errors.length === 0, errors }
 }

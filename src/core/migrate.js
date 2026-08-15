@@ -12,7 +12,7 @@
    - une séance en cours au moment de la migration reste reprenable. */
 
 import { buildCatalog, catalogIdByName, nameKey, resolveOrCreate } from './catalog.js'
-import { STATE_VERSION, validateState } from './schema.js'
+import { STATE_VERSION, validateState, emptyProfile, emptyBody } from './schema.js'
 
 export class MigrationError extends Error {
   constructor(message, details = []) {
@@ -115,7 +115,7 @@ export function migrateV1toV2(v1, { now = new Date() } = {}) {
   }))
 
   const state = {
-    version: STATE_VERSION,
+    version: 2,
     createdAt: v1.createdAt ?? now.toISOString(),
     migratedFrom: 1,
     migratedAt: now.toISOString(),
@@ -158,4 +158,67 @@ export function migrateLiveV1toV2(live) {
       sets: Array.isArray(e.sets) ? e.sets : []
     }))
   }
+}
+
+/**
+ * v2 -> v3 : ajoute le profil, les mesures corporelles et les objectifs.
+ * Purement additif — rien de l'existant n'est touché, relu ni réinterprété.
+ */
+export function migrateV2toV3(v2, { now = new Date() } = {}) {
+  if (!v2 || typeof v2 !== 'object') {
+    throw new MigrationError('État v2 illisible : rien à migrer.')
+  }
+
+  const state = {
+    ...v2,
+    version: 3,
+    migratedAt: now.toISOString(),
+    profile: v2.profile ?? emptyProfile(),
+    body: {
+      weight: Array.isArray(v2.body?.weight) ? v2.body.weight : [],
+      waist: Array.isArray(v2.body?.waist) ? v2.body.waist : []
+    },
+    goals: Array.isArray(v2.goals) ? v2.goals : []
+  }
+
+  const check = validateState(state)
+  if (!check.ok) {
+    throw new MigrationError('La migration v2 → v3 a produit des données invalides.', check.errors)
+  }
+  return { state, report: { added: ['profile', 'body', 'goals'] } }
+}
+
+/** La chaîne, dans l'ordre. Ajouter une version = ajouter une ligne ici. */
+export const MIGRATIONS = [
+  { from: 1, to: 2, run: migrateV1toV2 },
+  { from: 2, to: 3, run: migrateV2toV3 }
+]
+
+/**
+ * Applique toutes les migrations nécessaires pour amener un état à la version
+ * courante. Un état v1 traverse donc v2 puis v3 en un seul démarrage.
+ * @returns {{state, reports: object[], from: number}}
+ */
+export function migrateToCurrent(state, options = {}) {
+  const from = Number(state?.version) || 1
+  if (from > STATE_VERSION) {
+    throw new MigrationError(
+      `Ces données viennent d’une version plus récente d’APEX (v${from}).`,
+      ['Mets l’application à jour avant de les importer.']
+    )
+  }
+
+  let current = state
+  const reports = []
+  for (const step of MIGRATIONS) {
+    if (step.from < from) continue
+    const { state: next, report } = step.run(current, options)
+    reports.push({ from: step.from, to: step.to, ...report })
+    current = next
+  }
+
+  if (current.version !== STATE_VERSION) {
+    throw new MigrationError(`Migration incomplète : arrêtée en v${current.version}.`)
+  }
+  return { state: current, reports, from }
 }
