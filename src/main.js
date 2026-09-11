@@ -4,10 +4,12 @@ import './enhancements.js'
 import './basicfit-media.js'
 import './nutrition-scanner.js'
 import './smart-actions.js'
+import './apex-v2.css'
 
 import { checkinPage } from './app/checkin-view.js'
 import { nutritionPage } from './app/nutrition-view.js'
 import { progressPage } from './app/progress-view.js'
+import { trackingPage } from './app/tracking-view.js'
 import { home, program, workoutView } from './app/training.js'
 
 function render() {
@@ -19,6 +21,7 @@ function render() {
 
   const routes = {
     home,
+    tracking: trackingPage,
     program,
     nutrition: nutritionPage,
     progress: progressPage,
