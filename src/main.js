@@ -9,12 +9,14 @@ import './photo-progress.css'
 import './apex-fit.css'
 import './apex-fit-route.css'
 import './apex-pwa-fix.css'
+import './apex-product-v3.css'
 
 import { checkinPage } from './app/checkin-view.js'
+import { homePage } from './app/home-view.js'
 import { nutritionPage } from './app/nutrition-view.js'
 import { progressPage } from './app/progress-view.js'
 import { trackingPage } from './app/tracking-view.js'
-import { home, program, workoutView } from './app/training.js'
+import { program, workoutView } from './app/training.js'
 
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
 
@@ -31,14 +33,14 @@ function render({ resetScroll = false } = {}) {
     workoutView(route.split('/')[1])
   } else {
     const routes = {
-      home,
+      home: homePage,
       tracking: trackingPage,
       program,
       nutrition: nutritionPage,
       progress: progressPage,
       checkin: checkinPage
     }
-    ;(routes[route] || home)()
+    ;(routes[route] || homePage)()
   }
 
   if (resetScroll) resetRouteScroll()
