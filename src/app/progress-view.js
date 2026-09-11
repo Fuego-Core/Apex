@@ -1,5 +1,5 @@
 import { J0 } from './config.js'
-import { TODAY, save, state } from './store.js'
+import { exportState, restoreState, TODAY, save, state } from './store.js'
 import { coach, esc, num, section, shell, top } from './ui.js'
 
 const TRACKED = [
@@ -43,7 +43,7 @@ function series(rows, key) {
 
 function delta(value, start, unit) {
   const change = Number(value) - Number(start)
-  if (!Number.isFinite(change) || Math.abs(change) < 0.05) return `Stable depuis J0`
+  if (!Number.isFinite(change) || Math.abs(change) < 0.05) return 'Stable depuis J0'
   return `${change > 0 ? '+' : '−'}${num(Math.abs(change))} ${unit} depuis J0`
 }
 
@@ -91,6 +91,18 @@ function measurementCard(body, key, label, unit) {
   </article>`
 }
 
+function downloadBackup() {
+  const blob = new Blob([JSON.stringify(exportState(), null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `APEX-backup-${TODAY()}.json`
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 0)
+}
+
 export function progressPage() {
   const rows = timeline()
   const body = currentBody(rows)
@@ -136,7 +148,7 @@ export function progressPage() {
 
     ${section('Mensurations actuelles')}
     <div class="measurement-grid">
-      ${TRACKED.filter(([key]) => !['weight'].includes(key)).map(([key, label, unit]) => measurementCard(body, key, label, unit)).join('')}
+      ${TRACKED.filter(([key]) => key !== 'weight').map(([key, label, unit]) => measurementCard(body, key, label, unit)).join('')}
     </div>
 
     ${section('Historique')}
@@ -147,6 +159,14 @@ export function progressPage() {
         ${row.date !== J0.date ? `<button class="history-delete" data-delete-body="${esc(row.date)}" aria-label="Supprimer le relevé">×</button>` : ''}
       </article>`).join('')}
     </div>
+
+    ${section('Mes données APEX')}
+    <article class="plain-card data-card">
+      <div><strong>Sauvegarde personnelle</strong><p>Exporte régulièrement tes séances, mesures, check-ins, nutrition et stock. Le fichier permet de tout restaurer sur cet appareil ou un autre navigateur.</p></div>
+      <div class="data-actions"><button class="btn btn-secondary" id="exportData">Exporter</button><button class="btn btn-secondary" id="importData">Restaurer</button></div>
+      <input id="backupFile" type="file" accept="application/json,.json" hidden>
+      <p class="data-status" id="dataStatus"></p>
+    </article>
 
     ${coach('Lecture du progrès', 'Le signal prioritaire est la tendance : tour de nombril qui baisse progressivement, performances qui remontent et récupération correcte. Une variation isolée du poids ne décide jamais du plan.')}
   `, 'progress')
@@ -181,4 +201,25 @@ export function progressPage() {
       progressPage()
     }
   })
+
+  document.querySelector('#exportData').onclick = () => {
+    downloadBackup()
+    document.querySelector('#dataStatus').textContent = 'Sauvegarde exportée.'
+  }
+
+  const fileInput = document.querySelector('#backupFile')
+  document.querySelector('#importData').onclick = () => fileInput.click()
+  fileInput.onchange = async () => {
+    const file = fileInput.files?.[0]
+    const status = document.querySelector('#dataStatus')
+    if (!file) return
+    try {
+      const payload = JSON.parse(await file.text())
+      if (!confirm('Restaurer cette sauvegarde remplacera les données APEX actuellement enregistrées sur cet appareil. Continuer ?')) return
+      restoreState(payload)
+      progressPage()
+    } catch {
+      status.textContent = 'Ce fichier n’est pas une sauvegarde APEX valide.'
+    }
+  }
 }
