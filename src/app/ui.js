@@ -19,8 +19,8 @@ function icon(name) {
   const paths = {
     home: 'M4 11 12 4l8 7v9h-5v-6H9v6H4z',
     tracking: 'M5 19V9m7 10V5m7 14v-7',
-    program: 'M5 6h14M5 12h14M5 18h14',
-    nutrition: 'M12 3v18M6 7h12',
+    program: 'M5 7h4l2-3h2l2 3h4v12H5z M9 13h6',
+    nutrition: 'M6 4h12v4H6z M8 8v12m8-12v12M6 20h12',
     progress: 'M4 18l5-6 4 3 7-9',
     checkin: 'm5 12 4 4 10-10'
   }
@@ -28,11 +28,12 @@ function icon(name) {
 }
 
 function nav(active) {
-  const activeGroup = ['tracking', 'nutrition', 'progress', 'checkin'].includes(active) ? 'tracking' : active
+  const activeGroup = ['progress', 'checkin', 'tracking'].includes(active) ? 'tracking' : active
   const items = [
-    ['home', 'home', 'Aujourd’hui'],
-    ['tracking', 'tracking', 'Suivi'],
-    ['program', 'program', 'Programme']
+    ['home', 'home', 'Accueil'],
+    ['program', 'program', 'Entraînement'],
+    ['nutrition', 'nutrition', 'Nutrition'],
+    ['tracking', 'tracking', 'Suivi']
   ]
 
   return `<nav class="bottom-nav" aria-label="Navigation principale">${items.map(([route, glyph, label]) => `
@@ -62,8 +63,11 @@ export function shell(html, active) {
 
 export function top(title, subtitle = '') {
   return `<header class="page-head">
-    <div>
-      <p class="brandline">APEX PERFORMANCE</p>
+    <div class="app-brandbar">
+      <div class="app-wordmark">APEX<em>.</em></div>
+      <div class="app-brandtag">Coaching personnel</div>
+    </div>
+    <div class="page-title">
       <h1>${title}</h1>
       <p>${subtitle}</p>
     </div>
@@ -82,5 +86,9 @@ export function coach(title, text) {
 }
 
 export function go(route) {
-  location.hash = route
+  const target = `#${route}`
+  if (location.hash === target) return
+  const navigate = () => { location.hash = route }
+  if (document.startViewTransition) document.startViewTransition(navigate)
+  else navigate()
 }
