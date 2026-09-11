@@ -1,21 +1,27 @@
-import { J0 } from './config.js'
+import { buildCoachReport, weeklySummary } from './coach-engine.js'
 import { nutritionDay, save, state, TODAY } from './store.js'
-import { mandatoryDone, phase } from './training.js'
 import { esc, go, section, shell, top } from './ui.js'
 
-function currentBody() {
-  return [...(state.body || [])]
-    .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')))
-    .reduce((body, row) => ({ ...body, ...row }), { ...J0 })
+function format(value, digits = 1) {
+  return value === null || value === undefined || !Number.isFinite(Number(value))
+    ? '—'
+    : Number(value).toLocaleString('fr-FR', { maximumFractionDigits: digits })
 }
 
 export function checkinPage() {
   const today = TODAY()
   const nutrition = nutritionDay(today)
   const existing = state.checkins.find((item) => item.date === today) || {}
+  const week = weeklySummary()
 
   shell(`
-    ${top('Check-in', '30 secondes après la journée ou la séance')}
+    ${top('Check-in', '30 secondes pour enrichir ton coaching')}
+
+    <section class="checkin-summary">
+      <div><span>7 JOURS</span><strong>${week.sessions}/4 séances</strong><small>${week.checkinDays}/7 check-ins · ${week.nutritionDays}/7 jours nutrition suivis</small></div>
+      <div><span>ADHÉRENCE</span><strong>${week.adherence === null ? '—' : `${week.adherence}/100`}</strong><small>Indicative, selon les données disponibles</small></div>
+    </section>
+
     <form class="check-form" id="cf">
       <label>Sommeil (h)<input name="sleep" inputmode="decimal" required value="${esc(existing.sleep || '')}"></label>
       <label>Sensations /10<input name="feeling" inputmode="numeric" required value="${esc(existing.feeling || '')}"></label>
@@ -25,10 +31,16 @@ export function checkinPage() {
       <button class="btn btn-primary btn-block">${existing.date ? 'Mettre à jour le check-in' : 'Enregistrer le check-in'}</button>
     </form>
 
-    ${section('Rapport coach')}
-    <article class="plain-card">
-      <p class="nutrition-note">Copie ce rapport dans notre conversation pour que j’ajuste le programme à partir de données réelles.</p>
-      <button class="btn btn-secondary btn-block" id="report">Copier le rapport</button>
+    ${section('Rapport Coach APEX')}
+    <article class="plain-card coach-export-card">
+      <div class="coach-export-stats">
+        <div><span>Poids moyen</span><strong>${format(week.weightAvg)} kg</strong></div>
+        <div><span>Nombril</span><strong>${format(week.latestNavel)} cm</strong></div>
+        <div><span>Sommeil moyen</span><strong>${format(week.sleepAvg)} h</strong></div>
+        <div><span>Protéines moy.</span><strong>${format(week.proteinAvg, 0)} g</strong></div>
+      </div>
+      <p class="nutrition-note">Le rapport rassemble les tendances utiles pour que ChatGPT puisse décider avec de vraies données, sans modifier le plan sur une seule mauvaise journée.</p>
+      <button class="btn btn-secondary btn-block" id="report">Copier le rapport complet</button>
     </article>
   `, 'checkin')
 
@@ -53,12 +65,10 @@ export function checkinPage() {
   }
 
   document.querySelector('#report').onclick = async () => {
-    const body = currentBody()
-    const last = state.checkins.find((item) => item.date === today) || state.checkins.at(-1)
-    const text = `APEX — Rapport coach\nSemaine ${state.currentWeek}/6 (${phase().label})\nSéances semaine: ${mandatoryDone()}/4\nPoids: ${body.weight ?? '—'} kg | Nombril: ${body.navel ?? '—'} cm\nSommeil: ${last?.sleep ?? '—'} h | Sensations: ${last?.feeling ?? '—'}/10\nCalories: ${nutrition.kcal || last?.kcal || '—'} | Protéines: ${nutrition.protein || last?.protein || '—'} g\nDouleur/gêne: ${last?.pain || 'Aucune'}\nHistorique total: ${state.history.length} séances`
+    const text = buildCoachReport()
     try {
       await navigator.clipboard.writeText(text)
-      document.querySelector('#report').textContent = 'Rapport copié'
+      document.querySelector('#report').textContent = 'Rapport copié ✓'
     } catch {
       prompt('Copie le rapport :', text)
     }
