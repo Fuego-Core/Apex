@@ -8,6 +8,7 @@ import './apex-club.css'
 import './photo-progress.css'
 import './apex-fit.css'
 import './apex-fit-route.css'
+import './apex-pwa-fix.css'
 
 import { checkinPage } from './app/checkin-view.js'
 import { nutritionPage } from './app/nutrition-view.js'
@@ -15,31 +16,48 @@ import { progressPage } from './app/progress-view.js'
 import { trackingPage } from './app/tracking-view.js'
 import { home, program, workoutView } from './app/training.js'
 
-function render() {
+if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
+
+const standalone = window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone === true
+document.body.classList.toggle('apex-standalone', standalone)
+
+function resetRouteScroll() {
+  requestAnimationFrame(() => window.scrollTo(0, 0))
+}
+
+function render({ resetScroll = false } = {}) {
   const route = (location.hash || '#home').slice(1)
   if (route.startsWith('workout/')) {
     workoutView(route.split('/')[1])
-    return
+  } else {
+    const routes = {
+      home,
+      tracking: trackingPage,
+      program,
+      nutrition: nutritionPage,
+      progress: progressPage,
+      checkin: checkinPage
+    }
+    ;(routes[route] || home)()
   }
 
-  const routes = {
-    home,
-    tracking: trackingPage,
-    program,
-    nutrition: nutritionPage,
-    progress: progressPage,
-    checkin: checkinPage
-  }
-  ;(routes[route] || home)()
+  if (resetScroll) resetRouteScroll()
 }
 
-window.addEventListener('hashchange', render)
+window.addEventListener('hashchange', () => render({ resetScroll: true }))
 window.addEventListener('apex:state-changed', (event) => {
   if (event.detail?.scope === 'nutrition' && (location.hash || '#home') === '#nutrition') nutritionPage()
 })
 
-render()
+render({ resetScroll: true })
 
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}))
+  window.addEventListener('load', async () => {
+    try {
+      const registration = await navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+      await registration.update()
+    } catch {
+      // L'app reste utilisable même si l'enregistrement PWA échoue ponctuellement.
+    }
+  })
 }
