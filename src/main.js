@@ -6,6 +6,7 @@ import './nutrition-scanner.js'
 import './apex-v2.css'
 import './coach-ui.css'
 import './apex-club.css'
+import './photo-progress.css'
 
 import { checkinPage } from './app/checkin-view.js'
 import { nutritionPage } from './app/nutrition-view.js'
