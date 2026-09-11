@@ -1,4 +1,7 @@
+import { J0 } from './config.js'
+
 const STORAGE = 'apex-coach-pro-v1'
+const SCHEMA_VERSION = 2
 
 export function TODAY(now = new Date()) {
   const year = now.getFullYear()
@@ -7,23 +10,19 @@ export function TODAY(now = new Date()) {
   return `${year}-${month}-${day}`
 }
 
-const INITIAL_BODY = {
-  date: '2026-09-11',
-  weight: 75,
-  navel: 96
-}
-
 function freshState() {
   return {
+    schemaVersion: SCHEMA_VERSION,
     createdAt: TODAY(),
     currentWeek: 1,
-    body: [{ ...INITIAL_BODY }],
+    body: [{ ...J0 }],
     sessions: {},
     history: [],
     checkins: [],
     nutritionDays: {},
     pantry: [],
-    foodLog: {}
+    foodLog: {},
+    foodFavorites: []
   }
 }
 
@@ -31,21 +30,45 @@ function isObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
 }
 
+function migrate(raw) {
+  if (!isObject(raw)) return raw
+  const migrated = { ...raw }
+  const version = Number(migrated.schemaVersion) || 1
+
+  if (version < 2) {
+    migrated.body = Array.isArray(migrated.body) ? migrated.body.map((row) => ({ ...row })) : []
+    const j0Index = migrated.body.findIndex((row) => row?.date === J0.date)
+    if (j0Index >= 0) migrated.body[j0Index] = { ...J0, ...migrated.body[j0Index] }
+    else migrated.body.unshift({ ...J0 })
+    migrated.foodFavorites = Array.isArray(migrated.foodFavorites) ? migrated.foodFavorites : []
+    migrated.schemaVersion = 2
+  }
+
+  return migrated
+}
+
 function normalize(raw) {
   const base = freshState()
   if (!isObject(raw)) return base
+  const migrated = migrate(raw)
+
+  const body = Array.isArray(migrated.body) && migrated.body.length
+    ? migrated.body.map((row) => row?.date === J0.date ? { ...J0, ...row } : row)
+    : base.body
 
   return {
     ...base,
-    ...raw,
-    currentWeek: Number.isFinite(Number(raw.currentWeek)) ? Math.min(6, Math.max(1, Number(raw.currentWeek))) : 1,
-    body: Array.isArray(raw.body) && raw.body.length ? raw.body : base.body,
-    sessions: isObject(raw.sessions) ? raw.sessions : {},
-    history: Array.isArray(raw.history) ? raw.history : [],
-    checkins: Array.isArray(raw.checkins) ? raw.checkins : [],
-    nutritionDays: isObject(raw.nutritionDays) ? raw.nutritionDays : {},
-    pantry: Array.isArray(raw.pantry) ? raw.pantry : [],
-    foodLog: isObject(raw.foodLog) ? raw.foodLog : {}
+    ...migrated,
+    schemaVersion: SCHEMA_VERSION,
+    currentWeek: Number.isFinite(Number(migrated.currentWeek)) ? Math.min(6, Math.max(1, Number(migrated.currentWeek))) : 1,
+    body,
+    sessions: isObject(migrated.sessions) ? migrated.sessions : {},
+    history: Array.isArray(migrated.history) ? migrated.history : [],
+    checkins: Array.isArray(migrated.checkins) ? migrated.checkins : [],
+    nutritionDays: isObject(migrated.nutritionDays) ? migrated.nutritionDays : {},
+    pantry: Array.isArray(migrated.pantry) ? migrated.pantry : [],
+    foodLog: isObject(migrated.foodLog) ? migrated.foodLog : {},
+    foodFavorites: Array.isArray(migrated.foodFavorites) ? migrated.foodFavorites : []
   }
 }
 
@@ -59,12 +82,14 @@ function load() {
 
 /**
  * Objet d'état unique partagé par toutes les fonctions APEX.
- * Les modules le mutent en place puis appellent save(). Il n'existe plus de
- * seconde copie du localStorage dans le scanner ou dans les améliorations UI.
+ * Les modules le mutent en place puis appellent save(). La clé historique est
+ * conservée ; les changements de structure passent par migrate() pour ne pas
+ * perdre les données déjà enregistrées sur les appareils.
  */
 export const state = load()
 
 export function save({ scope = null } = {}) {
+  state.schemaVersion = SCHEMA_VERSION
   localStorage.setItem(STORAGE, JSON.stringify(state))
   if (scope && typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('apex:state-changed', { detail: { scope } }))
@@ -78,7 +103,7 @@ export function clone(value) {
 export function exportState() {
   return {
     format: 'apex-backup',
-    version: 1,
+    version: SCHEMA_VERSION,
     exportedAt: new Date().toISOString(),
     data: clone(state)
   }
@@ -131,9 +156,6 @@ export function nutritionDay(date = TODAY()) {
   const manualSavedAt = timestamp(manual.updatedAt)
   const manualExists = hasManualNutrition(manual)
 
-  // Une saisie manuelle effectuée après le dernier aliment journalisé est une
-  // correction volontaire. Un nouvel aliment scanné après cette correction
-  // reprend automatiquement la priorité, sans laisser de total périmé.
   const useManual = manualExists && (!scanned.count || manualSavedAt >= latestScan)
   const source = useManual ? 'manual' : scanned.count ? 'scanner' : 'empty'
 
