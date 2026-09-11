@@ -1,6 +1,7 @@
 import { mealPlan, nutritionTargets } from './config.js'
 import { TODAY, nutritionDay, save, state } from './store.js'
 import { coach, esc, section, shell, top } from './ui.js'
+import { renderStockRecipes } from './pantry-recipes.js'
 
 export function nutritionPage() {
   const day = nutritionDay(TODAY())
@@ -11,7 +12,8 @@ export function nutritionPage() {
     : 'Aucun aliment journalisé : tu peux saisir les totaux manuellement ou utiliser le scanner.'
 
   shell(`
-    ${top('Nutrition', 'Plan alimentaire adapté au travail de nuit')}
+    ${top('Nutrition', 'Manger simplement · suivre précisément')}
+
     <section class="nutrition-hero">
       <div><p class="kicker">CIBLE QUOTIDIENNE</p><h2>${nutritionTargets.kcal}</h2><span>kcal</span></div>
       <div><strong>${nutritionTargets.protein} g</strong><span>protéines</span></div>
@@ -24,10 +26,14 @@ export function nutritionPage() {
       <article><span>Créatine</span><strong>${nutritionTargets.creatine}</strong></article>
     </div>
 
+    ${section('Ajouter ce que tu manges')}
+    <p class="nutrition-note">Scanne tes courses, garde ton stock à jour, puis laisse APEX te proposer des plats réalisables avec ce que tu as déjà.</p>
     <div id="nutrition-tools-slot"></div>
 
+    <div id="stock-recipes-slot"></div>
+
     ${section('Plan de la journée')}
-    <p class="nutrition-note">Poids indiqués cuits quand c’est précisé. Choisis une seule variante par repas. Les marques changent les calories : vérifie les étiquettes et ajuste légèrement les féculents si nécessaire.</p>
+    <p class="nutrition-note">Le plan reste une base. Les plats proposés depuis ton stock utilisent les valeurs nutritionnelles réelles de tes produits et peuvent remplacer une option du repas.</p>
     <div class="meal-plan">
       ${mealPlan.map((meal) => `<article class="meal-card">
         <header><div><span>${meal.time}</span><h3>${meal.title}</h3></div><small>${meal.target}</small></header>
@@ -50,6 +56,8 @@ export function nutritionPage() {
       ${day.source === 'manual' && day.scanned.count ? '<button class="btn btn-secondary btn-block" id="resetNut">Revenir au calcul automatique</button>' : ''}
     </article>
   `, 'nutrition')
+
+  renderStockRecipes(document.querySelector('#stock-recipes-slot'))
 
   document.querySelector('#saveNut').onclick = () => {
     state.nutritionDays[TODAY()] = {
