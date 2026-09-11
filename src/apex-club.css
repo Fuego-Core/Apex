@@ -1,0 +1,524 @@
+/* APEX CLUB — professional fitness product layer
+   Flat, bold, mobile-first. Inspired by premium gym products, never by AI-dashboard aesthetics. */
+:root{
+  --bg:#080808;
+  --bg-elev:#0d0d0d;
+  --panel:#111111;
+  --panel-2:#171717;
+  --panel-3:#1d1d1d;
+  --line:#292929;
+  --line-soft:#202020;
+  --text:#f7f7f5;
+  --muted:#a0a0a0;
+  --subtle:#6d6d6d;
+  --accent:#ff5a1f;
+  --accent-2:#ff7a45;
+  --accent-soft:rgba(255,90,31,.12);
+  --accent-glow:rgba(255,90,31,.18);
+  --data:#5674ff;
+  --success:#35c98b;
+  --warning:#f4b942;
+  --danger:#f06067;
+  --radius:18px;
+  --shadow:none;
+  --club-radius:18px;
+  --club-radius-sm:12px;
+}
+
+html{background:var(--bg);color-scheme:dark}
+body,#app{background:var(--bg)!important;color:var(--text)}
+body{
+  margin:0;
+  background:var(--bg)!important;
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+button,input,textarea,select{font:inherit}
+button{-webkit-tap-highlight-color:transparent}
+
+.content{
+  width:min(100%,720px)!important;
+  padding:24px 18px calc(118px + var(--safe-b))!important;
+  margin:0 auto;
+  animation:club-page-in .22s ease-out both;
+}
+
+/* Brand header */
+.page-head{
+  margin:0 0 26px!important;
+  padding:4px 0 0;
+  align-items:flex-start!important;
+  gap:16px;
+}
+.page-head>div:first-child{min-width:0;flex:1}
+.brandline{
+  margin:0 0 7px!important;
+  color:var(--accent)!important;
+  font-family:"Space Grotesk",Inter,sans-serif;
+  font-size:10px!important;
+  font-weight:800!important;
+  line-height:1;
+  letter-spacing:.16em!important;
+  text-transform:uppercase;
+}
+.brandline::before{content:"";display:inline-block;width:18px;height:4px;margin-right:8px;background:var(--accent);vertical-align:2px;border-radius:1px}
+.page-head h1{
+  margin:0 0 7px!important;
+  font-family:"Space Grotesk",Inter,sans-serif;
+  font-size:36px!important;
+  line-height:.98!important;
+  letter-spacing:-.045em!important;
+  font-weight:700!important;
+  color:#fff;
+}
+.page-head p:not(.brandline){
+  margin:0!important;
+  max-width:520px;
+  color:var(--muted)!important;
+  font-size:12px!important;
+  line-height:1.5!important;
+}
+.profile-dot{
+  width:42px!important;height:42px!important;
+  border:1px solid var(--line)!important;
+  border-radius:50%!important;
+  background:#171717!important;
+  color:#fff!important;
+  font-family:"Space Grotesk",sans-serif;
+  font-weight:700;
+  box-shadow:none!important;
+}
+.profile-dot::after{content:"";position:absolute;width:8px;height:8px;border-radius:50%;background:var(--accent);margin:27px 0 0 27px;border:2px solid var(--bg)}
+
+/* Main navigation — looks like a native fitness app, not glassmorphism */
+.bottom-nav{
+  left:50%!important;
+  bottom:calc(12px + var(--safe-b))!important;
+  width:min(calc(100% - 24px),430px)!important;
+  grid-template-columns:repeat(3,1fr)!important;
+  padding:5px!important;
+  border:1px solid #262626!important;
+  border-radius:18px!important;
+  background:#101010!important;
+  box-shadow:0 14px 40px rgba(0,0,0,.44)!important;
+  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+}
+.nav-item{
+  min-height:54px!important;
+  border-radius:13px!important;
+  gap:4px!important;
+  color:#747474!important;
+  transition:background .18s ease,color .18s ease,transform .12s ease!important;
+}
+.nav-item:active{transform:scale(.97)}
+.nav-item svg{width:19px!important;height:19px!important;stroke-width:1.8}
+.nav-item span{font-size:9px!important;font-weight:700!important;letter-spacing:.01em!important}
+.nav-item.active{
+  background:var(--accent)!important;
+  color:#090909!important;
+  box-shadow:none!important;
+}
+.nav-item.active svg{color:#090909!important}
+
+/* Remove AI-ish gradients and over-rounded floating cards */
+.plain-card,.today-card,.program-intro,.nutrition-hero,.meal-card,.exercise-card,.session-card,.scanner-entry,.tracking-card,.phase-summary,.recovery-card,.stock-kitchen,.data-card,.measurement-card{
+  background:var(--panel)!important;
+  border:1px solid var(--line-soft)!important;
+  box-shadow:none!important;
+}
+.btn,.scan-btn{
+  min-height:50px!important;
+  padding:0 18px!important;
+  border-radius:10px!important;
+  font-size:12px!important;
+  font-weight:800!important;
+  letter-spacing:.005em!important;
+  transition:transform .12s ease,background .16s ease,border-color .16s ease!important;
+}
+.btn:active,.scan-btn:active{transform:scale(.985)}
+.btn-primary,.scan-btn.primary{
+  background:var(--accent)!important;
+  border-color:var(--accent)!important;
+  color:#0a0a0a!important;
+  box-shadow:none!important;
+}
+.btn-primary:hover,.scan-btn.primary:hover{background:var(--accent-2)!important}
+.btn-secondary,.scan-btn.secondary{
+  background:#171717!important;
+  border:1px solid #303030!important;
+  color:#f2f2f2!important;
+}
+input,textarea,select{
+  background:#0b0b0b!important;
+  border:1px solid #303030!important;
+  border-radius:10px!important;
+  color:#fff!important;
+  box-shadow:none!important;
+}
+input:focus,textarea:focus,select:focus{
+  outline:none!important;
+  border-color:var(--accent)!important;
+  box-shadow:0 0 0 3px rgba(255,90,31,.12)!important;
+}
+
+/* Section hierarchy */
+.section-head{
+  margin:34px 0 13px!important;
+  display:flex!important;
+  align-items:center!important;
+  gap:10px!important;
+}
+.section-head::after{content:"";height:1px;flex:1;background:#242424!important}
+.section-head h2{
+  font-family:"Space Grotesk",Inter,sans-serif;
+  color:#f5f5f3;
+  font-size:17px!important;
+  font-weight:700!important;
+  letter-spacing:-.025em!important;
+}
+.kicker{color:var(--accent)!important;font-size:9px!important;font-weight:800!important;letter-spacing:.14em!important}
+
+/* TODAY — one strong hero, then one data strip instead of card soup */
+.today-card{
+  position:relative!important;
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) auto!important;
+  gap:18px!important;
+  padding:23px!important;
+  border-radius:var(--club-radius)!important;
+  background:#141414!important;
+  border-color:#2a2a2a!important;
+  overflow:hidden!important;
+}
+.today-card::before{
+  content:""!important;
+  position:absolute!important;
+  top:0!important;left:0!important;right:0!important;
+  height:5px!important;
+  background:var(--accent)!important;
+  pointer-events:none!important;
+}
+.today-card::after{content:none!important}
+.today-main{position:relative;z-index:1}
+.today-card h2{
+  margin:7px 0 5px!important;
+  font-family:"Space Grotesk",Inter,sans-serif;
+  font-size:32px!important;
+  line-height:1!important;
+  letter-spacing:-.045em!important;
+  font-weight:700!important;
+}
+.today-card .muted{max-width:370px;color:#9b9b9b!important;font-size:12px!important}
+.meta-row{margin:17px 0 15px!important;gap:7px!important}
+.meta-row span{
+  padding:6px 9px!important;
+  border:1px solid #2b2b2b!important;
+  border-radius:999px!important;
+  background:#0f0f0f!important;
+  color:#a8a8a8!important;
+  font-size:9px!important;
+  font-weight:700;
+}
+.today-card .btn-primary{min-width:150px}
+.progress-ring{
+  --size:86px!important;
+  align-self:center;
+  background:conic-gradient(var(--accent) calc(var(--value)*1%),#292929 0)!important;
+  box-shadow:none!important;
+}
+.progress-ring::before{background:#141414!important}
+.progress-ring strong{font-family:"Space Grotesk",sans-serif;font-size:17px!important}
+.progress-ring span{font-size:8px!important;color:#8d8d8d!important}
+
+.smart-coach{
+  margin:11px 0 0!important;
+  padding:17px 18px 17px 20px!important;
+  border:1px solid #282828!important;
+  border-left:4px solid var(--success)!important;
+  border-radius:12px!important;
+  background:#101010!important;
+  box-shadow:none!important;
+}
+.smart-coach::before{content:none!important}
+.smart-coach--watch{border-left-color:var(--warning)!important}
+.smart-coach--alert{border-left-color:var(--danger)!important}
+.smart-coach__head span{color:#777!important}
+.smart-coach__head strong{font-size:14px!important}
+.smart-coach p{color:#d8d8d6!important}
+.smart-coach small{color:#818181!important}
+
+.metric-grid{
+  display:grid!important;
+  grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  gap:0!important;
+  margin:12px 0 24px!important;
+  padding:0!important;
+  border:1px solid #252525!important;
+  border-radius:12px!important;
+  background:#0e0e0e!important;
+  overflow:hidden!important;
+}
+.metric{
+  min-width:0!important;
+  padding:13px 11px!important;
+  border:0!important;
+  border-right:1px solid #252525!important;
+  border-radius:0!important;
+  background:transparent!important;
+}
+.metric:last-child{border-right:0!important}
+.metric span{color:#737373!important;font-size:8px!important;font-weight:800!important;letter-spacing:.09em!important}
+.metric strong{display:block;margin:5px 0 2px!important;font-family:"Space Grotesk",sans-serif;font-size:17px!important;color:#fff}
+.metric small{display:block;color:#777!important;font-size:8px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.daily-grid{display:grid!important;grid-template-columns:1fr!important;gap:8px!important}
+.daily-action{
+  min-height:0!important;
+  padding:15px 46px 15px 16px!important;
+  display:grid!important;
+  grid-template-columns:120px minmax(0,1fr)!important;
+  grid-template-rows:auto auto!important;
+  align-items:center!important;
+  column-gap:12px!important;
+  border:1px solid #272727!important;
+  border-radius:12px!important;
+  background:#101010!important;
+  text-align:left!important;
+}
+.daily-action::after{right:16px!important;top:50%!important;transform:translateY(-50%)!important;color:#686868!important;font-size:21px!important}
+.daily-action>span{grid-row:1 / span 2;align-self:center;color:#777!important;font-size:9px!important;font-weight:800!important;letter-spacing:.11em!important}
+.daily-action strong{padding:0!important;font-size:15px!important;color:#f3f3f1!important}
+.daily-action small{max-width:none!important;color:#808080!important;font-size:9px!important}
+.daily-action.done{background:#101010!important;border-color:rgba(53,201,139,.28)!important}
+.daily-action.done>span,.daily-action.done strong{color:var(--success)!important}
+
+.phase-card{padding:18px!important;border-radius:12px!important}
+.phase-card>span{color:var(--accent)!important;font-size:9px!important;font-weight:800!important}
+.phase-card>strong{font-family:"Space Grotesk",sans-serif;font-size:18px!important}
+.phase-line{background:#292929!important}.phase-line i{background:var(--accent)!important}
+.coach-card{border-radius:12px!important;background:#0e0e0e!important;border:1px solid #262626!important;box-shadow:none!important}
+.coach-mark{background:var(--accent)!important;color:#080808!important;border-radius:8px!important}
+
+/* TRACKING — simple functional list */
+.tracking-overview{
+  grid-template-columns:1fr auto!important;
+  gap:18px!important;
+  padding:21px!important;
+  border:1px solid #2a2a2a!important;
+  border-radius:var(--club-radius)!important;
+  background:#141414!important;
+  box-shadow:none!important;
+}
+.tracking-overview h2{font-family:"Space Grotesk",sans-serif;font-size:24px!important;line-height:1.05!important}
+.tracking-score{
+  width:72px!important;height:72px!important;
+  border-radius:12px!important;
+  background:var(--accent)!important;
+  border:0!important;
+  color:#090909!important;
+}
+.tracking-score strong{color:#090909!important;font-family:"Space Grotesk",sans-serif!important}
+.tracking-score span{color:#361407!important;font-weight:800!important}
+.tracking-score.is-ready{border:0!important}.tracking-score.is-ready strong{color:#090909!important}
+.tracking-stack{gap:8px!important;margin-top:12px!important}
+.tracking-card{
+  grid-template-columns:44px 1fr auto!important;
+  gap:13px!important;
+  padding:15px!important;
+  border-radius:12px!important;
+  background:#101010!important;
+}
+.tracking-card__icon{
+  width:42px!important;height:42px!important;
+  border-radius:9px!important;
+  background:#1e1e1e!important;
+  border:1px solid #303030!important;
+  color:var(--accent)!important;
+}
+.tracking-card--recovery .tracking-card__icon{background:#1e1e1e!important;color:var(--warning)!important}
+.tracking-card--recovery.is-done .tracking-card__icon{color:var(--success)!important;background:#1e1e1e!important}
+.tracking-card__body>span{color:#777!important;font-weight:800!important}.tracking-card__body strong{font-size:14px!important}.tracking-card__body small{color:#777!important}
+.tracking-card__body i{background:#252525!important}.tracking-card__body i b{background:var(--accent)!important}
+.tracking-card__arrow{color:#666!important}
+.tracking-tip{padding:14px 3px!important}.tracking-tip span{color:var(--accent)!important}
+
+/* PROGRAM */
+.program-intro{
+  padding:21px!important;
+  border-radius:var(--club-radius)!important;
+  background:#141414!important;
+  border-top:5px solid var(--accent)!important;
+}
+.program-intro h2{font-family:"Space Grotesk",sans-serif;font-size:25px!important}
+.program-intro>span{
+  min-width:54px;height:54px;display:grid;place-items:center;
+  background:var(--accent)!important;
+  border:0!important;
+  border-radius:9px!important;
+  color:#090909!important;
+  font-family:"Space Grotesk",sans-serif;
+  font-weight:800!important;
+}
+.week-tabs{gap:6px!important}
+.week-tabs button{
+  min-height:42px!important;
+  border-radius:8px!important;
+  background:#101010!important;
+  border:1px solid #292929!important;
+  color:#808080!important;
+  font-weight:800!important;
+}
+.week-tabs .active{background:var(--accent)!important;border-color:var(--accent)!important;color:#090909!important}
+.phase-summary{padding:16px!important;border-radius:12px!important;background:#0e0e0e!important}
+.phase-summary>span{color:var(--accent)!important}
+.session-stack{gap:8px!important}
+.session-card{
+  padding:15px!important;
+  border-radius:12px!important;
+  background:#101010!important;
+  transition:transform .12s ease,border-color .16s ease!important;
+}
+.session-card:active{transform:scale(.99)}
+.session-index{
+  width:46px!important;height:46px!important;
+  border-radius:9px!important;
+  background:#1c1c1c!important;
+  border:1px solid #2e2e2e!important;
+  color:var(--accent)!important;
+}
+.session-card h3{font-family:"Space Grotesk",sans-serif;font-size:15px!important}
+.session-card>b{background:transparent!important;color:var(--accent)!important;padding:0!important;border-radius:0!important;font-size:9px!important}
+.session-card.completed{border-color:rgba(53,201,139,.28)!important}.session-card.completed>b{color:var(--success)!important}
+
+/* WORKOUT — black, technical, readable */
+.workout-head{
+  position:sticky!important;top:0!important;z-index:12!important;
+  margin:-24px -18px 0!important;
+  padding:17px 18px 13px!important;
+  background:rgba(8,8,8,.96)!important;
+  border-bottom:1px solid #1f1f1f!important;
+  backdrop-filter:blur(10px)!important;-webkit-backdrop-filter:blur(10px)!important;
+}
+.workout-head h1{font-family:"Space Grotesk",sans-serif!important;letter-spacing:-.03em!important}
+.icon-btn,.timer-chip{background:#151515!important;border:1px solid #303030!important;border-radius:9px!important;color:#f2f2f2!important}
+.timer-chip{color:var(--accent)!important}
+.workout-rule{
+  margin-top:8px!important;
+  background:#101010!important;
+  border:1px solid #282828!important;
+  border-left:4px solid var(--accent)!important;
+  border-radius:10px!important;
+}
+.workout-rule span{color:var(--accent)!important}
+.exercise-stack{gap:12px!important}
+.exercise-card{
+  padding:19px 17px!important;
+  border-radius:14px!important;
+  background:#101010!important;
+}
+.exercise-top{margin-bottom:14px!important}
+.exercise-top>div>span{color:var(--accent)!important;font-weight:800!important;letter-spacing:.1em!important}
+.exercise-top h2{font-family:"Space Grotesk",sans-serif!important;font-size:23px!important;letter-spacing:-.035em!important}
+.exercise-top>b{background:#1d1d1d!important;border:1px solid #303030!important;color:#e7e7e5!important;border-radius:8px!important}
+.exercise-cues{border-color:#252525!important;color:#888!important}
+.exercise-cues>span{color:#808080!important}
+.previous-performance{
+  margin:14px 0!important;
+  padding:14px!important;
+  border:1px solid #2a2a2a!important;
+  border-radius:10px!important;
+  background:#0b0b0b!important;
+}
+.previous-performance>span{color:var(--accent)!important;font-size:8px!important;font-weight:800!important;letter-spacing:.12em!important}
+.previous-performance strong{font-family:"Space Grotesk",sans-serif!important}
+.previous-performance small{color:#8b8b8b!important}
+.bf-machine{margin:15px 0!important;border-radius:10px!important;overflow:hidden!important;background:#0b0b0b!important;border:1px solid #292929!important}
+.bf-section-label{color:var(--accent)!important;font-weight:800!important}
+.bf-media,.bf-reference{border-radius:8px!important}
+.bf-guide{background:#0d0d0d!important}
+.bf-steps>div{border-color:#252525!important}
+.sets-head{color:#717171!important}
+.set-row{border-color:#262626!important;background:#0d0d0d!important;border-radius:10px!important}
+.set-row.done{border-color:rgba(53,201,139,.35)!important;background:rgba(53,201,139,.035)!important}
+.set-check{background:#1c1c1c!important;border-color:#333!important;border-radius:8px!important}.set-row.done .set-check{background:var(--success)!important;color:#07150f!important;border-color:var(--success)!important}
+.set-row input{border-radius:8px!important}
+.rest-btn{border-radius:9px!important;background:#171717!important;border-color:#2d2d2d!important;color:var(--accent)!important}
+.cardio-card{border-radius:12px!important}.switch input:checked+i{background:var(--accent)!important}
+.timer-overlay{background:rgba(0,0,0,.78)!important;backdrop-filter:blur(7px)!important}.timer-overlay>div{background:#121212!important;border:1px solid #2f2f2f!important;border-radius:16px!important}.timer-overlay strong{color:var(--accent)!important}
+
+/* NUTRITION — orange becomes appetite/action, data stays neutral */
+.nutrition-hero{
+  display:grid!important;
+  grid-template-columns:1fr auto!important;
+  align-items:end!important;
+  padding:21px!important;
+  border-radius:var(--club-radius)!important;
+  background:var(--accent)!important;
+  border-color:var(--accent)!important;
+  color:#0b0b0b!important;
+}
+.nutrition-hero .kicker{color:#531b08!important}.nutrition-hero h2{font-family:"Space Grotesk",sans-serif!important;font-size:48px!important;color:#0b0b0b!important}.nutrition-hero span{color:#5d200b!important}.nutrition-hero>div:last-child strong{color:#0b0b0b!important;font-family:"Space Grotesk",sans-serif!important}
+.macro-grid{
+  display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:0!important;
+  margin:10px 0 24px!important;border:1px solid #262626!important;border-radius:12px!important;background:#0e0e0e!important;overflow:hidden!important;
+}
+.macro-grid article{padding:13px 10px!important;border:0!important;border-right:1px solid #252525!important;border-radius:0!important;background:transparent!important}.macro-grid article:last-child{border-right:0!important}
+.macro-grid span{color:#777!important;font-size:8px!important;font-weight:800!important}.macro-grid strong{font-family:"Space Grotesk",sans-serif!important;font-size:15px!important;color:#f2f2f2!important}
+.nutrition-command,.scanner-entry{padding:17px!important;border-radius:12px!important;background:#101010!important}
+.scanner-entry__top h3{font-family:"Space Grotesk",sans-serif!important;font-size:19px!important}.scanner-entry__top p{color:#858585!important}
+.nutrition-progress{background:#0b0b0b!important;border-color:#292929!important}
+.food-row,.quick-food{background:#0c0c0c!important;border-color:#272727!important;border-radius:10px!important}
+.quick-food__fav.active{color:var(--accent)!important}.quick-food__add{background:var(--accent)!important;border-color:var(--accent)!important;color:#090909!important}
+.stock-kitchen{padding:18px!important;border-radius:14px!important;background:#101010!important;border-color:#292929!important}.stock-kitchen-head h2{font-family:"Space Grotesk",sans-serif!important}.stock-kitchen-target{background:#0b0b0b!important;border-color:#292929!important}.stock-recipe-card{background:#0b0b0b!important;border-color:#282828!important;border-radius:11px!important}.stock-recipe-emoji{background:#1b1b1b!important;color:var(--accent)!important}
+.meal-card{border-radius:12px!important;background:#101010!important}.meal-card.enhanced>header{padding:15px!important}.meal-toggle{background:#1b1b1b!important;border-color:#313131!important;color:var(--accent)!important;border-radius:8px!important}
+.food-log{border-radius:12px!important}
+
+/* PROGRESS / CHECK-IN */
+.progress-hero{
+  background:#141414!important;
+  border:1px solid #2a2a2a!important;
+  border-top:5px solid var(--accent)!important;
+  border-radius:var(--club-radius)!important;
+  box-shadow:none!important;
+}
+.progress-hero h2{font-family:"Space Grotesk",sans-serif!important}.progress-score{background:var(--accent)!important;color:#090909!important;border:0!important;border-radius:10px!important}.progress-score span,.progress-score strong{color:#090909!important}
+.progress-chart{background:#0b0b0b!important;border-color:#262626!important}.chart-line{stroke:var(--accent)!important}.chart-dot{fill:var(--accent)!important}.measurement-card{border-radius:10px!important;background:#0f0f0f!important}.measurement-card>strong{font-family:"Space Grotesk",sans-serif!important}.measurement-form-card,.chart-card,.data-card{border-radius:12px!important}
+.body-history-row{border-color:#252525!important}.history-delete{background:#191919!important;border-color:#303030!important}
+.check-form{gap:10px!important}.check-form label,.form-grid label,.measurement-form-grid label{color:#8f8f8f!important}.check-form input,.check-form textarea{min-height:48px!important}.recovery-preview{border-radius:12px!important;background:#101010!important;border-color:#2a2a2a!important}.coach-report-card{border-radius:12px!important}.weekly-summary{gap:1px!important;border:1px solid #292929!important;border-radius:10px!important;overflow:hidden!important;background:#292929!important}.weekly-summary div{border:0!important;border-radius:0!important;background:#0d0d0d!important}.weekly-summary span{color:#777!important}.weekly-summary strong{font-family:"Space Grotesk",sans-serif!important}
+
+/* Scanner bottom sheets */
+.scanner-sheet{background:rgba(0,0,0,.78)!important;backdrop-filter:blur(8px)!important;-webkit-backdrop-filter:blur(8px)!important}
+.scanner-panel{background:#111!important;border:1px solid #2b2b2b!important;border-radius:18px 18px 0 0!important;box-shadow:none!important}.scanner-head{border-bottom-color:#282828!important}.scanner-close{background:#1b1b1b!important;color:#fff!important}
+.product-result,.pantry-item,.food-log-row{background:#0c0c0c!important;border-color:#292929!important;border-radius:11px!important}
+
+/* Motion: purposeful and short */
+@keyframes club-page-in{from{opacity:.01;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes club-pop{0%{transform:scale(.985)}100%{transform:scale(1)}}
+.exercise-card,.session-card,.tracking-card,.daily-action,.meal-card{animation:club-pop .18s ease-out both}
+
+@media(max-width:560px){
+  .content{padding-left:16px!important;padding-right:16px!important}
+  .page-head h1{font-size:33px!important}
+  .today-card{grid-template-columns:1fr auto!important;padding:21px 18px!important}
+  .today-card h2{font-size:29px!important}
+  .progress-ring{--size:78px!important}
+  .metric-grid{grid-template-columns:repeat(2,1fr)!important}
+  .metric:nth-child(2){border-right:0!important}.metric:nth-child(-n+2){border-bottom:1px solid #252525!important}
+  .daily-action{grid-template-columns:92px minmax(0,1fr)!important}
+  .tracking-overview{padding:19px!important}.tracking-score{width:64px!important;height:64px!important}
+  .macro-grid{grid-template-columns:repeat(2,1fr)!important}.macro-grid article:nth-child(2){border-right:0!important}.macro-grid article:nth-child(-n+2){border-bottom:1px solid #252525!important}
+  .nutrition-hero h2{font-size:43px!important}
+  .exercise-card{padding:18px 15px!important}.exercise-top h2{font-size:21px!important}
+}
+
+@media(max-width:380px){
+  .page-head h1{font-size:30px!important}
+  .today-card{grid-template-columns:1fr!important}.progress-ring{position:absolute!important;right:16px!important;top:18px!important;--size:66px!important}.today-main{padding-right:74px!important}.today-card .btn-primary{min-width:138px!important}
+  .tracking-overview{grid-template-columns:1fr!important}.tracking-score{display:none!important}
+  .daily-action{grid-template-columns:82px minmax(0,1fr)!important;padding-left:13px!important}
+}
+
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+}
