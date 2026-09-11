@@ -75,6 +75,25 @@ export function clone(value) {
   return JSON.parse(JSON.stringify(value))
 }
 
+export function exportState() {
+  return {
+    format: 'apex-backup',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    data: clone(state)
+  }
+}
+
+export function restoreState(payload) {
+  const raw = payload?.format === 'apex-backup' && isObject(payload.data) ? payload.data : payload
+  if (!isObject(raw)) throw new Error('Sauvegarde APEX invalide.')
+  const restored = normalize(raw)
+  Object.keys(state).forEach((key) => delete state[key])
+  Object.assign(state, restored)
+  save({ scope: 'restore' })
+  return state
+}
+
 function logRows(date) {
   return Array.isArray(state.foodLog?.[date]) ? state.foodLog[date] : []
 }
