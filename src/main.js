@@ -5,6 +5,7 @@ import './basicfit-media.js'
 import './nutrition-scanner.js'
 import './smart-actions.js'
 import './apex-v2.css'
+import './coach-ui.css'
 
 import { checkinPage } from './app/checkin-view.js'
 import { nutritionPage } from './app/nutrition-view.js'
