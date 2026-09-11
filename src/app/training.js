@@ -1,9 +1,15 @@
 import { J0, nutritionTargets, phases, sessions } from './config.js'
+import { recoveryAssessment } from './coach-engine.js'
 import { TODAY, clone, nutritionDay, save, state } from './store.js'
 import { coach, esc, go, num, section, shell, top } from './ui.js'
 
 let timerHandle = null
 let timerRemaining = 0
+
+function number(value) {
+  const parsed = Number(String(value ?? '').replace(',', '.'))
+  return Number.isFinite(parsed) ? parsed : null
+}
 
 function sessionKey(id) {
   return `${state.currentWeek}:${id}`
@@ -42,6 +48,97 @@ function nextSession() {
   return sessions.filter((session) => !session.optional).find((session) => !isDone(session.id)) || sessions[0]
 }
 
+function previousSession(sessionId, excludeHistoryId = null) {
+  return [...(state.history || [])]
+    .filter((entry) => entry.sessionId === sessionId && entry.id !== excludeHistoryId)
+    .sort((a, b) => String(b.updatedAt || b.date || '').localeCompare(String(a.updatedAt || a.date || '')))[0] || null
+}
+
+function isAssistanceExercise(exercise) {
+  return /assist/i.test(exercise.name)
+}
+
+function roundGymLoad(value) {
+  return Math.round(value * 2) / 2
+}
+
+function deloadLoad(value, exercise) {
+  const load = number(value)
+  if (load === null || load <= 0) return value
+  return roundGymLoad(load * (isAssistanceExercise(exercise) ? 1.1 : 0.9))
+}
+
+function effectiveSets(exercise) {
+  if (state.currentWeek !== 6) return exercise.sets
+  return Math.max(1, Math.ceil(exercise.sets * 0.5))
+}
+
+function hydrateFromPrevious(session, currentWorkout) {
+  if (currentWorkout.completed) return
+  const previous = previousSession(session.id, currentWorkout.historyId)
+  if (!previous || currentWorkout.prefilledFromHistoryId === previous.id) return
+
+  session.exercises.forEach((exercise, exerciseIndex) => {
+    const previousSets = previous.exercises?.[exerciseIndex]?.sets || []
+    const plannedSets = effectiveSets(exercise)
+    if (!previousSets.length) return
+    currentWorkout.exercises[exerciseIndex] ||= { sets: [] }
+    for (let setIndex = 0; setIndex < plannedSets; setIndex += 1) {
+      const prior = previousSets[setIndex] || previousSets.at(-1)
+      if (!prior) continue
+      currentWorkout.exercises[exerciseIndex].sets[setIndex] ||= {}
+      const row = currentWorkout.exercises[exerciseIndex].sets[setIndex]
+      if ((row.weight === undefined || row.weight === '') && prior.weight !== undefined && prior.weight !== '') {
+        row.weight = state.currentWeek === 6 ? deloadLoad(prior.weight, exercise) : prior.weight
+      }
+      if ((row.reps === undefined || row.reps === '') && prior.reps !== undefined && prior.reps !== '') row.reps = prior.reps
+    }
+  })
+  currentWorkout.prefilledFromHistoryId = previous.id
+  save()
+}
+
+function performanceBlock(session, exercise, exerciseIndex, currentWorkout) {
+  const previous = previousSession(session.id, currentWorkout.historyId)
+  const sets = previous?.exercises?.[exerciseIndex]?.sets || []
+  const completed = sets.filter((row) => row && (row.done || row.weight || row.reps))
+  if (!completed.length) {
+    return `<div class="previous-performance"><span>PREMIÈRE RÉFÉRENCE</span><strong>${esc(exercise.ref)}</strong><small>Choisis une charge qui respecte le RIR demandé et crée une base propre pour la prochaine exposition.</small></div>`
+  }
+
+  const reps = completed.map((row) => row.reps).filter((value) => value !== undefined && value !== '').join(' · ')
+  const weights = completed.map((row) => row.weight).filter((value) => value !== undefined && value !== '')
+  const weight = weights[0] ?? '—'
+  let target
+
+  if (state.currentWeek === 6) {
+    target = isAssistanceExercise(exercise)
+      ? 'Deload : environ moitié moins de séries et un peu plus d’assistance. Aucune série forcée.'
+      : 'Deload : environ moitié moins de séries et ~10 % de charge en moins. Garde au moins 4 RIR.'
+  } else if (isAssistanceExercise(exercise)) {
+    target = 'Vise 1 rep propre de plus à assistance identique. Haut de fourchette atteint partout : réduis légèrement l’assistance la prochaine fois.'
+  } else {
+    target = 'Vise 1 rep propre de plus à charge identique. Haut de fourchette atteint partout au RIR cible : augmente légèrement la charge.'
+  }
+
+  return `<div class="previous-performance">
+    <span>DERNIÈRE FOIS</span>
+    <strong>${esc(weight)}${number(weight) !== null ? ' kg' : ''}${reps ? ` · ${esc(reps)} reps` : ''}</strong>
+    <small>${esc(target)}</small>
+  </div>`
+}
+
+function plannedSetCount(session) {
+  return session.exercises.reduce((sum, exercise) => sum + effectiveSets(exercise), 0)
+}
+
+function completedSetCount(currentWorkout, session) {
+  return session.exercises.reduce((sum, exercise, exerciseIndex) => {
+    const sets = currentWorkout.exercises?.[exerciseIndex]?.sets || []
+    return sum + sets.slice(0, effectiveSets(exercise)).filter((row) => row?.done).length
+  }, 0)
+}
+
 export function home() {
   const session = nextSession()
   const currentPhase = phase()
@@ -54,6 +151,11 @@ export function home() {
   const nutritionKcal = Number(nutrition.kcal) || 0
   const checkedIn = state.checkins.some((item) => item.date === today)
   const measured = state.body.some((item) => item.date === today)
+  const decision = recoveryAssessment()
+  const coachMeta = [
+    decision.sleep !== null ? `${decision.sleep.toFixed(1).replace('.', ',')} h sommeil moy.` : null,
+    decision.feeling !== null ? `${decision.feeling.toFixed(1).replace('.', ',')}/10 sensations` : null
+  ].filter(Boolean).join(' · ')
 
   shell(`
     ${top('Aujourd’hui', `Semaine ${state.currentWeek} · ${currentPhase.label}`)}
@@ -70,6 +172,13 @@ export function home() {
       <div class="progress-ring" style="--value:${completed * 25}">
         <div><strong>${completed}/4</strong><span>séances</span></div>
       </div>
+    </section>
+
+    <section class="smart-coach smart-coach--${decision.level}">
+      <div class="smart-coach__head"><span>COACH APEX</span><strong>${esc(decision.title)}</strong></div>
+      <p>${esc(decision.message)}</p>
+      <small>${coachMeta ? esc(coachMeta) : 'Complète ton check-in pour affiner la recommandation.'}</small>
+      ${decision.notes.length ? `<div class="smart-coach__notes">${decision.notes.map((note) => `<span>${esc(note)}</span>`).join('')}</div>` : ''}
     </section>
 
     <div class="metric-grid">
@@ -93,7 +202,7 @@ export function home() {
       <p>${currentPhase.note}</p>
       <div class="phase-line"><i style="width:${state.currentWeek / 6 * 100}%"></i></div>
     </article>
-    ${coach('Consigne', 'Fais ce qui est prévu, note les données, puis récupère. Les ajustements viendront des tendances, pas d’une seule journée.')}
+    ${coach('Consigne', state.currentWeek === 6 ? 'Deload réel : volume réduit d’environ moitié et charges allégées. Le but est de sortir frais, pas de prouver ta force.' : 'Fais ce qui est prévu, note les données, puis récupère. Les ajustements viennent des tendances, pas d’une seule journée.')}
   `, 'home')
 
   document.querySelector('#start')?.addEventListener('click', () => go(`workout/${session.id}`))
@@ -127,6 +236,7 @@ export function program() {
 
     <article class="phase-summary">
       <strong>${currentPhase.label}</strong><span>RIR ${currentPhase.rir}</span><p>${currentPhase.note}</p>
+      ${state.currentWeek === 6 ? '<p><strong>Deload actif :</strong> environ 50 % de séries en moins et charges réduites automatiquement au départ.</p>' : ''}
     </article>
 
     ${section('Séances')}
@@ -134,11 +244,11 @@ export function program() {
       ${sessions.map((session, index) => `
         <button class="session-card ${isDone(session.id) ? 'completed' : ''}" data-session="${session.id}">
           <div class="session-index">${session.optional ? 'OPT' : String(index + 1).padStart(2, '0')}</div>
-          <div><h3>${session.name}</h3><p>${session.subtitle}</p><span>${session.duration} · ${session.exercises.length} exercices</span></div>
+          <div><h3>${session.name}</h3><p>${session.subtitle}</p><span>${session.duration} · ${state.currentWeek === 6 ? 'volume deload' : `${session.exercises.length} exercices`}</span></div>
           <b>${isDone(session.id) ? 'Terminé' : 'Ouvrir'}</b>
         </button>`).join('')}
     </div>
-    ${coach('Progression', 'Haut de fourchette atteint sur toutes les séries au RIR demandé : petite hausse de charge à la prochaine exposition.')}
+    ${coach('Progression', state.currentWeek === 6 ? 'Cette semaine n’est pas faite pour progresser : récupère, garde la technique et prépare le prochain cycle.' : 'Haut de fourchette atteint sur toutes les séries au RIR demandé : petite hausse de charge à la prochaine exposition.')}
   `, 'program')
 
   document.querySelectorAll('[data-session]').forEach((button) => {
@@ -157,6 +267,8 @@ export function workoutView(id) {
   const session = sessions.find((item) => item.id === id) || sessions[0]
   const currentWorkout = workoutState(session.id)
 
+  hydrateFromPrevious(session, currentWorkout)
+
   if (!currentWorkout.startedAt) {
     currentWorkout.startedAt = new Date().toISOString()
     save()
@@ -169,29 +281,32 @@ export function workoutView(id) {
       <button class="timer-chip" id="timer">Repos</button>
     </header>
 
-    <article class="workout-rule"><span>RIR ${phase().rir}</span><p>${phase().note}</p></article>
+    <article class="workout-rule"><span>RIR ${phase().rir}</span><p>${state.currentWeek === 6 ? 'Deload : volume réduit et charges allégées.' : phase().note}</p></article>
 
     <div class="exercise-stack">
-      ${session.exercises.map((exercise, exerciseIndex) => `
-        <article class="exercise-card">
+      ${session.exercises.map((exercise, exerciseIndex) => {
+        const setsCount = effectiveSets(exercise)
+        return `<article class="exercise-card">
           <div class="exercise-top">
             <div><span>Exercice ${exerciseIndex + 1}</span><h2>${exercise.name}</h2></div>
-            <b>${exercise.sets} × ${exercise.reps}</b>
+            <b>${setsCount} × ${exercise.reps}${state.currentWeek === 6 ? ' · DELOAD' : ''}</b>
           </div>
           <div class="exercise-cues"><span>Réf. ${exercise.ref}</span><p>${exercise.cue}</p></div>
+          ${performanceBlock(session, exercise, exerciseIndex, currentWorkout)}
           <div class="sets-head"><span>Série</span><span>Charge</span><span>Reps</span><span>RIR</span></div>
-          ${Array.from({ length: exercise.sets }, (_, setIndex) => {
+          ${Array.from({ length: setsCount }, (_, setIndex) => {
             const row = currentWorkout.exercises?.[exerciseIndex]?.sets?.[setIndex] || {}
             return `<div class="set-row ${row.done ? 'done' : ''}">
               <button class="set-check" data-done="${exerciseIndex}:${setIndex}">${row.done ? '✓' : setIndex + 1}</button>
               ${['weight', 'reps', 'rir'].map((field) => `<label>
                 <span>${field}</span>
-                <input data-field="${field}" data-pos="${exerciseIndex}:${setIndex}" value="${esc(row[field] || '')}" inputmode="decimal" placeholder="—">
+                <input data-field="${field}" data-pos="${exerciseIndex}:${setIndex}" value="${esc(row[field] ?? '')}" inputmode="decimal" placeholder="—">
               </label>`).join('')}
             </div>`
           }).join('')}
           <button class="rest-btn" data-rest="${exercise.rest}">${Math.floor(exercise.rest / 60)}:${String(exercise.rest % 60).padStart(2, '0')} repos</button>
-        </article>`).join('')}
+        </article>`
+      }).join('')}
     </div>
 
     <article class="plain-card cardio-card">
@@ -242,12 +357,19 @@ export function workoutView(id) {
     save()
   }
   document.querySelector('#finish').onclick = () => {
+    const planned = plannedSetCount(session)
+    const completedSets = completedSetCount(currentWorkout, session)
+    if (completedSets < planned && !confirm(`Il reste ${planned - completedSets} série${planned - completedSets > 1 ? 's' : ''} non validée${planned - completedSets > 1 ? 's' : ''}. Terminer quand même la séance ?`)) return
+
     const now = new Date().toISOString()
     const historyEntry = {
       sessionId: id,
       name: session.name,
       date: TODAY(),
       week: state.currentWeek,
+      phase: phase().label,
+      plannedSets: planned,
+      completedSets,
       exercises: clone(currentWorkout.exercises),
       cardio: currentWorkout.cardio,
       notes: currentWorkout.notes,
