@@ -14,7 +14,6 @@ const guides=[
  {match:['tirage vertical'],label:'Lat Pulldown',source:'Basic-Fit',src:`${BF}/on/demandware.static/-/Library-Sites-basic-fit-shared-library/default/dw6d007707/0_1k0danbd-ezgif.com-video-to-gif-converter.gif`,url:bfWelcome,muscles:'Grand dorsal · haut du dos · biceps',setup:'Cale les cuisses · prise légèrement plus large que les épaules.',move:'Tire vers le haut de la poitrine en descendant les coudes.',avoid:'Ne balance pas le buste et ne tire pas derrière la nuque.'},
  {match:['rowing poulie assis','rowing prise serrée'],label:'Seated Row',source:'Basic-Fit',src:`${BF}/on/demandware.static/-/Library-Sites-basic-fit-shared-library/default/dw9953e1b8/0_to0bmre4_0_oz5iawwf_12-ezgif.com-video-to-gif-converter.gif`,url:bfFirst,muscles:'Milieu du dos · grand dorsal · biceps',setup:'Dos neutre · poitrine stable · épaules basses.',move:'Ramène la poignée vers l’abdomen et contrôle le retour.',avoid:'Ne rondis pas le dos et ne transforme pas le tirage en balancement.'},
  {match:['crunch poulie','abdos'],label:'Abdominal Crunch',source:'Basic-Fit',src:`${BF}/on/demandware.static/-/Library-Sites-basic-fit-shared-library/default/dw2bae917d/0_1lf96kbg_0_k2zetkzq_12-ezgif.com-video-to-gif-converter.gif`,url:bfWelcome,muscles:'Abdominaux · grand droit',setup:'Position stable et charge permettant de garder le contrôle.',move:'Enroule le tronc en contractant les abdos puis reviens lentement.',avoid:'N’utilise pas l’élan.'},
-
  {match:['tractions assistées'],label:'Tractions assistées · Graviton',source:'Fitness Park',url:fpPull,muscles:'Grand dorsal · grand rond · trapèzes · biceps',setup:'Choisis une assistance qui permet les reps prévues · prise stable · corps gainé.',move:'Monte sans balancer jusqu’à amener le menton au niveau de la barre puis contrôle la descente.',avoid:'Ne donne pas d’élan et ne relâche pas brutalement en bas.'},
  {match:['dips assistés'],label:'Dips assistés · machine',source:'Fitness Park',url:fpHalf,muscles:'Triceps · pectoraux · deltoïdes antérieurs',setup:'Assistance suffisante pour garder une trajectoire propre · épaules basses.',move:'Descends sous contrôle puis repousse jusqu’en haut sans verrouillage agressif.',avoid:'Ne laisse pas les épaules remonter vers les oreilles.'},
  {match:['curl incliné'],label:'Curl incliné',source:'Fitness Park',url:fpWomen,muscles:'Biceps',setup:'Dos contre le banc · bras relâchés sous les épaules · haltères stables.',move:'Fléchis les coudes sans avancer les épaules puis redescends lentement.',avoid:'Ne balance pas les bras et ne décolle pas le dos.'},
@@ -32,7 +31,6 @@ const guides=[
  {match:['shoulder press machine'],label:'Shoulder Press',source:'Fitness Park',url:fpHalf,muscles:'Deltoïdes · triceps',setup:'Dos au dossier · poignées à hauteur confortable · épaules basses.',move:'Pousse au-dessus de la tête puis redescends sous contrôle.',avoid:'Ne cambre pas excessivement le bas du dos.'},
  {match:['reverse fly'],label:'Reverse Fly',source:'Fitness Park',url:fpWomen,muscles:'Deltoïdes postérieurs · haut du dos',setup:'Poitrine stable · épaules basses · coudes souples.',move:'Ouvre les bras en contrôlant les omoplates puis reviens lentement.',avoid:'Ne transforme pas le mouvement en haussement d’épaules.'},
  {match:['hack squat'],label:'Hack Squat',source:'Fitness Park',url:fpHalf,muscles:'Quadriceps · fessiers',setup:'Dos et bassin plaqués · pieds stables sur la plateforme.',move:'Descends avec genoux alignés sur les pieds puis pousse la plateforme.',avoid:'Ne décolle pas le bassin et ne verrouille pas brutalement les genoux.'},
-
  {match:['suspension barre'],label:'Suspension à la barre',source:'Fitness Park',url:fpPull,muscles:'Prise · avant-bras · épaules',setup:'Prise complète et corps gainé.',move:'Reste suspendu sans balancer pendant le temps prévu.',avoid:'Arrête si douleur d’épaule.'},
  {match:['scapular pull-ups'],label:'Scapular Pull-ups',source:'Fitness Park',url:fpPull,muscles:'Omoplates · grand dorsal · trapèzes',setup:'Suspendu bras tendus · tronc gainé.',move:'Abaisse les omoplates sans plier fortement les coudes puis relâche contrôlé.',avoid:'Ne transforme pas la répétition en traction complète.'},
  {match:['pompes strictes'],label:'Pompes strictes',source:'Fitness Park',url:fpPull,muscles:'Pectoraux · triceps · épaules',setup:'Corps aligné de la tête aux talons · mains stables.',move:'Descends le corps en bloc puis repousse.',avoid:'Ne laisse pas le bassin tomber.'},
@@ -42,16 +40,28 @@ const guides=[
 
 function findGuide(name=''){const x=name.toLowerCase();return guides.find(g=>g.match.some(k=>x.includes(k)))}
 function media(g){
- if(g.src)return `<a class="bf-media" href="${g.url}" target="_blank" rel="noopener"><img src="${g.src}" alt="${g.label} — ${g.source}" loading="lazy" referrerpolicy="no-referrer"><span>Démo officielle ${g.source}</span></a>`
- return `<a class="bf-media bf-reference" href="${g.url}" target="_blank" rel="noopener"><div class="bf-reference-body"><strong>${g.label}</strong><span>Voir la fiche d’exécution ${g.source}</span></div><span>Source officielle ${g.source}</span></a>`
+ if(g.src)return `<a class="bf-media" href="${g.url}" target="_blank" rel="noopener"><img src="${g.src}" alt="${g.label} — ${g.source}" loading="lazy" referrerpolicy="no-referrer"><span>Démo ${g.source}</span></a>`
+ return `<a class="bf-media bf-reference" href="${g.url}" target="_blank" rel="noopener"><div class="bf-reference-body"><strong>${g.label}</strong><span>Ouvrir la démonstration ${g.source}</span></div><span>Source ${g.source}</span></a>`
 }
+function renderGuide(g){return `<section class="bf-machine"><div class="bf-section-label">COMMENT FAIRE</div>${media(g)}<div class="bf-guide"><div class="bf-title"><strong>${g.label}</strong><small>${g.muscles}</small></div><dl><div><dt>1. Réglage</dt><dd>${g.setup}</dd></div><div><dt>2. Mouvement</dt><dd>${g.move}</dd></div><div><dt>3. À éviter</dt><dd>${g.avoid}</dd></div></dl></div></section>`}
 function enhance(){
  if(!location.hash.startsWith('#workout/'))return
  document.querySelectorAll('.exercise-card').forEach(card=>{
-  if(card.querySelector('.bf-machine'))return
   const name=card.querySelector('h2')?.textContent||''; const g=findGuide(name); if(!g)return
-  const old=card.querySelector('.ex-visual'); if(!old)return
-  old.outerHTML=`<section class="bf-machine">${media(g)}<div class="bf-guide"><div class="bf-title"><strong>${g.label}</strong><small>${g.muscles}</small></div><dl><div><dt>Réglage</dt><dd>${g.setup}</dd></div><div><dt>Mouvement</dt><dd>${g.move}</dd></div><div><dt>À éviter</dt><dd>${g.avoid}</dd></div></dl></div></section>`
+  card.classList.add('has-official-guide')
+  const genericCue=card.querySelector('.exercise-cues p'); if(genericCue)genericCue.hidden=true
+  let guide=card.querySelector('.bf-machine')
+  if(!guide){
+   const old=card.querySelector('.ex-visual')
+   if(old){old.outerHTML=renderGuide(g);guide=card.querySelector('.bf-machine')}
+   else{
+    const anchor=card.querySelector('.exercise-cues')
+    if(anchor){anchor.insertAdjacentHTML('afterend',renderGuide(g));guide=card.querySelector('.bf-machine')}
+   }
+  }
+  card.querySelectorAll('.ex-visual').forEach(el=>el.remove())
+  const perf=card.querySelector('.last-performance')
+  if(guide&&perf&&guide.nextElementSibling!==perf)guide.insertAdjacentElement('afterend',perf)
  })
 }
 let busy=false;const apply=()=>{if(busy)return;busy=true;requestAnimationFrame(()=>{enhance();busy=false})};new MutationObserver(apply).observe(document.documentElement,{childList:true,subtree:true});window.addEventListener('hashchange',()=>setTimeout(apply,0));apply()
