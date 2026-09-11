@@ -1,6 +1,11 @@
 const STORAGE = 'apex-coach-pro-v1'
 
-export const TODAY = () => new Date().toISOString().slice(0, 10)
+export function TODAY(now = new Date()) {
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
 
 const INITIAL_BODY = {
   date: '2026-09-11',
@@ -70,8 +75,12 @@ export function clone(value) {
   return JSON.parse(JSON.stringify(value))
 }
 
+function logRows(date) {
+  return Array.isArray(state.foodLog?.[date]) ? state.foodLog[date] : []
+}
+
 export function nutritionLogTotals(date = TODAY()) {
-  const rows = Array.isArray(state.foodLog?.[date]) ? state.foodLog[date] : []
+  const rows = logRows(date)
   const total = rows.reduce(
     (acc, row) => {
       acc.kcal += Number(row.kcal) || 0
@@ -85,17 +94,36 @@ export function nutritionLogTotals(date = TODAY()) {
   return { ...total, count: rows.length }
 }
 
+function timestamp(value) {
+  const parsed = Date.parse(value || '')
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function hasManualNutrition(manual) {
+  return ['kcal', 'protein', 'fat', 'carbs'].some((key) => manual?.[key] !== undefined && manual[key] !== '')
+}
+
 export function nutritionDay(date = TODAY()) {
   const manual = state.nutritionDays?.[date] || {}
+  const rows = logRows(date)
   const scanned = nutritionLogTotals(date)
   const rounded = (key) => Math.round(scanned[key] * 10) / 10
-  const automatic = scanned.count > 0
+  const latestScan = rows.reduce((latest, row) => Math.max(latest, timestamp(row.at)), 0)
+  const manualSavedAt = timestamp(manual.updatedAt)
+  const manualExists = hasManualNutrition(manual)
+
+  // Une saisie manuelle effectuée après le dernier aliment journalisé est une
+  // correction volontaire. Un nouvel aliment scanné après cette correction
+  // reprend automatiquement la priorité, sans laisser de total périmé.
+  const useManual = manualExists && (!scanned.count || manualSavedAt >= latestScan)
+  const source = useManual ? 'manual' : scanned.count ? 'scanner' : 'empty'
 
   return {
-    kcal: automatic ? rounded('kcal') : (manual.kcal || ''),
-    protein: automatic ? rounded('protein') : (manual.protein || ''),
-    fat: automatic ? rounded('fat') : (manual.fat || ''),
-    carbs: automatic ? rounded('carbs') : (manual.carbs || ''),
-    scanned
+    kcal: useManual ? (manual.kcal || '') : scanned.count ? rounded('kcal') : '',
+    protein: useManual ? (manual.protein || '') : scanned.count ? rounded('protein') : '',
+    fat: useManual ? (manual.fat || '') : scanned.count ? rounded('fat') : '',
+    carbs: useManual ? (manual.carbs || '') : scanned.count ? rounded('carbs') : '',
+    scanned,
+    source
   }
 }
