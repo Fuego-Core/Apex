@@ -1,4 +1,5 @@
 import { J0 } from './config.js'
+import { deleteProgressPhotos, listProgressPhotos, saveProgressPhotos } from './photo-store.js'
 import { exportState, restoreState, TODAY, save, state } from './store.js'
 import { coach, esc, num, section, shell, top } from './ui.js'
 
@@ -16,6 +17,8 @@ const TRACKED = [
   ['calfL', 'Mollet G', 'cm'],
   ['calfR', 'Mollet D', 'cm']
 ]
+
+let activePhotoUrls = []
 
 function dateLabel(date) {
   const parsed = new Date(`${date}T12:00:00`)
@@ -103,6 +106,113 @@ function downloadBackup() {
   setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
+async function compressPhoto(file) {
+  if (!file?.type?.startsWith('image/')) return file
+  try {
+    const bitmap = await createImageBitmap(file)
+    const max = 1600
+    const scale = Math.min(1, max / Math.max(bitmap.width, bitmap.height))
+    const width = Math.max(1, Math.round(bitmap.width * scale))
+    const height = Math.max(1, Math.round(bitmap.height * scale))
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height)
+    bitmap.close?.()
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.86))
+    return blob || file
+  } catch {
+    return file
+  }
+}
+
+function photoUrl(blob) {
+  if (!blob) return null
+  const url = URL.createObjectURL(blob)
+  activePhotoUrls.push(url)
+  return url
+}
+
+function clearPhotoUrls() {
+  activePhotoUrls.forEach((url) => URL.revokeObjectURL(url))
+  activePhotoUrls = []
+}
+
+async function renderPhotoProgress() {
+  const slot = document.querySelector('#photo-progress-slot')
+  if (!slot) return
+  clearPhotoUrls()
+  try {
+    const rows = await listProgressPhotos()
+    const latest = rows[0]
+    slot.innerHTML = `
+      <article class="photo-progress-intro">
+        <div><span>PRIVÉ SUR CET APPAREIL</span><strong>Face · profil · dos</strong><p>Mêmes conditions, même distance, même lumière. Idéalement toutes les 2 à 4 semaines.</p></div>
+        <b>${rows.length ? `${rows.length} série${rows.length > 1 ? 's' : ''}` : 'J0 à créer'}</b>
+      </article>
+
+      <article class="photo-capture-card">
+        <div class="photo-capture-head"><div><span>NOUVELLE SÉRIE</span><strong>${dateLabel(TODAY())}</strong></div><small>Photos conservées uniquement dans le stockage privé du navigateur.</small></div>
+        <div class="photo-input-grid">
+          ${['front:Face', 'side:Profil', 'back:Dos'].map((item) => {
+            const [key, label] = item.split(':')
+            return `<label class="photo-input"><span>${label}</span><input type="file" id="photo-${key}" accept="image/*" capture="environment"><b>Choisir une photo</b></label>`
+          }).join('')}
+        </div>
+        <button class="btn btn-primary btn-block" id="savePhotos">Enregistrer les photos</button>
+        <p class="data-status" id="photoStatus"></p>
+      </article>
+
+      ${latest ? `<article class="photo-latest-card">
+        <header><div><span>DERNIÈRE COMPARAISON</span><strong>${dateLabel(latest.date)}</strong></div><small>Ne juge pas une seule photo : compare avec le nombril, le poids moyen et les performances.</small></header>
+        <div class="photo-preview-grid">
+          ${[['front', 'Face'], ['side', 'Profil'], ['back', 'Dos']].map(([key, label]) => {
+            const url = photoUrl(latest[key])
+            return `<figure>${url ? `<img src="${url}" alt="Photo progression ${label}">` : '<div class="photo-missing">Manquante</div>'}<figcaption>${label}</figcaption></figure>`
+          }).join('')}
+        </div>
+      </article>` : ''}
+
+      ${rows.length ? `<div class="photo-history">
+        ${rows.map((row) => `<article><div><strong>${dateLabel(row.date)}</strong><small>${[row.front, row.side, row.back].filter(Boolean).length}/3 vues enregistrées</small></div><button data-delete-photos="${esc(row.date)}">Supprimer</button></article>`).join('')}
+      </div>` : ''}
+    `
+
+    document.querySelector('#savePhotos')?.addEventListener('click', async () => {
+      const status = document.querySelector('#photoStatus')
+      const front = document.querySelector('#photo-front')?.files?.[0]
+      const side = document.querySelector('#photo-side')?.files?.[0]
+      const back = document.querySelector('#photo-back')?.files?.[0]
+      if (!front && !side && !back) {
+        status.textContent = 'Ajoute au moins une photo.'
+        return
+      }
+      status.textContent = 'Préparation des photos…'
+      try {
+        await saveProgressPhotos(TODAY(), {
+          front: front ? await compressPhoto(front) : null,
+          side: side ? await compressPhoto(side) : null,
+          back: back ? await compressPhoto(back) : null
+        })
+        status.textContent = 'Photos enregistrées en privé sur cet appareil.'
+        await renderPhotoProgress()
+      } catch {
+        status.textContent = 'Impossible d’enregistrer les photos sur ce navigateur.'
+      }
+    })
+
+    document.querySelectorAll('[data-delete-photos]').forEach((button) => {
+      button.onclick = async () => {
+        if (!confirm('Supprimer cette série de photos de cet appareil ?')) return
+        await deleteProgressPhotos(button.dataset.deletePhotos)
+        await renderPhotoProgress()
+      }
+    })
+  } catch {
+    slot.innerHTML = '<article class="plain-card"><strong>Photos privées indisponibles</strong><p class="nutrition-note">Le stockage photo local n’est pas disponible sur ce navigateur. Les autres données APEX restent utilisables.</p></article>'
+  }
+}
+
 export function progressPage() {
   const rows = timeline()
   const body = currentBody(rows)
@@ -129,6 +239,9 @@ export function progressPage() {
       <article class="plain-card chart-card"><header><div><span>Poids</span><strong>${weightSeries.length} relevé${weightSeries.length > 1 ? 's' : ''}</strong></div></header>${sparkline(weightSeries, 'du poids', 'kg')}</article>
       <article class="plain-card chart-card"><header><div><span>Tour de nombril</span><strong>${navelSeries.length} relevé${navelSeries.length > 1 ? 's' : ''}</strong></div></header>${sparkline(navelSeries, 'du tour de nombril', 'cm')}</article>
     </div>
+
+    ${section('Photos progression')}
+    <div id="photo-progress-slot"></div>
 
     ${section('Nouveau relevé')}
     <article class="plain-card measurement-form-card">
@@ -162,7 +275,7 @@ export function progressPage() {
 
     ${section('Mes données APEX')}
     <article class="plain-card data-card">
-      <div><strong>Sauvegarde personnelle</strong><p>Exporte régulièrement tes séances, mesures, check-ins, nutrition et stock. Le fichier permet de tout restaurer sur cet appareil ou un autre navigateur.</p></div>
+      <div><strong>Sauvegarde personnelle</strong><p>Exporte séances, mesures, check-ins, nutrition et stock. Les photos restent volontairement privées sur cet appareil et ne sont pas incluses dans le fichier JSON.</p></div>
       <div class="data-actions"><button class="btn btn-secondary" id="exportData">Exporter</button><button class="btn btn-secondary" id="importData">Restaurer</button></div>
       <input id="backupFile" type="file" accept="application/json,.json" hidden>
       <p class="data-status" id="dataStatus"></p>
@@ -170,6 +283,8 @@ export function progressPage() {
 
     ${coach('Lecture du progrès', 'Le signal prioritaire est la tendance : tour de nombril qui baisse progressivement, performances qui remontent et récupération correcte. Une variation isolée du poids ne décide jamais du plan.')}
   `, 'progress')
+
+  renderPhotoProgress()
 
   document.querySelector('#saveBody').onclick = () => {
     const entry = { date: TODAY() }
