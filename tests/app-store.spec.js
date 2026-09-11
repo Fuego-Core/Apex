@@ -37,12 +37,22 @@ describe('store actif APEX', () => {
       nutritionDays: { '2026-09-10': { kcal: '2200' } }
     })
 
+    expect(state.schemaVersion).toBe(2)
     expect(state.currentWeek).toBe(3)
     expect(state.body.at(-1).weight).toBe(74.2)
     expect(state.sessions['3:upper-a'].completed).toBe(true)
     expect(state.history).toHaveLength(1)
     expect(state.pantry).toEqual([])
     expect(state.foodLog).toEqual({})
+    expect(state.foodFavorites).toEqual([])
+    expect(state.body.find((row) => row.date === '2026-09-11')).toMatchObject({
+      weight: 75,
+      neck: 42,
+      chest: 101,
+      waist: 88,
+      navel: 96,
+      hips: 102.5
+    })
   })
 
   it('borne une semaine invalide entre 1 et 6', async () => {
@@ -137,6 +147,7 @@ describe('store actif APEX', () => {
 
     save()
     const persisted = JSON.parse(storage.getItem('apex-coach-pro-v1'))
+    expect(persisted.schemaVersion).toBe(2)
     expect(persisted.pantry[0].barcode).toBe('3017620422003')
     expect(persisted.foodLog['2026-09-11']).toHaveLength(1)
   })
@@ -149,7 +160,7 @@ describe('store actif APEX', () => {
     })
 
     const backup = exportState()
-    expect(backup).toMatchObject({ format: 'apex-backup', version: 1 })
+    expect(backup).toMatchObject({ format: 'apex-backup', version: 2 })
     expect(backup.data.currentWeek).toBe(2)
 
     state.currentWeek = 6
@@ -167,5 +178,6 @@ describe('store actif APEX', () => {
     expect(state.currentWeek).toBe(6)
     expect(state.pantry).toEqual([])
     expect(Array.isArray(state.body)).toBe(true)
+    expect(state.schemaVersion).toBe(2)
   })
 })
