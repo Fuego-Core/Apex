@@ -1,0 +1,7 @@
+body[data-route="workout"] .bottom-nav{display:none!important}
+body[data-route="workout"] .content{padding-bottom:calc(24px + var(--safe-b))!important}
+body[data-route="workout"] .workout-finish{bottom:calc(0px + var(--safe-b))!important}
+::view-transition-old(root){animation:apexOut .14s ease both}
+::view-transition-new(root){animation:apexIn .2s ease both}
+@keyframes apexOut{to{opacity:.72;transform:translateX(-4px)}}
+@keyframes apexIn{from{opacity:.72;transform:translateX(5px)}}
