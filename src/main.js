@@ -7,6 +7,7 @@ import './coach-ui.css'
 import './apex-club.css'
 import './photo-progress.css'
 import './apex-fit.css'
+import './apex-fit-route.css'
 
 import { checkinPage } from './app/checkin-view.js'
 import { nutritionPage } from './app/nutrition-view.js'
