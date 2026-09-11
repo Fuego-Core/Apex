@@ -35,8 +35,12 @@ export function nutritionPage() {
     ${section('Plan de la journée')}
     <p class="nutrition-note">Le plan reste une base. Les plats proposés depuis ton stock utilisent les valeurs nutritionnelles réelles de tes produits et peuvent remplacer une option du repas.</p>
     <div class="meal-plan">
-      ${mealPlan.map((meal) => `<article class="meal-card">
-        <header><div><span>${meal.time}</span><h3>${meal.title}</h3></div><small>${meal.target}</small></header>
+      ${mealPlan.map((meal, mealIndex) => `<article class="meal-card enhanced ${mealIndex === 0 ? 'open' : ''}">
+        <header data-meal-toggle="${mealIndex}">
+          <div><span>${meal.time}</span><h3>${meal.title}</h3></div>
+          <small>${meal.target}</small>
+          <button class="meal-toggle" type="button" aria-label="Afficher les variantes">${mealIndex === 0 ? '−' : '+'}</button>
+        </header>
         <div class="meal-options">${meal.options.map((option, index) => `<div><b>Option ${index + 1} · ${option.name}</b>${option.items.map((item) => `<p>${item}</p>`).join('')}</div>`).join('')}</div>
       </article>`).join('')}
     </div>
@@ -58,6 +62,17 @@ export function nutritionPage() {
   `, 'nutrition')
 
   renderStockRecipes(document.querySelector('#stock-recipes-slot'))
+
+  document.querySelectorAll('[data-meal-toggle]').forEach((header) => {
+    header.onclick = (event) => {
+      event.preventDefault()
+      const card = header.closest('.meal-card')
+      if (!card) return
+      card.classList.toggle('open')
+      const toggle = card.querySelector('.meal-toggle')
+      if (toggle) toggle.textContent = card.classList.contains('open') ? '−' : '+'
+    }
+  })
 
   document.querySelector('#saveNut').onclick = () => {
     state.nutritionDays[TODAY()] = {
