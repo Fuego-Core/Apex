@@ -1,5 +1,5 @@
 import { J0, nutritionTargets, phases, sessions } from './config.js'
-import { TODAY, clone, save, state } from './store.js'
+import { TODAY, clone, nutritionDay, save, state } from './store.js'
 import { coach, esc, go, num, section, shell, top } from './ui.js'
 
 let timerHandle = null
@@ -24,6 +24,12 @@ function isDone(id) {
   return !!state.sessions[sessionKey(id)]?.completed
 }
 
+function currentBody() {
+  return [...(state.body || [])]
+    .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')))
+    .reduce((body, row) => ({ ...body, ...row }), { ...J0 })
+}
+
 export function phase() {
   return phases[state.currentWeek - 1] || phases[0]
 }
@@ -41,7 +47,13 @@ export function home() {
   const currentPhase = phase()
   const completed = mandatoryDone()
   const finished = completed === 4
-  const body = state.body.at(-1) || J0
+  const body = currentBody()
+  const today = TODAY()
+  const nutrition = nutritionDay(today)
+  const nutritionTracked = nutrition.source !== 'empty'
+  const nutritionKcal = Number(nutrition.kcal) || 0
+  const checkedIn = state.checkins.some((item) => item.date === today)
+  const measured = state.body.some((item) => item.date === today)
 
   shell(`
     ${top('Aujourd’hui', `Semaine ${state.currentWeek} · ${currentPhase.label}`)}
@@ -61,10 +73,17 @@ export function home() {
     </section>
 
     <div class="metric-grid">
-      <article class="metric"><span>Poids</span><strong>${num(body.weight)} kg</strong><small>J0 75 kg</small></article>
-      <article class="metric"><span>Nombril</span><strong>${num(body.navel)} cm</strong><small>J0 96 cm</small></article>
+      <article class="metric"><span>Poids</span><strong>${num(body.weight)} kg</strong><small>J0 ${J0.weight} kg</small></article>
+      <article class="metric"><span>Nombril</span><strong>${num(body.navel)} cm</strong><small>J0 ${J0.navel} cm</small></article>
       <article class="metric"><span>RIR cible</span><strong>${currentPhase.rir}</strong><small>${currentPhase.label}</small></article>
-      <article class="metric"><span>Nutrition</span><strong>${nutritionTargets.kcal}</strong><small>kcal / jour</small></article>
+      <article class="metric"><span>Nutrition</span><strong>${nutritionTracked ? Math.round(nutritionKcal) : nutritionTargets.kcal}</strong><small>${nutritionTracked ? `sur ${nutritionTargets.kcal} kcal` : 'cible kcal / jour'}</small></article>
+    </div>
+
+    ${section('À faire aujourd’hui')}
+    <div class="daily-grid">
+      <button class="daily-action ${nutritionTracked ? 'done' : ''}" data-daily="nutrition"><span>Nutrition</span><strong>${nutritionTracked ? `${Math.round(nutritionKcal)} kcal` : 'À enregistrer'}</strong><small>${nutritionTracked ? `${Math.round(Number(nutrition.protein) || 0)} g protéines` : 'Scanner ou saisir les repas'}</small></button>
+      <button class="daily-action ${checkedIn ? 'done' : ''}" data-daily="checkin"><span>Check-in</span><strong>${checkedIn ? 'Fait' : 'À faire'}</strong><small>Sommeil · sensations · douleurs</small></button>
+      <button class="daily-action ${measured ? 'done' : ''}" data-daily="progress"><span>Mesures</span><strong>${measured ? 'Relevé du jour' : 'Quand prévu'}</strong><small>Poids · nombril · mensurations</small></button>
     </div>
 
     ${section('Cadre')}
@@ -82,6 +101,9 @@ export function home() {
     state.currentWeek += 1
     save()
     home()
+  })
+  document.querySelectorAll('[data-daily]').forEach((button) => {
+    button.onclick = () => go(button.dataset.daily)
   })
 }
 
