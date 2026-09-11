@@ -16,7 +16,8 @@ import { homePage } from './app/home-view.js'
 import { nutritionPage } from './app/nutrition-view.js'
 import { progressPage } from './app/progress-view.js'
 import { trackingPage } from './app/tracking-view.js'
-import { program, workoutView } from './app/training.js'
+import { programPage } from './app/program-view.js'
+import { workoutView } from './app/training.js'
 
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
 
@@ -35,7 +36,7 @@ function render({ resetScroll = false } = {}) {
     const routes = {
       home: homePage,
       tracking: trackingPage,
-      program,
+      program: programPage,
       nutrition: nutritionPage,
       progress: progressPage,
       checkin: checkinPage
