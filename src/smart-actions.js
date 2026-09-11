@@ -1,7 +1,8 @@
 import './smart-actions.css'
 
-import { nutritionTargets, sessions } from './app/config.js'
-import { TODAY, nutritionDay, save, state } from './app/store.js'
+import { sessions } from './app/config.js'
+import { recoveryAssessment } from './app/coach-engine.js'
+import { TODAY, save, state } from './app/store.js'
 
 function number(value) {
   const parsed = Number(String(value ?? '').replace(',', '.'))
@@ -18,77 +19,12 @@ function uid(prefix = 'item') {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-function latestCheckins(limit = 3) {
-  return [...(state.checkins || [])]
-    .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
-    .slice(0, limit)
-}
-
-function painIsMeaningful(value) {
-  const clean = String(value || '').trim().toLowerCase()
-  return !!clean && !['aucune', 'aucun', 'non', 'rien', 'ras'].includes(clean)
-}
-
-function average(rows, key) {
-  const values = rows.map((row) => number(row[key])).filter((value) => value > 0)
-  return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null
-}
-
-function bodyTrend(key) {
-  const rows = (state.body || [])
-    .filter((row) => Number.isFinite(Number(row[key])))
-    .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')))
-  if (rows.length < 2) return null
-  const previous = Number(rows.at(-2)[key])
-  const current = Number(rows.at(-1)[key])
-  return current - previous
-}
-
-function coachDecision() {
-  const today = TODAY()
-  const recent = latestCheckins(3)
-  const last = recent[0] || null
-  const sleep = average(recent, 'sleep')
-  const feeling = average(recent, 'feeling')
-  const pain = painIsMeaningful(last?.pain)
-  const nutrition = nutritionDay(today)
-  const kcal = number(nutrition.kcal)
-  const protein = number(nutrition.protein)
-  const navelDelta = bodyTrend('navel')
-
-  let level = 'good'
-  let title = 'Feu vert'
-  let message = 'Récupération correcte : suis la séance prévue et respecte le RIR cible.'
-
-  if (pain || (sleep !== null && sleep < 5.5) || (feeling !== null && feeling < 5)) {
-    level = 'alert'
-    title = 'Journée prudente'
-    message = pain
-      ? 'Une gêne a été signalée : évite de forcer sur la zone concernée et garde une marge supplémentaire aujourd’hui.'
-      : 'Récupération basse : baisse l’ambition du jour, garde 1 à 2 RIR de plus et privilégie une exécution propre.'
-  } else if ((sleep !== null && sleep < 6.5) || (feeling !== null && feeling < 6.5)) {
-    level = 'watch'
-    title = 'À surveiller'
-    message = 'Récupération moyenne : séance normale possible, mais ne cherche pas un record si les premières séries sont lourdes.'
-  }
-
-  const notes = []
-  if (nutrition.source !== 'empty') {
-    if (protein < nutritionTargets.protein * 0.75) notes.push(`Protéines encore basses aujourd’hui (${Math.round(protein)} g).`)
-    if (kcal > nutritionTargets.kcal * 1.15) notes.push('Calories déjà nettement au-dessus de la cible du jour.')
-  }
-  if (navelDelta !== null && navelDelta < -0.2) notes.push('Le nombril baisse : inutile de réduire davantage les calories pour l’instant.')
-  if (navelDelta !== null && navelDelta > 0.8) notes.push('Le nombril a monté sur le dernier relevé : observe la tendance avant de modifier le plan.')
-
-  return { level, title, message, notes, sleep, feeling }
-}
-
 function injectDailyCoach() {
   if ((location.hash || '#home') !== '#home') return
   const todayCard = document.querySelector('.today-card')
   if (!todayCard || document.querySelector('.smart-coach')) return
 
-  const decision = coachDecision()
+  const decision = recoveryAssessment()
   const meta = [
     decision.sleep !== null ? `${decision.sleep.toFixed(1).replace('.', ',')} h sommeil moy.` : null,
     decision.feeling !== null ? `${decision.feeling.toFixed(1).replace('.', ',')}/10 sensations` : null
@@ -170,8 +106,7 @@ function foodKey(row) {
 }
 
 function favorites() {
-  state.foodFavorites = Array.isArray(state.foodFavorites) ? state.foodFavorites : []
-  const keys = new Set(state.foodFavorites)
+  const keys = new Set(state.foodFavorites || [])
   const recents = recentFoods()
   return recents.filter((row) => keys.has(foodKey(row)))
 }
@@ -258,7 +193,6 @@ function renderQuickFoods() {
     button.onclick = () => {
       const row = shown[Number(button.dataset.fav)]
       const key = foodKey(row)
-      state.foodFavorites = Array.isArray(state.foodFavorites) ? state.foodFavorites : []
       state.foodFavorites = state.foodFavorites.includes(key)
         ? state.foodFavorites.filter((item) => item !== key)
         : [...state.foodFavorites, key]
