@@ -1,29 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="APEX">
-  <!-- Version maskable : fond bord à bord, symbole dans la zone sûre (80 %). -->
-  <defs>
-    <linearGradient id="agL" x1="0" y1="0" x2="0.9" y2="1">
-      <stop offset="0" stop-color="#f9e893"/><stop offset="0.5" stop-color="#d4af37"/><stop offset="1" stop-color="#8a6a1c"/>
-    </linearGradient>
-    <linearGradient id="agR" x1="1" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#fff7c4"/><stop offset="0.55" stop-color="#e2bf49"/><stop offset="1" stop-color="#9a7a22"/>
-    </linearGradient>
-    <radialGradient id="agGlow" cx="0.5" cy="0.3" r="0.65">
-      <stop offset="0" stop-color="rgba(246,225,122,0.2)"/><stop offset="1" stop-color="rgba(0,0,0,0)"/>
-    </radialGradient>
-  </defs>
-  <rect width="512" height="512" fill="#070707"/>
-  <rect width="512" height="512" fill="url(#agGlow)"/>
-  <g transform="translate(88 84) scale(7)">
-    <path d="M24 0 L12.6 24.6 H16.6 L24 8.6 Z" fill="url(#agL)"/>
-    <path d="M24 0 L35.4 24.6 H31.4 L24 8.6 Z" fill="url(#agR)"/>
-    <path d="M12.6 24.6 L5.5 40 H10.6 L16.6 24.6 Z" fill="url(#agL)"/>
-    <path d="M35.4 24.6 L42.5 40 H37.4 L31.4 24.6 Z" fill="url(#agR)"/>
-    <path d="M24 11.5 L33.5 34 H14.5 Z" fill="#0b0b0c" stroke="#26262a" stroke-width="0.4"/>
-    <path d="M24 17 L29.4 30 H26.6 L24 23.6 L21.4 30 H18.6 Z" fill="url(#agL)"/>
-    <rect x="2.4" y="31.4" width="43.2" height="2.1" rx="0.5" fill="url(#agL)"/>
-    <rect x="6.2" y="28.6" width="2.3" height="7.7" rx="0.6" fill="url(#agR)"/>
-    <rect x="2.6" y="29.6" width="2" height="5.7" rx="0.55" fill="url(#agL)"/>
-    <rect x="39.5" y="28.6" width="2.3" height="7.7" rx="0.6" fill="url(#agR)"/>
-    <rect x="43.4" y="29.6" width="2" height="5.7" rx="0.55" fill="url(#agL)"/>
+  <rect width="512" height="512" fill="#080808"/>
+  <g transform="translate(88 84) scale(7)" fill="#ff5a1f">
+    <path d="M24 0 12.6 24.6h4L24 8.6zm0 0 11.4 24.6h-4L24 8.6z"/>
+    <path d="m12.6 24.6-7.1 15h5.1l6-15zm22.8 0 7.1 15h-5.1l-6-15z"/>
+    <path d="m24 17 5.4 13h-2.8L24 23.6 21.4 30h-2.8z"/>
+    <rect x="2.4" y="31.4" width="43.2" height="2.1" rx="0.5"/>
+    <rect x="6.2" y="28.6" width="2.3" height="7.7" rx="0.6"/>
+    <rect x="2.6" y="29.6" width="2" height="5.7" rx="0.55"/>
+    <rect x="39.5" y="28.6" width="2.3" height="7.7" rx="0.6"/>
+    <rect x="43.4" y="29.6" width="2" height="5.7" rx="0.55"/>
   </g>
 </svg>
