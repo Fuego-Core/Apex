@@ -13,7 +13,9 @@ function noPain(value) {
 }
 
 function recovery() {
-  const checkins = state.checkins.slice(-3)
+  const checkins = [...state.checkins]
+    .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')))
+    .slice(-3)
   if (!checkins.length) {
     return {
       level: 'orange',
@@ -129,7 +131,8 @@ function enhanceNutrition() {
 }
 
 function isRecent(date, weekAgo) {
-  return new Date(`${date}T12:00:00`).getTime() >= weekAgo
+  const time = new Date(`${date}T12:00:00`).getTime()
+  return Number.isFinite(time) && time >= weekAgo
 }
 
 function weeklyNutrition(weekAgo) {
@@ -146,16 +149,21 @@ function weeklyNutrition(weekAgo) {
 function weeklyData() {
   const weekAgo = Date.now() - 7 * 864e5
   const checkins = state.checkins.filter((item) => isRecent(item.date, weekAgo))
-  const body = state.body.filter((item) => isRecent(item.date, weekAgo))
+  const body = state.body
+    .filter((item) => isRecent(item.date, weekAgo))
+    .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')))
   const history = state.history.filter((item) => isRecent(item.date, weekAgo))
   const nutrition = weeklyNutrition(weekAgo)
-  const first = body[0]
-  const last = body.at(-1)
+  const navelRows = body.filter((item) => Number.isFinite(Number(item.navel)))
+  const firstNavel = navelRows[0]
+  const lastNavel = navelRows.at(-1)
 
   return {
     sessions: history.length,
     weight: avg(body.map((item) => Number(item.weight)).filter(Number.isFinite)),
-    deltaNavel: first && last ? Number(last.navel) - Number(first.navel) : null,
+    deltaNavel: firstNavel && lastNavel && firstNavel !== lastNavel
+      ? Number(lastNavel.navel) - Number(firstNavel.navel)
+      : null,
     sleep: avg(checkins.map((item) => Number(item.sleep)).filter(Number.isFinite)),
     feeling: avg(checkins.map((item) => Number(item.feeling)).filter(Number.isFinite)),
     kcal: avg(nutrition.map((item) => Number(item.kcal)).filter(Number.isFinite)),
