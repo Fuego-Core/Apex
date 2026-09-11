@@ -50,9 +50,13 @@ export function recoveryAssessment() {
       level: 'watch',
       label: 'À mesurer',
       title: 'Complète ton check-in',
-      message: 'APEX a besoin de quelques données de sommeil et de sensations avant de conseiller l’intensité du jour.',
+      message: 'APEX a besoin de quelques données de récupération avant de conseiller l’intensité du jour.',
       sleep: null,
       feeling: null,
+      fatigue: null,
+      motivation: null,
+      soreness: null,
+      stress: null,
       pain: false,
       notes: []
     }
@@ -60,21 +64,43 @@ export function recoveryAssessment() {
 
   const sleep = mean(recent.map((item) => item.sleep))
   const feeling = mean(recent.map((item) => item.feeling))
+  const fatigue = mean(recent.map((item) => item.fatigue))
+  const motivation = mean(recent.map((item) => item.motivation))
+  const soreness = mean(recent.map((item) => item.soreness))
+  const stress = mean(recent.map((item) => item.stress))
   const last = recent[0]
   const pain = recent.some((item) => !noPain(item.pain))
+
+  const severeRecoverySignal =
+    pain ||
+    (sleep !== null && sleep < 5.5) ||
+    (feeling !== null && feeling < 5) ||
+    (fatigue !== null && fatigue >= 8) ||
+    (soreness !== null && soreness >= 8) ||
+    (stress !== null && stress >= 8) ||
+    (motivation !== null && motivation < 4)
+
+  const moderateRecoverySignal =
+    (sleep !== null && sleep < 6.5) ||
+    (feeling !== null && feeling < 6.5) ||
+    (fatigue !== null && fatigue >= 6) ||
+    (soreness !== null && soreness >= 6) ||
+    (stress !== null && stress >= 6) ||
+    (motivation !== null && motivation < 6)
+
   let level = 'good'
   let label = 'Bonne récupération'
   let title = 'Séance normale'
   let message = 'Les derniers signaux sont compatibles avec la progression prévue. Respecte simplement le RIR cible.'
 
-  if (pain || (sleep !== null && sleep < 5.5) || (feeling !== null && feeling < 5)) {
+  if (severeRecoverySignal) {
     level = 'alert'
     label = 'Récupération basse'
     title = pain ? 'Douleur signalée' : 'Journée prudente'
     message = pain
       ? 'Une gêne a été signalée récemment. Ne force pas sur la zone concernée et garde davantage de marge.'
-      : 'Sommeil ou sensations trop bas : réduis l’ambition du jour et garde 1 à 2 RIR de plus si nécessaire.'
-  } else if ((sleep !== null && sleep < 6.5) || (feeling !== null && feeling < 6.5)) {
+      : 'Plusieurs signaux de récupération sont bas. Réduis l’ambition du jour et garde 1 à 2 RIR de plus si nécessaire.'
+  } else if (moderateRecoverySignal) {
     level = 'watch'
     label = 'À surveiller'
     title = 'Reste attentif'
@@ -92,8 +118,11 @@ export function recoveryAssessment() {
     notes.push('Calories déjà nettement au-dessus de la cible quotidienne.')
   }
   if (!noPain(last?.pain)) notes.push(`Dernière gêne notée : ${String(last.pain).trim()}.`)
+  if (fatigue !== null && fatigue >= 6) notes.push(`Fatigue moyenne ${fatigue.toFixed(1)}/10.`)
+  if (soreness !== null && soreness >= 6) notes.push(`Courbatures moyennes ${soreness.toFixed(1)}/10.`)
+  if (stress !== null && stress >= 6) notes.push(`Stress moyen ${stress.toFixed(1)}/10.`)
 
-  return { level, label, title, message, sleep, feeling, pain, notes }
+  return { level, label, title, message, sleep, feeling, fatigue, motivation, soreness, stress, pain, notes }
 }
 
 function bodyRows(days, now) {
@@ -177,6 +206,10 @@ export function weeklySummary({ days = 7, now = new Date() } = {}) {
     nutritionDays: nutrition.length,
     sleepAvg: mean(checkins.map((item) => item.sleep)),
     feelingAvg: mean(checkins.map((item) => item.feeling)),
+    fatigueAvg: mean(checkins.map((item) => item.fatigue)),
+    motivationAvg: mean(checkins.map((item) => item.motivation)),
+    sorenessAvg: mean(checkins.map((item) => item.soreness)),
+    stressAvg: mean(checkins.map((item) => item.stress)),
     checkinDays: checkins.length,
     pains,
     adherence,
@@ -205,7 +238,8 @@ export function buildCoachReport({ days = 7 } = {}) {
     `Variation poids : ${summary.weightDelta === null ? '—' : `${summary.weightDelta >= 0 ? '+' : ''}${format(summary.weightDelta)} kg`}`,
     `Nombril actuel : ${format(summary.latestNavel)} cm · Variation : ${summary.navelDelta === null ? '—' : `${summary.navelDelta >= 0 ? '+' : ''}${format(summary.navelDelta)} cm`}`,
     `Nutrition : ${summary.nutritionDays}/${days} jours suivis · ${format(summary.kcalAvg, 0)} kcal/j · ${format(summary.proteinAvg, 0)} g protéines/j`,
-    `Récupération : ${summary.checkinDays}/${days} check-ins · ${format(summary.sleepAvg)} h sommeil · ${format(summary.feelingAvg)}/10 sensations`,
+    `Récupération : ${summary.checkinDays}/${days} check-ins · ${format(summary.sleepAvg)} h sommeil · forme ${format(summary.feelingAvg)}/10`,
+    `Fatigue : ${format(summary.fatigueAvg)}/10 · Motivation : ${format(summary.motivationAvg)}/10 · Courbatures : ${format(summary.sorenessAvg)}/10 · Stress : ${format(summary.stressAvg)}/10`,
     `Douleurs/gênes : ${summary.pains.length ? summary.pains.join(' | ') : 'Aucune signalée'}`,
     `Adhérence indicative : ${summary.adherence === null ? '—' : `${summary.adherence}/100`} (à interpréter avec la couverture des données)`,
     `Décision APEX actuelle : ${recovery.title} — ${recovery.message}`,
