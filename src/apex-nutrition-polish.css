@@ -1,0 +1,294 @@
+/* APEX V3 — nutrition scanner polish
+   Makes the scanner/journal feel native to the light product UI instead of a legacy dark module. */
+
+body[data-route="nutrition"] .scanner-entry{
+  margin:0!important;
+  padding:18px!important;
+  border:1px solid var(--v3-line)!important;
+  border-radius:18px!important;
+  background:#fff!important;
+  box-shadow:none!important;
+}
+body[data-route="nutrition"] .scanner-entry__top{display:block!important}
+body[data-route="nutrition"] .scanner-entry h3{
+  margin:4px 0 0!important;
+  color:var(--v3-ink)!important;
+  font-family:"Space Grotesk",Inter,sans-serif!important;
+  font-size:21px!important;
+  line-height:1.05!important;
+  letter-spacing:-.03em!important;
+}
+body[data-route="nutrition"] .scanner-entry p{
+  margin:7px 0 0!important;
+  max-width:560px!important;
+  color:var(--v3-muted)!important;
+  font-size:10px!important;
+  line-height:1.5!important;
+}
+body[data-route="nutrition"] .command-kicker{
+  color:var(--v3-orange)!important;
+  font-size:8px!important;
+  font-weight:900!important;
+  letter-spacing:.14em!important;
+  text-transform:uppercase!important;
+}
+
+/* The page header already owns the macro summary. Do not repeat it in the scanner module. */
+body[data-route="nutrition"] .nutrition-progress-grid{display:none!important}
+
+body[data-route="nutrition"] .scanner-entry__actions{
+  display:grid!important;
+  grid-template-columns:1.25fr .75fr!important;
+  gap:8px!important;
+  margin:15px 0 18px!important;
+}
+body[data-route="nutrition"] .scanner-entry .scan-btn{
+  min-height:48px!important;
+  padding:0 14px!important;
+  border-radius:10px!important;
+  font-size:10px!important;
+  font-weight:850!important;
+  box-shadow:none!important;
+}
+body[data-route="nutrition"] .scanner-entry .scan-btn.primary{
+  background:var(--v3-orange)!important;
+  border:1px solid var(--v3-orange)!important;
+  color:#fff!important;
+}
+body[data-route="nutrition"] .scanner-entry .scan-btn.secondary{
+  background:#fff9f4!important;
+  border:1px solid #f1d4bf!important;
+  color:var(--v3-ink)!important;
+}
+
+body[data-route="nutrition"] .food-journal-head{
+  display:flex!important;
+  align-items:flex-end!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  margin:0!important;
+  padding:15px 0 10px!important;
+  border-top:1px solid var(--v3-line)!important;
+}
+body[data-route="nutrition"] .food-journal-head strong{
+  display:block!important;
+  color:var(--v3-ink)!important;
+  font-family:"Space Grotesk",Inter,sans-serif!important;
+  font-size:15px!important;
+}
+body[data-route="nutrition"] .food-journal-head span,
+body[data-route="nutrition"] .food-journal-head small{
+  display:block!important;
+  margin-top:2px!important;
+  color:var(--v3-muted)!important;
+  font-size:8px!important;
+}
+body[data-route="nutrition"] .food-journal{display:grid!important;gap:7px!important}
+body[data-route="nutrition"] .food-journal-empty{
+  min-height:76px!important;
+  display:grid!important;
+  place-items:center!important;
+  padding:16px!important;
+  border:1px dashed #ded0bf!important;
+  border-radius:12px!important;
+  background:#fbf7f1!important;
+  color:#938b82!important;
+  font-size:9px!important;
+  text-align:center!important;
+}
+body[data-route="nutrition"] .food-row{
+  width:100%!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  padding:12px 13px!important;
+  border:1px solid var(--v3-line)!important;
+  border-radius:11px!important;
+  background:#fff!important;
+  color:var(--v3-ink)!important;
+  text-align:left!important;
+}
+body[data-route="nutrition"] .food-row strong{display:block!important;font-size:11px!important;color:var(--v3-ink)!important}
+body[data-route="nutrition"] .food-row small{display:block!important;margin-top:3px!important;color:var(--v3-muted)!important;font-size:8px!important}
+body[data-route="nutrition"] .food-row>b{color:var(--v3-orange)!important;font-size:10px!important;white-space:nowrap!important}
+
+/* Scanner / pantry bottom sheets */
+.scanner-sheet{
+  z-index:1200!important;
+  background:rgba(35,30,24,.34)!important;
+  backdrop-filter:blur(8px)!important;
+  -webkit-backdrop-filter:blur(8px)!important;
+}
+.scanner-panel{
+  position:relative!important;
+  width:min(100%,640px)!important;
+  max-height:90dvh!important;
+  padding:11px 16px calc(18px + env(safe-area-inset-bottom))!important;
+  border:1px solid #e7dccd!important;
+  border-bottom:0!important;
+  border-radius:24px 24px 0 0!important;
+  background:#fffdf9!important;
+  color:#272727!important;
+  box-shadow:0 -16px 48px rgba(53,39,23,.16)!important;
+}
+.scanner-panel::before{
+  content:""!important;
+  display:block!important;
+  width:38px!important;
+  height:4px!important;
+  margin:0 auto 12px!important;
+  border-radius:99px!important;
+  background:#d8cec0!important;
+}
+.scanner-head{margin-bottom:14px!important;padding-bottom:12px!important;border-bottom:1px solid #eee4d7!important}
+.scanner-head h2{
+  margin:0!important;
+  color:#262626!important;
+  font-family:"Space Grotesk",Inter,sans-serif!important;
+  font-size:19px!important;
+  letter-spacing:-.03em!important;
+}
+.scanner-close{
+  width:34px!important;
+  height:34px!important;
+  border:0!important;
+  border-radius:50%!important;
+  background:#f2ebe2!important;
+  color:#57514b!important;
+  font-size:20px!important;
+}
+.scanner-body{color:#272727!important}
+.scanner-status,.scanner-hint,.stock-head p{color:#7d766e!important;font-size:9px!important;line-height:1.45!important}
+.scanner-status--left{text-align:left!important}
+
+.scanner-panel .scan-btn{
+  min-height:48px!important;
+  border-radius:10px!important;
+  padding:0 15px!important;
+  font-size:10px!important;
+  font-weight:850!important;
+  box-shadow:none!important;
+}
+.scanner-panel .scan-btn.primary{
+  background:#ff6500!important;
+  border:1px solid #ff6500!important;
+  color:#fff!important;
+}
+.scanner-panel .scan-btn.secondary{
+  background:#fff!important;
+  border:1px solid #d9ccbc!important;
+  color:#312f2d!important;
+}
+.scanner-panel .scan-btn.ghost{
+  background:transparent!important;
+  border:0!important;
+  color:#6330c7!important;
+}
+.scanner-panel .scan-btn.danger{
+  background:#fff5f5!important;
+  border:1px solid #ecc7ca!important;
+  color:#b83d45!important;
+}
+
+.manual-box,.consume-summary{
+  background:#faf5ee!important;
+  border:1px solid #eadfce!important;
+  border-radius:12px!important;
+}
+.manual-box{padding:12px!important}
+.manual-box label,.product-edit label,.consume-box label{
+  color:#706960!important;
+  font-size:8px!important;
+  letter-spacing:.06em!important;
+}
+.manual-box input,.product-edit input,.consume-box input,.product-edit select,.consume-box select{
+  min-height:44px!important;
+  border:1px solid #d9ccbc!important;
+  border-radius:9px!important;
+  background:#fff!important;
+  color:#272727!important;
+  padding:0 11px!important;
+  font-size:12px!important;
+  box-shadow:none!important;
+}
+.manual-box input:focus,.product-edit input:focus,.consume-box input:focus,.product-edit select:focus,.consume-box select:focus{
+  outline:none!important;
+  border-color:#ff6500!important;
+  box-shadow:0 0 0 3px rgba(255,101,0,.1)!important;
+}
+
+.product-result{gap:13px!important}
+.product-hero{grid-template-columns:68px minmax(0,1fr)!important;gap:12px!important}
+.product-hero img,.product-placeholder{
+  width:68px!important;
+  height:68px!important;
+  border-radius:11px!important;
+  background:#fff!important;
+  border:1px solid #eadfce!important;
+}
+.product-placeholder{display:grid!important;place-items:center!important;color:#ff6500!important;font-weight:900!important;font-size:11px!important}
+.product-hero h3{margin:0 0 4px!important;color:#272727!important;font-size:15px!important;line-height:1.2!important}
+.product-hero p{margin:2px 0 0!important;color:#817970!important;font-size:9px!important}
+
+.scanner-macros{
+  display:grid!important;
+  grid-template-columns:repeat(4,1fr)!important;
+  gap:6px!important;
+  background:transparent!important;
+}
+.scanner-macros>div,.scanner-macros>label{
+  padding:10px 7px!important;
+  border:1px solid #eadfce!important;
+  border-radius:10px!important;
+  background:#faf6ef!important;
+  color:#272727!important;
+  text-align:center!important;
+}
+.scanner-macros span{color:#887f76!important;font-size:7px!important}
+.scanner-macros strong{color:#272727!important;font-size:12px!important}
+
+.pantry-list{gap:7px!important;margin-top:12px!important}
+.pantry-item{
+  grid-template-columns:46px minmax(0,1fr) auto!important;
+  gap:10px!important;
+  padding:10px!important;
+  border:1px solid #eadfce!important;
+  border-radius:11px!important;
+  background:#fff!important;
+}
+.pantry-item img{width:46px!important;height:46px!important;border-radius:8px!important}
+.pantry-item h4{margin:0!important;color:#272727!important;font-size:11px!important}
+.pantry-item p{margin:3px 0 0!important;color:#817970!important;font-size:8px!important}
+.pantry-item button{
+  border:1px solid #e1d5c5!important;
+  border-radius:8px!important;
+  background:#faf5ee!important;
+  color:#393531!important;
+  padding:7px 8px!important;
+  font-size:8px!important;
+}
+.pantry-item__actions{display:grid!important;gap:5px!important}
+
+.consume-summary{padding:11px!important;color:#6f675f!important;font-size:9px!important}
+.consume-summary strong{color:#272727!important}
+.scanner-empty{padding:22px 14px!important;color:#817970!important;font-size:10px!important}
+.scanner-error{
+  padding:11px!important;
+  border:1px solid #f0c9cc!important;
+  border-radius:10px!important;
+  background:#fff5f5!important;
+  color:#ad3d45!important;
+  font-size:9px!important;
+}
+.scanner-camera{border-radius:15px!important;background:#111!important;max-height:56dvh!important}
+.scanner-line{background:#ff6500!important;box-shadow:0 0 12px rgba(255,101,0,.55)!important}
+
+@media(max-width:430px){
+  body[data-route="nutrition"] .scanner-entry{padding:16px!important}
+  body[data-route="nutrition"] .scanner-entry__actions{grid-template-columns:1fr!important}
+  .scanner-panel{padding-left:14px!important;padding-right:14px!important}
+  .scanner-macros{grid-template-columns:repeat(2,1fr)!important}
+  .product-edit{grid-template-columns:1fr 1fr!important}
+  .product-actions{grid-template-columns:1fr 1fr!important}
+}
