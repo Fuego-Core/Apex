@@ -1,36 +1,518 @@
 import './styles.css'
+import './enhancements.js'
+import './basicfit-media.js'
+import './nutrition-scanner.js'
 
-const STORAGE = 'apex-coach-pro-v1'
-const TODAY = () => new Date().toISOString().slice(0, 10)
-const J0 = { date:'2026-09-11', weight:75, height:172, neck:42, chest:101, waist:88, navel:96, hips:102.5, armL:31, armR:31, thighL:52, thighR:52, calfL:33.5, calfR:33.5 }
-const nutrition = { kcal:2300, protein:155, fat:70, carbs:250, creatine:'3–5 g' }
-const mealPlan = [
- {time:'15:00',title:'Repas 1 · Réveil',target:'≈ 550–600 kcal · 35–40 g protéines',options:[{name:'Bol avoine & skyr',items:['Flocons d’avoine 70 g','Skyr nature 250 g','Banane 120 g','Beurre de cacahuète 15 g']},{name:'Œufs & tartines',items:['Œufs entiers 3','Pain complet 100 g','Skyr nature 200 g','Fruit 150 g']}]},
- {time:'18:00',title:'Repas 2 · Avant entraînement',target:'≈ 550–600 kcal · 40–45 g protéines',options:[{name:'Poulet & riz',items:['Blanc de poulet 160 g cuit','Riz basmati 180 g cuit','Légumes 200 g','Huile d’olive 10 g']},{name:'Dinde & pâtes',items:['Escalope de dinde 160 g cuite','Pâtes 180 g cuites','Sauce tomate 100 g','Légumes 150 g','Huile d’olive 5 g']}]},
- {time:'00:30',title:'Repas 3 · Travail',target:'≈ 650–700 kcal · 45–50 g protéines',options:[{name:'Bœuf & pommes de terre',items:['Bœuf 5 % MG 170 g cuit','Pommes de terre 350 g cuites','Légumes 200 g','Huile d’olive 10 g','Fruit 150 g']},{name:'Poulet & semoule',items:['Blanc de poulet 170 g cuit','Semoule 220 g cuite','Légumes 200 g','Huile d’olive 10 g','Yaourt nature 125 g']}]},
- {time:'05:30',title:'Repas 4 · Après travail',target:'≈ 400–500 kcal · 30–35 g protéines',options:[{name:'Skyr & céréales',items:['Skyr nature 300 g','Flocons d’avoine 45 g','Fruits rouges 150 g','Amandes 15 g']},{name:'Omelette légère',items:['Œufs entiers 2','Blancs d’œufs 180 g','Pain complet 70 g','Fruit 150 g']}]}
-]
-const phases=[{week:1,label:'Reprise',rir:'3',note:'Technique propre, aucune série forcée.'},{week:2,label:'Construction',rir:'2–3',note:'On remonte doucement les charges.'},{week:3,label:'Progression',rir:'2',note:'Double progression sur les mouvements principaux.'},{week:4,label:'Progression',rir:'2',note:'Stabiliser la forme et battre les reps propres.'},{week:5,label:'Semaine forte',rir:'1–2',note:'Effort élevé sans sacrifier la technique.'},{week:6,label:'Deload',rir:'4',note:'Volume réduit et récupération prioritaire.'}]
-const sessions=[
- {id:'upper-a',name:'Upper A',subtitle:'Pecs · Dos · Largeur',duration:'70–80 min',cardio:'15 min marche inclinée facile',exercises:[['Chest press machine',3,'6–8',120,'50 kg'],['Tractions assistées',3,'6–10',120,'Noter aide'],['Développé incliné haltères',3,'8–10',105,'16 kg'],['Rowing poulie assis',3,'8–12',105,'37 kg'],['Élévations latérales',3,'12–15',75,'8 kg'],['Dips assistés',2,'8–12',105,'25 kg aide'],['Curl incliné',2,'10–12',75,'6 kg']]},
- {id:'lower-a',name:'Lower A',subtitle:'Quadriceps · Ischios · Mollets',duration:'65–75 min',cardio:'10 min facile si récupération correcte',exercises:[['Hack squat',3,'8–10',150,'27 kg'],['Presse à jambes',3,'10–12',120,'54 kg'],['Leg curl',3,'10–12',90,'20 kg'],['Fentes marchées',2,'10/jambe',90,'8 kg'],['Mollets',3,'10–15',75,'10 kg'],['Crunch poulie',3,'10–15',60,'À calibrer']]},
- {id:'upper-b',name:'Upper B',subtitle:'Dos · Épaules · Haut de pecs',duration:'70–80 min',cardio:'15 min marche inclinée facile',exercises:[['Développé incliné',3,'8–10',105,'Reprise'],['Tirage vertical',3,'8–10',105,'39 kg'],['Shoulder press machine',3,'8–10',105,'19 kg'],['Rowing prise serrée',3,'8–12',105,'37 kg'],['Élévations latérales',3,'12–15',75,'8 kg'],['Reverse fly',2,'12–15',75,'11–25 kg'],['Extension triceps',2,'10–12',75,'11 kg'],['Curl marteau',2,'10–12',75,'6 kg']]},
- {id:'lower-b',name:'Lower B',subtitle:'Chaîne postérieure · Unilatéral',duration:'65–75 min',cardio:'10 min facile ou rien si jambes fatiguées',exercises:[['Soulevé de terre roumain',3,'8–10',150,'40 kg'],['Fente bulgare',3,'8–10/jambe',105,'8 kg'],['Leg curl',3,'10–12',90,'20 kg'],['Hip thrust',3,'8–12',105,'20 kg'],['Leg extension',2,'12–15',75,'20 kg'],['Mollets',3,'12–15',75,'9–10 kg'],['Abdos',3,'10–15',60,'À calibrer']]},
- {id:'skills',name:'Skills',subtitle:'Calisthénie technique',duration:'25–35 min',optional:true,cardio:'Aucun cardio obligatoire',exercises:[['Suspension barre',3,'20–40 sec',60,'PDC'],['Scapular pull-ups',3,'6–10',60,'PDC'],['Pompes strictes',3,'8–15',75,'PDC'],['Support dips',3,'15–30 sec',60,'PDC'],['Handstand au mur',4,'20–30 sec',60,'Technique']]}
-].map(s=>({...s,exercises:s.exercises.map(([name,sets,reps,rest,ref])=>({name,sets,reps,rest,ref,cue:'Exécution contrôlée, amplitude confortable et technique stable.'}))}))
-const DEFAULT_STATE={createdAt:TODAY(),currentWeek:1,body:[{date:J0.date,weight:J0.weight,navel:J0.navel}],sessions:{},history:[],checkins:[],nutritionDays:{}}
-let state=load(),timerHandle=null,timerRemaining=0
-function clone(v){return JSON.parse(JSON.stringify(v))} function load(){try{const p=JSON.parse(localStorage.getItem(STORAGE)||'null');return p?{...clone(DEFAULT_STATE),...p}:clone(DEFAULT_STATE)}catch{return clone(DEFAULT_STATE)}} function save(){localStorage.setItem(STORAGE,JSON.stringify(state))}
-function esc(v=''){return String(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))} function num(v){const n=Number(v);return Number.isFinite(n)?n.toLocaleString('fr-FR',{maximumFractionDigits:1}):'—'}
-function key(id){return `${state.currentWeek}:${id}`} function ws(id){state.sessions[key(id)]||={exercises:{},completed:false,startedAt:null,cardio:false,notes:''};return state.sessions[key(id)]} function done(id){return !!state.sessions[key(id)]?.completed} function phase(){return phases[state.currentWeek-1]||phases[0]} function mandatoryDone(){return sessions.filter(s=>!s.optional&&done(s.id)).length} function next(){return sessions.filter(s=>!s.optional).find(s=>!done(s.id))||sessions[0]}
-function icon(n){const p={home:'M4 11 12 4l8 7v9h-5v-6H9v6H4z',program:'M5 6h14M5 12h14M5 18h14',nutrition:'M12 3v18M6 7h12',progress:'M4 18l5-6 4 3 7-9',checkin:'m5 12 4 4 10-10'};return `<svg viewBox="0 0 24 24"><path d="${p[n]||p.home}"/></svg>`}
-function nav(active){return `<nav class="bottom-nav">${[['home','home','Aujourd’hui'],['program','program','Programme'],['nutrition','nutrition','Nutrition'],['progress','progress','Progrès'],['checkin','checkin','Check-in']].map(x=>`<button data-nav="${x[0]}" class="nav-item ${active===x[0]?'active':''}">${icon(x[1])}<span>${x[2]}</span></button>`).join('')}</nav>`}
-function shell(html,active){document.querySelector('#app').innerHTML=`<div class="app-shell"><main class="content">${html}</main>${nav(active)}</div>`;document.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>go(b.dataset.nav))} function top(t,s=''){return `<header class="page-head"><div><p class="brandline">APEX</p><h1>${t}</h1><p>${s}</p></div><div class="profile-dot">F</div></header>`} function section(t){return `<div class="section-head"><h2>${t}</h2></div>`} function coach(t,p){return `<article class="coach-card"><div class="coach-mark">A</div><div><strong>${t}</strong><p>${p}</p></div></article>`}
-function home(){const s=next(),p=phase(),d=mandatoryDone(),finished=d===4,b=state.body.at(-1)||J0;shell(`${top('Aujourd’hui',`Semaine ${state.currentWeek} · ${p.label}`)}<section class="today-card"><div class="today-main"><p class="kicker">${finished?'SEMAINE TERMINÉE':'PROCHAINE SÉANCE'}</p><h2>${finished?'Récupération':s.name}</h2><p class="muted">${finished?'Les 4 séances principales sont faites.':s.subtitle}</p>${!finished?`<div class="meta-row"><span>${s.duration}</span><span>${s.exercises.length} exercices</span></div><button class="btn btn-primary" id="start">Commencer</button>`:state.currentWeek<6?'<button class="btn btn-primary" id="advance">Semaine suivante</button>':''}</div><div class="progress-ring" style="--value:${d*25}"><div><strong>${d}/4</strong><span>séances</span></div></div></section><div class="metric-grid"><article class="metric"><span>Poids</span><strong>${num(b.weight)} kg</strong><small>J0 75 kg</small></article><article class="metric"><span>Nombril</span><strong>${num(b.navel)} cm</strong><small>J0 96 cm</small></article><article class="metric"><span>RIR cible</span><strong>${p.rir}</strong><small>${p.label}</small></article><article class="metric"><span>Nutrition</span><strong>${nutrition.kcal}</strong><small>kcal / jour</small></article></div>${section('Cadre')}<article class="plain-card phase-card"><span>Semaine ${state.currentWeek}/6</span><strong>${p.label}</strong><p>${p.note}</p><div class="phase-line"><i style="width:${state.currentWeek/6*100}%"></i></div></article>${coach('Consigne','Fais ce qui est prévu, note les données, puis récupère. Les ajustements viendront des tendances, pas d’une seule journée.')}`,'home');document.querySelector('#start')?.addEventListener('click',()=>go(`workout/${s.id}`));document.querySelector('#advance')?.addEventListener('click',()=>{state.currentWeek++;save();home()})}
-function program(){const p=phase();shell(`${top('Programme','Recomposition · mésocycle 6 semaines')}<section class="program-intro"><div><p class="kicker">PLAN</p><h2>4 séances + 1 option</h2><p>Deux stimulations hebdomadaires par grand groupe. Priorité dos, épaules et haut de pecs.</p></div><span>S${state.currentWeek}</span></section><div class="week-tabs">${phases.map(x=>`<button data-week="${x.week}" class="${x.week===state.currentWeek?'active':''}">S${x.week}</button>`).join('')}</div><article class="phase-summary"><strong>${p.label}</strong><span>RIR ${p.rir}</span><p>${p.note}</p></article>${section('Séances')}<div class="session-stack">${sessions.map((s,i)=>`<button class="session-card ${done(s.id)?'completed':''}" data-session="${s.id}"><div class="session-index">${s.optional?'OPT':String(i+1).padStart(2,'0')}</div><div><h3>${s.name}</h3><p>${s.subtitle}</p><span>${s.duration} · ${s.exercises.length} exercices</span></div><b>${done(s.id)?'Terminé':'Ouvrir'}</b></button>`).join('')}</div>${coach('Progression','Haut de fourchette atteint sur toutes les séries au RIR demandé : petite hausse de charge à la prochaine exposition.')}`,'program');document.querySelectorAll('[data-session]').forEach(b=>b.onclick=()=>go(`workout/${b.dataset.session}`));document.querySelectorAll('[data-week]').forEach(b=>b.onclick=()=>{state.currentWeek=Number(b.dataset.week);save();program()})}
-function workout(id){const s=sessions.find(x=>x.id===id)||sessions[0],w=ws(s.id);if(!w.startedAt){w.startedAt=new Date().toISOString();save()}shell(`<header class="workout-head"><button class="icon-btn" id="back">‹</button><div><p class="brandline">${s.name}</p><h1>${s.subtitle}</h1></div><button class="timer-chip" id="timer">Repos</button></header><article class="workout-rule"><span>RIR ${phase().rir}</span><p>${phase().note}</p></article><div class="exercise-stack">${s.exercises.map((e,ei)=>`<article class="exercise-card"><div class="exercise-top"><div><span>Exercice ${ei+1}</span><h2>${e.name}</h2></div><b>${e.sets} × ${e.reps}</b></div><div class="exercise-cues"><span>Réf. ${e.ref}</span><p>${e.cue}</p></div><div class="sets-head"><span>Série</span><span>Charge</span><span>Reps</span><span>RIR</span></div>${Array.from({length:e.sets},(_,si)=>{const l=w.exercises?.[ei]?.sets?.[si]||{};return `<div class="set-row ${l.done?'done':''}"><button class="set-check" data-done="${ei}:${si}">${l.done?'✓':si+1}</button>${['weight','reps','rir'].map(f=>`<label><span>${f}</span><input data-field="${f}" data-pos="${ei}:${si}" value="${esc(l[f]||'')}" inputmode="decimal" placeholder="—"></label>`).join('')}</div>`}).join('')}<button class="rest-btn" data-rest="${e.rest}">${Math.floor(e.rest/60)}:${String(e.rest%60).padStart(2,'0')} repos</button></article>`).join('')}</div><article class="plain-card cardio-card"><div><span>Cardio</span><strong>${s.cardio}</strong></div><label class="switch"><input id="cardio" type="checkbox" ${w.cardio?'checked':''}><i></i></label></article><article class="plain-card"><label class="textarea-label"><span>Note de séance</span><textarea id="notes" rows="3">${esc(w.notes||'')}</textarea></label></article><button class="btn btn-primary btn-block" id="finish">Terminer la séance</button><div class="timer-overlay hidden" id="overlay"><div><span>Repos</span><strong id="tv">00:00</strong><div><button id="minus">−15 s</button><button id="close">Fermer</button><button id="plus">+15 s</button></div></div></div>`,'program');document.querySelector('#back').onclick=()=>go('program');document.querySelectorAll('[data-field]').forEach(x=>x.oninput=()=>{const [ei,si]=x.dataset.pos.split(':').map(Number);w.exercises[ei]||={sets:[]};w.exercises[ei].sets[si]||={};w.exercises[ei].sets[si][x.dataset.field]=x.value;save()});document.querySelectorAll('[data-done]').forEach(x=>x.onclick=()=>{const [ei,si]=x.dataset.done.split(':').map(Number);w.exercises[ei]||={sets:[]};w.exercises[ei].sets[si]||={};w.exercises[ei].sets[si].done=!w.exercises[ei].sets[si].done;save();workout(id)});document.querySelectorAll('[data-rest]').forEach(x=>x.onclick=()=>startTimer(Number(x.dataset.rest)));document.querySelector('#timer').onclick=()=>startTimer(90);document.querySelector('#cardio').onchange=e=>{w.cardio=e.target.checked;save()};document.querySelector('#notes').oninput=e=>{w.notes=e.target.value;save()};document.querySelector('#finish').onclick=()=>{w.completed=true;w.completedAt=new Date().toISOString();state.history.push({id:`${id}-${Date.now()}`,sessionId:id,name:s.name,date:TODAY(),week:state.currentWeek,exercises:clone(w.exercises),cardio:w.cardio,notes:w.notes});save();go('checkin')}}
-function startTimer(sec){timerRemaining=sec;document.querySelector('#overlay')?.classList.remove('hidden');draw();clearInterval(timerHandle);timerHandle=setInterval(()=>{timerRemaining=Math.max(0,timerRemaining-1);draw();if(!timerRemaining){clearInterval(timerHandle);navigator.vibrate?.(150)}},1000);document.querySelector('#close').onclick=()=>document.querySelector('#overlay').classList.add('hidden');document.querySelector('#minus').onclick=()=>{timerRemaining=Math.max(0,timerRemaining-15);draw()};document.querySelector('#plus').onclick=()=>{timerRemaining+=15;draw()}}function draw(){const n=document.querySelector('#tv');if(n)n.textContent=`${String(Math.floor(timerRemaining/60)).padStart(2,'0')}:${String(timerRemaining%60).padStart(2,'0')}`}
-function nutritionPage(){const d=state.nutritionDays[TODAY()]||{};shell(`${top('Nutrition','Plan alimentaire adapté au travail de nuit')}<section class="nutrition-hero"><div><p class="kicker">CIBLE QUOTIDIENNE</p><h2>${nutrition.kcal}</h2><span>kcal</span></div><div><strong>${nutrition.protein} g</strong><span>protéines</span></div></section><div class="macro-grid"><article><span>Protéines</span><strong>${nutrition.protein} g</strong></article><article><span>Lipides</span><strong>${nutrition.fat} g</strong></article><article><span>Glucides</span><strong>≈ ${nutrition.carbs} g</strong></article><article><span>Créatine</span><strong>${nutrition.creatine}</strong></article></div>${section('Plan de la journée')}<p class="nutrition-note">Poids indiqués cuits quand c’est précisé. Choisis une seule variante par repas. Les marques changent les calories : vérifie les étiquettes et ajuste légèrement les féculents si nécessaire.</p><div class="meal-plan">${mealPlan.map(m=>`<article class="meal-card"><header><div><span>${m.time}</span><h3>${m.title}</h3></div><small>${m.target}</small></header><div class="meal-options">${m.options.map((o,oi)=>`<div><b>Option ${oi+1} · ${o.name}</b>${o.items.map(i=>`<p>${i}</p>`).join('')}</div>`).join('')}</div></article>`).join('')}</div>${coach('Hydratation','Garde de l’eau disponible pendant tout le poste. Créatine 3–5 g chaque jour. Caféine plutôt en début de poste afin de protéger le sommeil.')}${section('Bilan du jour')}<article class="plain-card food-log"><div class="form-grid"><label>Calories<input id="kcal" inputmode="numeric" value="${esc(d.kcal||'')}" placeholder="2300"></label><label>Protéines<input id="protein" inputmode="numeric" value="${esc(d.protein||'')}" placeholder="155"></label><label>Lipides<input id="fat" inputmode="numeric" value="${esc(d.fat||'')}" placeholder="70"></label><label>Glucides<input id="carbs" inputmode="numeric" value="${esc(d.carbs||'')}" placeholder="250"></label></div><button class="btn btn-primary btn-block" id="saveNut">Enregistrer</button></article>`,'nutrition');document.querySelector('#saveNut').onclick=()=>{state.nutritionDays[TODAY()]={kcal:document.querySelector('#kcal').value,protein:document.querySelector('#protein').value,fat:document.querySelector('#fat').value,carbs:document.querySelector('#carbs').value};save();nutritionPage()}}
-function progress(){const b=state.body.at(-1)||J0;shell(`${top('Progrès','Poids, tour de nombril et performances')}<div class="metric-grid"><article class="metric"><span>Poids actuel</span><strong>${num(b.weight)} kg</strong><small>J0 75 kg</small></article><article class="metric"><span>Nombril actuel</span><strong>${num(b.navel)} cm</strong><small>J0 96 cm</small></article></div>${section('Nouveau relevé')}<article class="plain-card food-log"><div class="form-grid"><label>Poids<input id="weight" inputmode="decimal"></label><label>Nombril<input id="navel" inputmode="decimal"></label></div><button class="btn btn-primary btn-block" id="saveBody">Enregistrer</button></article>${section('Point zéro')}<div class="macro-grid">${[['Poitrine',101],['Taille',88],['Hanches',102.5],['Bras',31],['Cuisses',52],['Mollets',33.5]].map(x=>`<article><span>${x[0]}</span><strong>${x[1]} cm</strong></article>`).join('')}</div>${coach('Lecture du progrès','On cherche une baisse graduelle du tour de nombril avec des performances qui remontent. Le poids seul ne décide pas.')}`,'progress');document.querySelector('#saveBody').onclick=()=>{const w=parseFloat(document.querySelector('#weight').value.replace(',','.')),n=parseFloat(document.querySelector('#navel').value.replace(',','.'));if(!w&&!n)return;state.body.push({date:TODAY(),weight:w||b.weight,navel:n||b.navel});save();progress()}}
-function checkin(){const n=state.nutritionDays[TODAY()]||{};shell(`${top('Check-in','30 secondes après la journée ou la séance')}<form class="check-form" id="cf"><label>Sommeil (h)<input name="sleep" inputmode="decimal" required></label><label>Sensations /10<input name="feeling" inputmode="numeric" required></label><label>Calories<input name="kcal" value="${esc(n.kcal||'')}"></label><label>Protéines (g)<input name="protein" value="${esc(n.protein||'')}"></label><label>Douleur ou gêne<textarea name="pain" rows="3" placeholder="Aucune, ou précise la zone"></textarea></label><button class="btn btn-primary btn-block">Enregistrer le check-in</button></form>${section('Rapport coach')}<article class="plain-card"><p class="nutrition-note">Copie ce rapport dans notre conversation pour que j’ajuste le programme à partir de données réelles.</p><button class="btn btn-secondary btn-block" id="report">Copier le rapport</button></article>`,'checkin');document.querySelector('#cf').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);state.checkins.push({date:TODAY(),sleep:f.get('sleep'),feeling:f.get('feeling'),kcal:f.get('kcal'),protein:f.get('protein'),pain:f.get('pain')});save();home()};document.querySelector('#report').onclick=async()=>{const b=state.body.at(-1),c=state.checkins.at(-1),text=`APEX — Rapport coach\nSemaine ${state.currentWeek}/6 (${phase().label})\nSéances semaine: ${mandatoryDone()}/4\nPoids: ${b?.weight??'—'} kg | Nombril: ${b?.navel??'—'} cm\nSommeil: ${c?.sleep??'—'} h | Sensations: ${c?.feeling??'—'}/10\nCalories: ${c?.kcal??'—'} | Protéines: ${c?.protein??'—'} g\nDouleur/gêne: ${c?.pain||'Aucune'}\nHistorique total: ${state.history.length} séances`;try{await navigator.clipboard.writeText(text);document.querySelector('#report').textContent='Rapport copié'}catch{prompt('Copie le rapport :',text)}}}
-function go(r){location.hash=r}function render(){const r=(location.hash||'#home').slice(1);if(r.startsWith('workout/'))workout(r.split('/')[1]);else({home,program,nutrition:nutritionPage,progress,checkin}[r]||home)()}window.addEventListener('hashchange',render);render();if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))
+import { J0, mealPlan, nutritionTargets, phases, sessions } from './app/config.js'
+import { TODAY, clone, nutritionDay, save, state } from './app/store.js'
+
+let timerHandle = null
+let timerRemaining = 0
+
+function esc(value = '') {
+  return String(value).replace(/[&<>'"]/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    "'": '&#39;',
+    '"': '&quot;'
+  })[char])
+}
+
+function num(value) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed.toLocaleString('fr-FR', { maximumFractionDigits: 1 }) : '—'
+}
+
+function sessionKey(id) {
+  return `${state.currentWeek}:${id}`
+}
+
+function workoutState(id) {
+  state.sessions[sessionKey(id)] ||= {
+    exercises: {},
+    completed: false,
+    startedAt: null,
+    cardio: false,
+    notes: ''
+  }
+  return state.sessions[sessionKey(id)]
+}
+
+function isDone(id) {
+  return !!state.sessions[sessionKey(id)]?.completed
+}
+
+function phase() {
+  return phases[state.currentWeek - 1] || phases[0]
+}
+
+function mandatoryDone() {
+  return sessions.filter((session) => !session.optional && isDone(session.id)).length
+}
+
+function nextSession() {
+  return sessions.filter((session) => !session.optional).find((session) => !isDone(session.id)) || sessions[0]
+}
+
+function icon(name) {
+  const paths = {
+    home: 'M4 11 12 4l8 7v9h-5v-6H9v6H4z',
+    program: 'M5 6h14M5 12h14M5 18h14',
+    nutrition: 'M12 3v18M6 7h12',
+    progress: 'M4 18l5-6 4 3 7-9',
+    checkin: 'm5 12 4 4 10-10'
+  }
+  return `<svg viewBox="0 0 24 24"><path d="${paths[name] || paths.home}"/></svg>`
+}
+
+function nav(active) {
+  const items = [
+    ['home', 'home', 'Aujourd’hui'],
+    ['program', 'program', 'Programme'],
+    ['nutrition', 'nutrition', 'Nutrition'],
+    ['progress', 'progress', 'Progrès'],
+    ['checkin', 'checkin', 'Check-in']
+  ]
+
+  return `<nav class="bottom-nav">${items.map(([route, glyph, label]) => `
+    <button data-nav="${route}" class="nav-item ${active === route ? 'active' : ''}">
+      ${icon(glyph)}<span>${label}</span>
+    </button>`).join('')}</nav>`
+}
+
+function announceRender(route) {
+  queueMicrotask(() => {
+    window.dispatchEvent(new CustomEvent('apex:rendered', { detail: { route } }))
+  })
+}
+
+function shell(html, active) {
+  document.querySelector('#app').innerHTML = `
+    <div class="app-shell">
+      <main class="content">${html}</main>
+      ${nav(active)}
+    </div>`
+
+  document.querySelectorAll('[data-nav]').forEach((button) => {
+    button.onclick = () => go(button.dataset.nav)
+  })
+  announceRender(active)
+}
+
+function top(title, subtitle = '') {
+  return `<header class="page-head">
+    <div>
+      <p class="brandline">APEX</p>
+      <h1>${title}</h1>
+      <p>${subtitle}</p>
+    </div>
+    <div class="profile-dot">F</div>
+  </header>`
+}
+
+function section(title) {
+  return `<div class="section-head"><h2>${title}</h2></div>`
+}
+
+function coach(title, text) {
+  return `<article class="coach-card">
+    <div class="coach-mark">A</div>
+    <div><strong>${title}</strong><p>${text}</p></div>
+  </article>`
+}
+
+function home() {
+  const session = nextSession()
+  const currentPhase = phase()
+  const completed = mandatoryDone()
+  const finished = completed === 4
+  const body = state.body.at(-1) || J0
+
+  shell(`
+    ${top('Aujourd’hui', `Semaine ${state.currentWeek} · ${currentPhase.label}`)}
+    <section class="today-card">
+      <div class="today-main">
+        <p class="kicker">${finished ? 'SEMAINE TERMINÉE' : 'PROCHAINE SÉANCE'}</p>
+        <h2>${finished ? 'Récupération' : session.name}</h2>
+        <p class="muted">${finished ? 'Les 4 séances principales sont faites.' : session.subtitle}</p>
+        ${!finished ? `
+          <div class="meta-row"><span>${session.duration}</span><span>${session.exercises.length} exercices</span></div>
+          <button class="btn btn-primary" id="start">Commencer</button>
+        ` : state.currentWeek < 6 ? '<button class="btn btn-primary" id="advance">Semaine suivante</button>' : ''}
+      </div>
+      <div class="progress-ring" style="--value:${completed * 25}">
+        <div><strong>${completed}/4</strong><span>séances</span></div>
+      </div>
+    </section>
+
+    <div class="metric-grid">
+      <article class="metric"><span>Poids</span><strong>${num(body.weight)} kg</strong><small>J0 75 kg</small></article>
+      <article class="metric"><span>Nombril</span><strong>${num(body.navel)} cm</strong><small>J0 96 cm</small></article>
+      <article class="metric"><span>RIR cible</span><strong>${currentPhase.rir}</strong><small>${currentPhase.label}</small></article>
+      <article class="metric"><span>Nutrition</span><strong>${nutritionTargets.kcal}</strong><small>kcal / jour</small></article>
+    </div>
+
+    ${section('Cadre')}
+    <article class="plain-card phase-card">
+      <span>Semaine ${state.currentWeek}/6</span>
+      <strong>${currentPhase.label}</strong>
+      <p>${currentPhase.note}</p>
+      <div class="phase-line"><i style="width:${state.currentWeek / 6 * 100}%"></i></div>
+    </article>
+    ${coach('Consigne', 'Fais ce qui est prévu, note les données, puis récupère. Les ajustements viendront des tendances, pas d’une seule journée.')}
+  `, 'home')
+
+  document.querySelector('#start')?.addEventListener('click', () => go(`workout/${session.id}`))
+  document.querySelector('#advance')?.addEventListener('click', () => {
+    state.currentWeek += 1
+    save()
+    home()
+  })
+}
+
+function program() {
+  const currentPhase = phase()
+
+  shell(`
+    ${top('Programme', 'Recomposition · mésocycle 6 semaines')}
+    <section class="program-intro">
+      <div>
+        <p class="kicker">PLAN</p>
+        <h2>4 séances + 1 option</h2>
+        <p>Deux stimulations hebdomadaires par grand groupe. Priorité dos, épaules et haut de pecs.</p>
+      </div>
+      <span>S${state.currentWeek}</span>
+    </section>
+
+    <div class="week-tabs">
+      ${phases.map((item) => `<button data-week="${item.week}" class="${item.week === state.currentWeek ? 'active' : ''}">S${item.week}</button>`).join('')}
+    </div>
+
+    <article class="phase-summary">
+      <strong>${currentPhase.label}</strong><span>RIR ${currentPhase.rir}</span><p>${currentPhase.note}</p>
+    </article>
+
+    ${section('Séances')}
+    <div class="session-stack">
+      ${sessions.map((session, index) => `
+        <button class="session-card ${isDone(session.id) ? 'completed' : ''}" data-session="${session.id}">
+          <div class="session-index">${session.optional ? 'OPT' : String(index + 1).padStart(2, '0')}</div>
+          <div><h3>${session.name}</h3><p>${session.subtitle}</p><span>${session.duration} · ${session.exercises.length} exercices</span></div>
+          <b>${isDone(session.id) ? 'Terminé' : 'Ouvrir'}</b>
+        </button>`).join('')}
+    </div>
+    ${coach('Progression', 'Haut de fourchette atteint sur toutes les séries au RIR demandé : petite hausse de charge à la prochaine exposition.')}
+  `, 'program')
+
+  document.querySelectorAll('[data-session]').forEach((button) => {
+    button.onclick = () => go(`workout/${button.dataset.session}`)
+  })
+  document.querySelectorAll('[data-week]').forEach((button) => {
+    button.onclick = () => {
+      state.currentWeek = Number(button.dataset.week)
+      save()
+      program()
+    }
+  })
+}
+
+function workout(id) {
+  const session = sessions.find((item) => item.id === id) || sessions[0]
+  const workout = workoutState(session.id)
+
+  if (!workout.startedAt) {
+    workout.startedAt = new Date().toISOString()
+    save()
+  }
+
+  shell(`
+    <header class="workout-head">
+      <button class="icon-btn" id="back">‹</button>
+      <div><p class="brandline">${session.name}</p><h1>${session.subtitle}</h1></div>
+      <button class="timer-chip" id="timer">Repos</button>
+    </header>
+
+    <article class="workout-rule"><span>RIR ${phase().rir}</span><p>${phase().note}</p></article>
+
+    <div class="exercise-stack">
+      ${session.exercises.map((exercise, exerciseIndex) => `
+        <article class="exercise-card">
+          <div class="exercise-top">
+            <div><span>Exercice ${exerciseIndex + 1}</span><h2>${exercise.name}</h2></div>
+            <b>${exercise.sets} × ${exercise.reps}</b>
+          </div>
+          <div class="exercise-cues"><span>Réf. ${exercise.ref}</span><p>${exercise.cue}</p></div>
+          <div class="sets-head"><span>Série</span><span>Charge</span><span>Reps</span><span>RIR</span></div>
+          ${Array.from({ length: exercise.sets }, (_, setIndex) => {
+            const row = workout.exercises?.[exerciseIndex]?.sets?.[setIndex] || {}
+            return `<div class="set-row ${row.done ? 'done' : ''}">
+              <button class="set-check" data-done="${exerciseIndex}:${setIndex}">${row.done ? '✓' : setIndex + 1}</button>
+              ${['weight', 'reps', 'rir'].map((field) => `<label>
+                <span>${field}</span>
+                <input data-field="${field}" data-pos="${exerciseIndex}:${setIndex}" value="${esc(row[field] || '')}" inputmode="decimal" placeholder="—">
+              </label>`).join('')}
+            </div>`
+          }).join('')}
+          <button class="rest-btn" data-rest="${exercise.rest}">${Math.floor(exercise.rest / 60)}:${String(exercise.rest % 60).padStart(2, '0')} repos</button>
+        </article>`).join('')}
+    </div>
+
+    <article class="plain-card cardio-card">
+      <div><span>Cardio</span><strong>${session.cardio}</strong></div>
+      <label class="switch"><input id="cardio" type="checkbox" ${workout.cardio ? 'checked' : ''}><i></i></label>
+    </article>
+
+    <article class="plain-card">
+      <label class="textarea-label"><span>Note de séance</span><textarea id="notes" rows="3">${esc(workout.notes || '')}</textarea></label>
+    </article>
+
+    <button class="btn btn-primary btn-block" id="finish">Terminer la séance</button>
+    <div class="timer-overlay hidden" id="rest-overlay">
+      <div><span>Repos</span><strong id="tv">00:00</strong><div><button id="minus">−15 s</button><button id="close">Fermer</button><button id="plus">+15 s</button></div></div>
+    </div>
+  `, 'program')
+
+  document.querySelector('#back').onclick = () => go('program')
+  document.querySelectorAll('[data-field]').forEach((input) => {
+    input.oninput = () => {
+      const [exerciseIndex, setIndex] = input.dataset.pos.split(':').map(Number)
+      workout.exercises[exerciseIndex] ||= { sets: [] }
+      workout.exercises[exerciseIndex].sets[setIndex] ||= {}
+      workout.exercises[exerciseIndex].sets[setIndex][input.dataset.field] = input.value
+      save()
+    }
+  })
+  document.querySelectorAll('[data-done]').forEach((button) => {
+    button.onclick = () => {
+      const [exerciseIndex, setIndex] = button.dataset.done.split(':').map(Number)
+      workout.exercises[exerciseIndex] ||= { sets: [] }
+      workout.exercises[exerciseIndex].sets[setIndex] ||= {}
+      workout.exercises[exerciseIndex].sets[setIndex].done = !workout.exercises[exerciseIndex].sets[setIndex].done
+      save()
+      workoutView(id)
+    }
+  })
+  document.querySelectorAll('[data-rest]').forEach((button) => {
+    button.onclick = () => startTimer(Number(button.dataset.rest))
+  })
+  document.querySelector('#timer').onclick = () => startTimer(90)
+  document.querySelector('#cardio').onchange = (event) => {
+    workout.cardio = event.target.checked
+    save()
+  }
+  document.querySelector('#notes').oninput = (event) => {
+    workout.notes = event.target.value
+    save()
+  }
+  document.querySelector('#finish').onclick = () => {
+    workout.completed = true
+    workout.completedAt = new Date().toISOString()
+    state.history.push({
+      id: `${id}-${Date.now()}`,
+      sessionId: id,
+      name: session.name,
+      date: TODAY(),
+      week: state.currentWeek,
+      exercises: clone(workout.exercises),
+      cardio: workout.cardio,
+      notes: workout.notes
+    })
+    save()
+    go('checkin')
+  }
+}
+
+// Alias explicite : évite de confondre l'objet `workout` avec la vue lors des rerenders.
+const workoutView = workout
+
+function startTimer(seconds) {
+  timerRemaining = seconds
+  document.querySelector('#rest-overlay')?.classList.remove('hidden')
+  drawTimer()
+  clearInterval(timerHandle)
+  timerHandle = setInterval(() => {
+    timerRemaining = Math.max(0, timerRemaining - 1)
+    drawTimer()
+    if (!timerRemaining) {
+      clearInterval(timerHandle)
+      navigator.vibrate?.(150)
+    }
+  }, 1000)
+
+  document.querySelector('#close').onclick = () => document.querySelector('#rest-overlay')?.classList.add('hidden')
+  document.querySelector('#minus').onclick = () => {
+    timerRemaining = Math.max(0, timerRemaining - 15)
+    drawTimer()
+  }
+  document.querySelector('#plus').onclick = () => {
+    timerRemaining += 15
+    drawTimer()
+  }
+}
+
+function drawTimer() {
+  const node = document.querySelector('#tv')
+  if (node) node.textContent = `${String(Math.floor(timerRemaining / 60)).padStart(2, '0')}:${String(timerRemaining % 60).padStart(2, '0')}`
+}
+
+function nutritionPage() {
+  const day = nutritionDay(TODAY())
+
+  shell(`
+    ${top('Nutrition', 'Plan alimentaire adapté au travail de nuit')}
+    <section class="nutrition-hero">
+      <div><p class="kicker">CIBLE QUOTIDIENNE</p><h2>${nutritionTargets.kcal}</h2><span>kcal</span></div>
+      <div><strong>${nutritionTargets.protein} g</strong><span>protéines</span></div>
+    </section>
+
+    <div class="macro-grid">
+      <article><span>Protéines</span><strong>${nutritionTargets.protein} g</strong></article>
+      <article><span>Lipides</span><strong>${nutritionTargets.fat} g</strong></article>
+      <article><span>Glucides</span><strong>≈ ${nutritionTargets.carbs} g</strong></article>
+      <article><span>Créatine</span><strong>${nutritionTargets.creatine}</strong></article>
+    </div>
+
+    <div id="nutrition-tools-slot"></div>
+
+    ${section('Plan de la journée')}
+    <p class="nutrition-note">Poids indiqués cuits quand c’est précisé. Choisis une seule variante par repas. Les marques changent les calories : vérifie les étiquettes et ajuste légèrement les féculents si nécessaire.</p>
+    <div class="meal-plan">
+      ${mealPlan.map((meal) => `<article class="meal-card">
+        <header><div><span>${meal.time}</span><h3>${meal.title}</h3></div><small>${meal.target}</small></header>
+        <div class="meal-options">${meal.options.map((option, index) => `<div><b>Option ${index + 1} · ${option.name}</b>${option.items.map((item) => `<p>${item}</p>`).join('')}</div>`).join('')}</div>
+      </article>`).join('')}
+    </div>
+
+    ${coach('Hydratation', 'Garde de l’eau disponible pendant tout le poste. Créatine 3–5 g chaque jour. Caféine plutôt en début de poste afin de protéger le sommeil.')}
+
+    ${section('Bilan du jour')}
+    <article class="plain-card food-log">
+      ${day.scanned.count ? `<p class="nutrition-note">Prérempli à partir de ${day.scanned.count} aliment${day.scanned.count > 1 ? 's' : ''} enregistré${day.scanned.count > 1 ? 's' : ''}. Tu peux corriger avant de valider.</p>` : ''}
+      <div class="form-grid">
+        <label>Calories<input id="kcal" inputmode="numeric" value="${esc(day.kcal)}" placeholder="2300"></label>
+        <label>Protéines<input id="protein" inputmode="numeric" value="${esc(day.protein)}" placeholder="155"></label>
+        <label>Lipides<input id="fat" inputmode="numeric" value="${esc(day.fat)}" placeholder="70"></label>
+        <label>Glucides<input id="carbs" inputmode="numeric" value="${esc(day.carbs)}" placeholder="250"></label>
+      </div>
+      <button class="btn btn-primary btn-block" id="saveNut">Enregistrer</button>
+    </article>
+  `, 'nutrition')
+
+  document.querySelector('#saveNut').onclick = () => {
+    state.nutritionDays[TODAY()] = {
+      kcal: document.querySelector('#kcal').value,
+      protein: document.querySelector('#protein').value,
+      fat: document.querySelector('#fat').value,
+      carbs: document.querySelector('#carbs').value
+    }
+    save()
+    nutritionPage()
+  }
+}
+
+function progress() {
+  const body = state.body.at(-1) || J0
+
+  shell(`
+    ${top('Progrès', 'Poids, tour de nombril et performances')}
+    <div class="metric-grid">
+      <article class="metric"><span>Poids actuel</span><strong>${num(body.weight)} kg</strong><small>J0 75 kg</small></article>
+      <article class="metric"><span>Nombril actuel</span><strong>${num(body.navel)} cm</strong><small>J0 96 cm</small></article>
+    </div>
+
+    ${section('Nouveau relevé')}
+    <article class="plain-card food-log">
+      <div class="form-grid">
+        <label>Poids<input id="weight" inputmode="decimal"></label>
+        <label>Nombril<input id="navel" inputmode="decimal"></label>
+      </div>
+      <button class="btn btn-primary btn-block" id="saveBody">Enregistrer</button>
+    </article>
+
+    ${section('Point zéro')}
+    <div class="macro-grid">
+      ${[['Poitrine', 101], ['Taille', 88], ['Hanches', 102.5], ['Bras', 31], ['Cuisses', 52], ['Mollets', 33.5]].map(([label, value]) => `<article><span>${label}</span><strong>${value} cm</strong></article>`).join('')}
+    </div>
+    ${coach('Lecture du progrès', 'On cherche une baisse graduelle du tour de nombril avec des performances qui remontent. Le poids seul ne décide pas.')}
+  `, 'progress')
+
+  document.querySelector('#saveBody').onclick = () => {
+    const weight = parseFloat(document.querySelector('#weight').value.replace(',', '.'))
+    const navel = parseFloat(document.querySelector('#navel').value.replace(',', '.'))
+    if (!weight && !navel) return
+    state.body.push({ date: TODAY(), weight: weight || body.weight, navel: navel || body.navel })
+    save()
+    progress()
+  }
+}
+
+function checkin() {
+  const nutrition = nutritionDay(TODAY())
+
+  shell(`
+    ${top('Check-in', '30 secondes après la journée ou la séance')}
+    <form class="check-form" id="cf">
+      <label>Sommeil (h)<input name="sleep" inputmode="decimal" required></label>
+      <label>Sensations /10<input name="feeling" inputmode="numeric" required></label>
+      <label>Calories<input name="kcal" value="${esc(nutrition.kcal)}"></label>
+      <label>Protéines (g)<input name="protein" value="${esc(nutrition.protein)}"></label>
+      <label>Douleur ou gêne<textarea name="pain" rows="3" placeholder="Aucune, ou précise la zone"></textarea></label>
+      <button class="btn btn-primary btn-block">Enregistrer le check-in</button>
+    </form>
+
+    ${section('Rapport coach')}
+    <article class="plain-card">
+      <p class="nutrition-note">Copie ce rapport dans notre conversation pour que j’ajuste le programme à partir de données réelles.</p>
+      <button class="btn btn-secondary btn-block" id="report">Copier le rapport</button>
+    </article>
+  `, 'checkin')
+
+  document.querySelector('#cf').onsubmit = (event) => {
+    event.preventDefault()
+    const form = new FormData(event.target)
+    state.checkins.push({
+      date: TODAY(),
+      sleep: form.get('sleep'),
+      feeling: form.get('feeling'),
+      kcal: form.get('kcal'),
+      protein: form.get('protein'),
+      pain: form.get('pain')
+    })
+    save()
+    home()
+  }
+
+  document.querySelector('#report').onclick = async () => {
+    const body = state.body.at(-1)
+    const last = state.checkins.at(-1)
+    const text = `APEX — Rapport coach\nSemaine ${state.currentWeek}/6 (${phase().label})\nSéances semaine: ${mandatoryDone()}/4\nPoids: ${body?.weight ?? '—'} kg | Nombril: ${body?.navel ?? '—'} cm\nSommeil: ${last?.sleep ?? '—'} h | Sensations: ${last?.feeling ?? '—'}/10\nCalories: ${last?.kcal ?? '—'} | Protéines: ${last?.protein ?? '—'} g\nDouleur/gêne: ${last?.pain || 'Aucune'}\nHistorique total: ${state.history.length} séances`
+    try {
+      await navigator.clipboard.writeText(text)
+      document.querySelector('#report').textContent = 'Rapport copié'
+    } catch {
+      prompt('Copie le rapport :', text)
+    }
+  }
+}
+
+function go(route) {
+  location.hash = route
+}
+
+function render() {
+  const route = (location.hash || '#home').slice(1)
+  if (route.startsWith('workout/')) workout(route.split('/')[1])
+  else ({ home, program, nutrition: nutritionPage, progress, checkin }[route] || home)()
+}
+
+window.addEventListener('hashchange', render)
+window.addEventListener('apex:state-changed', (event) => {
+  if (event.detail?.scope === 'nutrition' && (location.hash || '#home') === '#nutrition') nutritionPage()
+})
+
+render()
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}))
+}
