@@ -1,4 +1,5 @@
 import { J0, nutritionTargets } from './config.js'
+import { recoveryAssessment, weeklySummary } from './coach-engine.js'
 import { TODAY, nutritionDay, state } from './store.js'
 import { esc, go, num, shell, top } from './ui.js'
 
@@ -23,21 +24,25 @@ export function trackingPage() {
   const nutrition = nutritionDay(today)
   const body = currentBody()
   const checkin = latestCheckin()
+  const summary = weeklySummary()
+  const recovery = recoveryAssessment()
   const nutritionTracked = nutrition.source !== 'empty'
   const checkedToday = checkin?.date === today
+  const hasWeeklyData = summary.sessions > 0 || summary.nutritionDays > 0 || summary.checkinDays > 0
+  const score = hasWeeklyData && summary.adherence !== null ? summary.adherence : null
 
   shell(`
     ${top('Suivi', 'Nutrition · corps · récupération')}
 
     <section class="tracking-overview">
       <div class="tracking-overview__copy">
-        <p class="kicker">TON ÉTAT</p>
-        <h2>${checkedToday ? 'Données du jour à jour' : 'Complète ton suivi du jour'}</h2>
-        <p>APEX regroupe ici ce qui influence directement tes décisions : alimentation, évolution du corps et récupération.</p>
+        <p class="kicker">7 DERNIERS JOURS</p>
+        <h2>${esc(recovery.title)}</h2>
+        <p>${summary.sessions} séance${summary.sessions > 1 ? 's' : ''} · ${summary.nutritionDays} jour${summary.nutritionDays > 1 ? 's' : ''} nutrition · ${summary.checkinDays} check-in${summary.checkinDays > 1 ? 's' : ''}.</p>
       </div>
-      <div class="tracking-score ${checkedToday ? 'is-ready' : ''}">
-        <strong>${checkedToday ? '✓' : '3'}</strong>
-        <span>${checkedToday ? 'check-in' : 'piliers'}</span>
+      <div class="tracking-score ${score !== null ? 'is-ready' : ''}">
+        <strong>${score === null ? '—' : score}</strong>
+        <span>${score === null ? 'données' : 'adhérence'}</span>
       </div>
     </section>
 
@@ -46,7 +51,7 @@ export function trackingPage() {
         <div class="tracking-card__icon">N</div>
         <div class="tracking-card__body">
           <span>Nutrition</span>
-          <strong>${nutritionTracked ? `${Math.round(Number(nutrition.kcal) || 0)} / ${nutritionTargets.kcal} kcal` : 'Commencer la journée'}</strong>
+          <strong>${nutritionTracked ? `${Math.round(Number(nutrition.kcal) || 0)} / ${nutritionTargets.kcal} kcal` : 'Aucun aliment aujourd’hui'}</strong>
           <small>${nutritionTracked ? `${Math.round(Number(nutrition.protein) || 0)} / ${nutritionTargets.protein} g protéines` : 'Scanner · stock · recettes · journal'}</small>
           <i><b style="width:${pct(nutrition.kcal, nutritionTargets.kcal)}%"></b></i>
         </div>
@@ -57,8 +62,8 @@ export function trackingPage() {
         <div class="tracking-card__icon">C</div>
         <div class="tracking-card__body">
           <span>Corps & progression</span>
-          <strong>${num(body.weight)} kg · ${num(body.navel)} cm</strong>
-          <small>Poids · nombril · mensurations · tendances</small>
+          <strong>${num(body.weight)} kg · ${num(body.navel)} cm nombril</strong>
+          <small>${summary.weightAvg !== null ? `Moyenne 7 j : ${num(summary.weightAvg)} kg` : 'Poids · nombril · mensurations · tendances'}</small>
         </div>
         <div class="tracking-card__arrow">›</div>
       </button>
@@ -67,8 +72,8 @@ export function trackingPage() {
         <div class="tracking-card__icon">R</div>
         <div class="tracking-card__body">
           <span>Récupération</span>
-          <strong>${checkedToday ? `${esc(checkin.sleep || '—')} h · ${esc(checkin.feeling || '—')}/10` : 'Check-in à faire'}</strong>
-          <small>${checkedToday ? (checkin.pain ? `Gêne : ${esc(checkin.pain)}` : 'Aucune gêne signalée') : 'Sommeil · sensations · douleurs · rapport coach'}</small>
+          <strong>${checkedToday ? `${esc(checkin.sleep || '—')} h · ${esc(checkin.feeling || '—')}/10` : recovery.label}</strong>
+          <small>${checkedToday ? (checkin.pain ? `Gêne : ${esc(checkin.pain)}` : 'Check-in du jour enregistré') : 'Sommeil · fatigue · motivation · douleurs'}</small>
         </div>
         <div class="tracking-card__arrow">›</div>
       </button>
@@ -76,7 +81,7 @@ export function trackingPage() {
 
     <section class="tracking-tip">
       <span>APEX</span>
-      <p>Tu n’as pas besoin de tout remplir tout le temps. Enregistre seulement ce qui est utile aujourd’hui ; le coach s’appuie ensuite sur les tendances.</p>
+      <p>${score === null ? 'Enregistre quelques journées avant d’interpréter les tendances.' : 'Le score explique la régularité. Il ne juge pas une journée isolée et ne déclenche jamais seul une baisse de calories.'}</p>
     </section>
   `, 'tracking')
 
