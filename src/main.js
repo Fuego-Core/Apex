@@ -1,4 +1,5 @@
 import './styles.css'
+import './finish.css'
 import './enhancements.js'
 import './basicfit-media.js'
 import './nutrition-scanner.js'
