@@ -155,19 +155,22 @@ function dateFr(iso) {
   const d = new Date(`${iso}T12:00:00`)
   return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })
 }
+function sessionKey(id) { return `${state.currentWeek}:${id}` }
+function sessionDone(id) { return !!state.sessions[sessionKey(id)]?.completed }
 function mandatoryDone() {
-  return sessions.filter((s) => !s.optional && state.sessions[s.id]?.completed).length
+  return sessions.filter((s) => !s.optional && sessionDone(s.id)).length
 }
 function weekPhase() { return phases.find((p) => p.week === state.currentWeek) || phases[0] }
 function nextSession() {
   const mandatory = sessions.filter((s) => !s.optional)
-  return mandatory.find((s) => !state.sessions[s.id]?.completed) || mandatory[0]
+  return mandatory.find((s) => !sessionDone(s.id)) || mandatory[0]
 }
 function latestBody() { return state.body[state.body.length - 1] || J0 }
 function latestCheckin() { return state.checkins[state.checkins.length - 1] }
 function workoutState(id) {
-  state.sessions[id] ||= { exercises: {}, completed: false, startedAt: null, cardio: false, notes: '' }
-  return state.sessions[id]
+  const key = sessionKey(id)
+  state.sessions[key] ||= { exercises: {}, completed: false, startedAt: null, cardio: false, notes: '' }
+  return state.sessions[key]
 }
 function setLog(id, exIndex, setIndex, key, value) {
   const ws = workoutState(id)
@@ -230,15 +233,16 @@ function homePage() {
   const done = mandatoryDone()
   const pct = Math.round((done / 4) * 100)
   const last = latestCheckin()
+  const weekFinished = done === 4
   shell(`
     ${top('Aujourd’hui', `Semaine ${state.currentWeek} · ${phase.label}`)}
     <section class="today-card">
       <div class="today-main">
-        <p class="kicker">PROCHAINE SÉANCE</p>
-        <h2>${session.name}</h2>
-        <p class="muted">${session.subtitle}</p>
-        <div class="meta-row"><span>${icon('clock')} ${session.duration}</span><span>${session.exercises.length} exercices</span></div>
-        <button class="btn btn-primary" id="startWorkout">Commencer</button>
+        <p class="kicker">${weekFinished ? 'SEMAINE TERMINÉE' : 'PROCHAINE SÉANCE'}</p>
+        <h2>${weekFinished ? 'Récupération' : session.name}</h2>
+        <p class="muted">${weekFinished ? 'Les 4 séances principales sont faites.' : session.subtitle}</p>
+        ${weekFinished ? '<div class="meta-row"><span>Priorité au sommeil, aux protéines et à une activité légère.</span></div>' : `<div class="meta-row"><span>${icon('clock')} ${session.duration}</span><span>${session.exercises.length} exercices</span></div>`}
+        ${weekFinished && state.currentWeek < 6 ? '<button class="btn btn-primary" id="advanceWeek">Passer à la semaine suivante</button>' : weekFinished ? '<button class="btn btn-secondary" id="openProgram">Voir le bilan</button>' : '<button class="btn btn-primary" id="startWorkout">Commencer</button>'}
       </div>
       ${ring(pct, 'semaine')}
     </section>
@@ -262,7 +266,9 @@ function homePage() {
 
     ${coachCard('Consigne', 'Tu n’as pas besoin de faire plus. Tu dois faire ce qui est prévu, bien, puis récupérer.')}
   `, 'home', 'Aujourd’hui')
-  document.querySelector('#startWorkout').onclick = () => go(`workout/${session.id}`)
+  document.querySelector('#startWorkout')?.addEventListener('click', () => go(`workout/${session.id}`))
+  document.querySelector('#advanceWeek')?.addEventListener('click', () => { state.currentWeek += 1; save(); homePage() })
+  document.querySelector('#openProgram')?.addEventListener('click', () => go('program'))
 }
 
 function programPage() {
@@ -274,7 +280,7 @@ function programPage() {
     <article class="phase-summary"><strong>${phase.label}</strong><span>RIR cible ${phase.rir}</span><p>${phase.note}</p></article>
     ${sectionTitle('Séances')}
     <div class="session-stack">${sessions.map((s, i) => {
-      const completed = !!state.sessions[s.id]?.completed
+      const completed = sessionDone(s.id)
       return `<button class="session-card ${completed ? 'completed' : ''}" data-session="${s.id}"><div class="session-index">${s.optional ? 'OPT' : String(i + 1).padStart(2, '0')}</div><div><h3>${s.name}</h3><p>${s.subtitle}</p><span>${s.duration} · ${s.exercises.length} exercices</span></div><b>${completed ? 'Terminé' : 'Ouvrir'}</b></button>`
     }).join('')}</div>
     ${coachCard('Progression', 'Quand toutes les séries atteignent le haut de la fourchette avec le RIR demandé, augmente légèrement la charge à la prochaine séance.')}
