@@ -1,7 +1,5 @@
 import './smart-actions.css'
 
-import { sessions } from './app/config.js'
-import { recoveryAssessment } from './app/coach-engine.js'
 import { TODAY, save, state } from './app/store.js'
 
 function number(value) {
@@ -17,74 +15,6 @@ function esc(value = '') {
 
 function uid(prefix = 'item') {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-}
-
-function injectDailyCoach() {
-  if ((location.hash || '#home') !== '#home') return
-  const todayCard = document.querySelector('.today-card')
-  if (!todayCard || document.querySelector('.smart-coach')) return
-
-  const decision = recoveryAssessment()
-  const meta = [
-    decision.sleep !== null ? `${decision.sleep.toFixed(1).replace('.', ',')} h sommeil moy.` : null,
-    decision.feeling !== null ? `${decision.feeling.toFixed(1).replace('.', ',')}/10 sensations` : null
-  ].filter(Boolean).join(' · ')
-
-  todayCard.insertAdjacentHTML('afterend', `
-    <section class="smart-coach smart-coach--${decision.level}">
-      <div class="smart-coach__head"><span>COACH APEX</span><strong>${esc(decision.title)}</strong></div>
-      <p>${esc(decision.message)}</p>
-      ${meta ? `<small>${esc(meta)}</small>` : '<small>Complète ton check-in pour affiner la recommandation.</small>'}
-      ${decision.notes.length ? `<div class="smart-coach__notes">${decision.notes.map((note) => `<span>${esc(note)}</span>`).join('')}</div>` : ''}
-    </section>`)
-}
-
-function previousSession(sessionId) {
-  return [...(state.history || [])]
-    .filter((entry) => entry.sessionId === sessionId)
-    .sort((a, b) => String(b.updatedAt || b.date || '').localeCompare(String(a.updatedAt || a.date || '')))[0] || null
-}
-
-function bestPreviousSet(entry, exerciseIndex) {
-  const sets = entry?.exercises?.[exerciseIndex]?.sets || []
-  return sets
-    .filter((row) => number(row.weight) > 0 || number(row.reps) > 0)
-    .sort((a, b) => (number(b.weight) * 100 + number(b.reps)) - (number(a.weight) * 100 + number(a.reps)))[0] || null
-}
-
-function enhanceWorkout() {
-  const route = (location.hash || '').slice(1)
-  if (!route.startsWith('workout/')) return
-  const sessionId = route.split('/')[1]
-  const session = sessions.find((item) => item.id === sessionId)
-  const previous = previousSession(sessionId)
-  if (!session || !previous) return
-
-  queueMicrotask(() => {
-    document.querySelectorAll('.exercise-card').forEach((card, exerciseIndex) => {
-      if (card.querySelector('.previous-performance')) return
-      const priorSets = previous.exercises?.[exerciseIndex]?.sets || []
-      const best = bestPreviousSet(previous, exerciseIndex)
-      if (!best) return
-
-      const header = card.querySelector('.exercise-top')
-      header?.insertAdjacentHTML('afterend', `
-        <div class="previous-performance">
-          <span>DERNIÈRE FOIS</span>
-          <strong>${number(best.weight) ? `${esc(best.weight)} kg` : '—'} × ${number(best.reps) || '—'}</strong>
-          <small>Aujourd’hui : +1 rep à charge égale, ou petite hausse de charge si le haut de fourchette et le RIR sont respectés.</small>
-        </div>`)
-
-      priorSets.forEach((prior, setIndex) => {
-        ;['weight', 'reps'].forEach((field) => {
-          const input = card.querySelector(`[data-field="${field}"][data-pos="${exerciseIndex}:${setIndex}"]`)
-          if (!input || input.value !== '' || prior[field] === undefined || prior[field] === '') return
-          input.value = prior[field]
-          input.dispatchEvent(new Event('input', { bubbles: true }))
-        })
-      })
-    })
-  })
 }
 
 function recentFoods() {
@@ -107,8 +37,7 @@ function foodKey(row) {
 
 function favorites() {
   const keys = new Set(state.foodFavorites || [])
-  const recents = recentFoods()
-  return recents.filter((row) => keys.has(foodKey(row)))
+  return recentFoods().filter((row) => keys.has(foodKey(row)))
 }
 
 function stockFor(row) {
@@ -197,7 +126,7 @@ function renderQuickFoods() {
         ? state.foodFavorites.filter((item) => item !== key)
         : [...state.foodFavorites, key]
       save()
-      document.querySelector('.quick-foods')?.remove()
+      command.querySelector('.quick-foods')?.remove()
       renderQuickFoods()
     }
   })
@@ -206,20 +135,12 @@ function renderQuickFoods() {
     button.onclick = () => {
       const row = shown[Number(button.dataset.add)]
       const result = addRecent(row)
-      if (!result.ok) {
-        button.textContent = result.reason
-        return
-      }
-      button.textContent = 'Ajouté ✓'
+      button.textContent = result.ok ? 'Ajouté ✓' : result.reason
     }
   })
 }
 
-function runSmartLayer() {
-  injectDailyCoach()
-  enhanceWorkout()
-  renderQuickFoods()
-}
-
-window.addEventListener('apex:rendered', runSmartLayer)
-runSmartLayer()
+window.addEventListener('apex:rendered', () => queueMicrotask(renderQuickFoods))
+window.addEventListener('apex:state-changed', (event) => {
+  if (event.detail?.scope === 'nutrition') queueMicrotask(renderQuickFoods)
+})
