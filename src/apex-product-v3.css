@@ -1,0 +1,109 @@
+/* APEX V3 — product layer
+   Goal: consumer fitness app, not a dashboard. Strong hierarchy, generous spacing,
+   clear actions and a warm club-grade visual system. */
+
+:root{
+  --v3-canvas:#f3ecdf;
+  --v3-surface:#fffdf9;
+  --v3-surface-strong:#ffffff;
+  --v3-ink:#232323;
+  --v3-muted:#7b766f;
+  --v3-line:#e7dccd;
+  --v3-orange:#ff6500;
+  --v3-purple:#6030c7;
+  --v3-green:#21855d;
+  --v3-amber:#c68113;
+  --v3-red:#c9434d;
+  --v3-shadow:0 12px 30px rgba(78,54,24,.06);
+}
+
+html,body,#app{background:var(--v3-canvas)!important}
+.content{max-width:760px!important}
+
+/* Product chrome */
+.page-head{margin-bottom:24px!important}
+.app-brandbar{height:32px!important;margin:0 0 25px!important;align-items:flex-start!important}
+.app-wordmark{font-family:"Space Grotesk",Inter,sans-serif!important;font-size:26px!important;line-height:1!important;font-weight:800!important;letter-spacing:-.075em!important;color:var(--v3-orange)!important}
+.app-wordmark span{color:var(--v3-ink)!important}
+.page-title h1,.page-head h1{font-size:34px!important;letter-spacing:-.055em!important}
+.page-title p,.page-head p:not(.brandline){font-size:13px!important;color:var(--v3-muted)!important}
+
+.bottom-nav{padding-top:6px!important;background:rgba(255,253,249,.985)!important;box-shadow:0 -10px 28px rgba(77,53,24,.055)!important}
+.nav-item{min-height:60px!important;gap:5px!important;color:#827d76!important}
+.nav-item svg{width:22px!important;height:22px!important}
+.nav-item span{font-size:10px!important;letter-spacing:-.01em!important}
+.nav-item.active{color:var(--v3-orange)!important}
+
+/* Daily command center */
+.v3-daily-hero{position:relative;overflow:hidden;border:1px solid var(--v3-line);border-radius:22px;background:var(--v3-surface-strong);box-shadow:var(--v3-shadow);padding:24px;margin-bottom:12px}
+.v3-daily-hero::before{content:"";position:absolute;inset:0 auto 0 0;width:7px;background:var(--v3-orange)}
+.v3-daily-copy{padding-left:3px;padding-right:10px}
+.v3-eyebrow{display:block;margin-bottom:9px;color:var(--v3-orange);font-size:10px;font-weight:900;letter-spacing:.16em}
+.v3-daily-copy h2{margin:0;font-family:"Space Grotesk",Inter,sans-serif;font-size:31px;line-height:1.04;letter-spacing:-.045em;color:var(--v3-ink)}
+.v3-daily-copy p{margin:8px 0 21px;color:var(--v3-muted);font-size:13px;line-height:1.45}
+.v3-hero-action{width:100%;min-height:58px;border:0;border-radius:11px;background:var(--v3-purple);color:#fff;display:flex;align-items:center;justify-content:space-between;padding:0 19px;font-size:14px;font-weight:850;text-align:left;box-shadow:none}
+.v3-hero-action b{font-size:26px;font-weight:400;line-height:1;transform:translateY(-1px)}
+.v3-hero-action:active{transform:scale(.99)}
+
+.v3-recovery{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px 18px;align-items:center;margin:12px 0 16px;padding:16px 17px;border:1px solid var(--v3-line);border-left:5px solid var(--v3-green);border-radius:15px;background:var(--v3-surface)}
+.v3-recovery--warning{border-left-color:var(--v3-amber)}
+.v3-recovery--danger{border-left-color:var(--v3-red)}
+.v3-recovery div span{display:block;color:var(--v3-orange);font-size:9px;font-weight:900;letter-spacing:.13em}
+.v3-recovery div strong{display:block;margin-top:3px;color:var(--v3-ink);font-size:16px}
+.v3-recovery p{grid-column:1;margin:0;color:var(--v3-muted);font-size:11px;line-height:1.45}
+.v3-recovery button{grid-column:2;grid-row:1 / span 2;align-self:center;border:0;background:#f2e9dc;color:var(--v3-ink);padding:10px 12px;border-radius:9px;font-size:10px;font-weight:800}
+
+.v3-primary-actions{display:grid;gap:9px;margin:0 0 26px}
+.v3-action-card{position:relative;width:100%;display:grid;grid-template-columns:1fr auto;gap:3px 16px;text-align:left;padding:17px 48px 17px 17px;border:1px solid var(--v3-line);border-radius:15px;background:var(--v3-surface-strong);color:var(--v3-ink);box-shadow:none}
+.v3-action-card:active{transform:scale(.993)}
+.v3-action-card>span{grid-column:1;color:var(--v3-orange);font-size:9px;font-weight:900;letter-spacing:.12em}
+.v3-action-card strong{grid-column:1;display:block;margin-top:2px;font-family:"Space Grotesk",Inter,sans-serif;font-size:19px;letter-spacing:-.025em}
+.v3-action-card small{grid-column:1;color:var(--v3-muted);font-size:10px}
+.v3-action-card i{position:absolute;right:17px;top:50%;transform:translateY(-50%);font-style:normal;color:#938c82;font-size:25px}
+.v3-action-card--training{background:#fff8f2;border-color:#f0d6c2}
+
+.v3-week-card,.v3-insight-card{border:1px solid var(--v3-line);border-radius:18px;background:var(--v3-surface-strong);box-shadow:none;padding:19px;margin-bottom:16px}
+.v3-week-card header{display:flex;align-items:flex-start;justify-content:space-between;gap:15px}
+.v3-week-card header span,.v3-insight-head>span{display:block;color:var(--v3-orange);font-size:9px;font-weight:900;letter-spacing:.13em}
+.v3-week-card header strong{display:block;margin-top:4px;color:var(--v3-ink);font-size:16px}
+.v3-week-card header>b{display:grid;place-items:center;min-width:48px;height:36px;border-radius:9px;background:#fff0e5;color:var(--v3-orange);font-size:12px}
+.v3-week-progress{height:7px;border-radius:99px;background:#eee4d6;overflow:hidden;margin:16px 0 13px}
+.v3-week-progress i{display:block;height:100%;border-radius:inherit;background:var(--v3-orange);transition:width .25s ease}
+.v3-week-sessions{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.v3-week-sessions button{min-width:0;padding:11px 7px;border:1px solid var(--v3-line);border-radius:11px;background:#fbf7f0;color:var(--v3-ink);text-align:left}
+.v3-week-sessions button span{display:block;color:#a0988f;font-size:8px;font-weight:900}
+.v3-week-sessions button strong{display:block;margin:5px 0 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
+.v3-week-sessions button small{display:block;color:var(--v3-muted);font-size:8px}
+.v3-week-sessions button.next{border-color:#ffc49f;background:#fff4ec}
+.v3-week-sessions button.next span,.v3-week-sessions button.next small{color:var(--v3-orange)}
+.v3-week-sessions button.done{border-color:#b9d8c8;background:#f5fbf7}
+.v3-week-sessions button.done span,.v3-week-sessions button.done small{color:var(--v3-green)}
+
+.v3-insight-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.v3-insight-head button{border:0;background:transparent;color:var(--v3-purple);font-size:10px;font-weight:850;padding:4px}
+.v3-insight-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--v3-line);border:1px solid var(--v3-line);border-radius:12px;overflow:hidden}
+.v3-insight-grid>div{min-width:0;background:var(--v3-surface);padding:13px 9px}
+.v3-insight-grid strong{display:block;color:var(--v3-ink);font-family:"Space Grotesk",Inter,sans-serif;font-size:18px}
+.v3-insight-grid span{display:block;margin-top:2px;color:var(--v3-muted);font-size:8px;line-height:1.25}
+
+/* Existing pages: reduce the prototype feel */
+.program-intro,.tracking-overview,.nutrition-hero,.progress-hero{box-shadow:none!important}
+.session-card,.tracking-card,.measurement-card,.meal-card{transition:transform .12s ease,border-color .15s ease!important}
+.session-card:active,.tracking-card:active,.measurement-card:active,.meal-card:active{transform:scale(.993)!important}
+.section-head{margin-top:34px!important}
+.section-head h2{font-size:20px!important}
+
+/* Make workout feel like a focused mode rather than another tab page */
+body[data-route="workout"] .bottom-nav{display:none!important}
+body[data-route="workout"] .content{padding-bottom:calc(34px + var(--safe-b))!important}
+body[data-route="workout"] .workout-finish{bottom:calc(8px + var(--safe-b))!important}
+
+@media(max-width:520px){
+  .page-title h1,.page-head h1{font-size:32px!important}
+  .v3-daily-hero{padding:21px 19px 19px}
+  .v3-daily-copy h2{font-size:28px}
+  .v3-recovery{grid-template-columns:minmax(0,1fr) auto}
+  .v3-week-sessions{grid-template-columns:repeat(2,1fr)}
+  .v3-insight-grid{grid-template-columns:repeat(2,1fr)}
+  .v3-insight-grid>div:nth-child(3),.v3-insight-grid>div:nth-child(4){border-top:0}
+}
