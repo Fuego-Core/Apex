@@ -4,6 +4,11 @@ import { coach, esc, section, shell, top } from './ui.js'
 
 export function nutritionPage() {
   const day = nutritionDay(TODAY())
+  const nutritionStatus = day.scanned.count
+    ? day.source === 'manual'
+      ? 'Correction manuelle enregistrée après le dernier aliment. Un nouvel aliment ajouté recalculera automatiquement la journée.'
+      : `Calculé automatiquement à partir de ${day.scanned.count} aliment${day.scanned.count > 1 ? 's' : ''}. Tu peux corriger ces totaux puis enregistrer.`
+    : ''
 
   shell(`
     ${top('Nutrition', 'Plan alimentaire adapté au travail de nuit')}
@@ -34,7 +39,7 @@ export function nutritionPage() {
 
     ${section('Bilan du jour')}
     <article class="plain-card food-log">
-      ${day.scanned.count ? `<p class="nutrition-note">Prérempli à partir de ${day.scanned.count} aliment${day.scanned.count > 1 ? 's' : ''} enregistré${day.scanned.count > 1 ? 's' : ''}. Tu peux corriger avant de valider.</p>` : ''}
+      ${nutritionStatus ? `<p class="nutrition-note">${nutritionStatus}</p>` : ''}
       <div class="form-grid">
         <label>Calories<input id="kcal" inputmode="numeric" value="${esc(day.kcal)}" placeholder="2300"></label>
         <label>Protéines<input id="protein" inputmode="numeric" value="${esc(day.protein)}" placeholder="155"></label>
@@ -50,7 +55,8 @@ export function nutritionPage() {
       kcal: document.querySelector('#kcal').value,
       protein: document.querySelector('#protein').value,
       fat: document.querySelector('#fat').value,
-      carbs: document.querySelector('#carbs').value
+      carbs: document.querySelector('#carbs').value,
+      updatedAt: new Date().toISOString()
     }
     save()
     nutritionPage()
