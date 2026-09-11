@@ -12,11 +12,12 @@ import './apex-pwa-fix.css'
 import './apex-product-v3.css'
 import './apex-product-pages.css'
 import './apex-checkin-v3.css'
+import './apex-body-v3.css'
 
 import { checkinPage } from './app/checkin-view.js'
 import { homePage } from './app/home-view.js'
 import { nutritionPage } from './app/nutrition-view.js'
-import { progressPage } from './app/progress-view.js'
+import { bodyPage } from './app/body-view.js'
 import { trackingPage } from './app/tracking-view.js'
 import { programPage } from './app/program-view.js'
 import { workoutView } from './app/training.js'
@@ -40,7 +41,7 @@ function render({ resetScroll = false } = {}) {
       tracking: trackingPage,
       program: programPage,
       nutrition: nutritionPage,
-      progress: progressPage,
+      progress: bodyPage,
       checkin: checkinPage
     }
     ;(routes[route] || homePage)()
