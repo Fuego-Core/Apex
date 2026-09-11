@@ -1,15 +1,15 @@
 {
-  "name": "APEX — Coaching musculation",
+  "name": "APEX — Coaching personnel",
   "short_name": "APEX",
-  "description": "Suivi de musculation avec moteur de progression automatique. 100% local, utilisable hors ligne.",
+  "description": "Application personnelle de coaching : entraînement, nutrition, check-ins et progression.",
   "lang": "fr",
   "dir": "ltr",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#070707",
-  "theme_color": "#070707",
+  "background_color": "#0b0d10",
+  "theme_color": "#0b0d10",
   "categories": ["health", "fitness", "sports"],
   "icons": [
     {
