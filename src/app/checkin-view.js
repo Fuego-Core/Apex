@@ -15,7 +15,7 @@ export function checkinPage() {
   const week = weeklySummary()
 
   shell(`
-    ${top('Check-in', '30 secondes pour enrichir ton coaching')}
+    ${top('Check-in', 'Au réveil · 30 secondes pour guider la journée')}
 
     <section class="checkin-summary">
       <div><span>7 JOURS</span><strong>${week.sessions}/4 séances</strong><small>${week.checkinDays}/7 check-ins · ${week.nutritionDays}/7 jours nutrition suivis</small></div>
@@ -23,11 +23,23 @@ export function checkinPage() {
     </section>
 
     <form class="check-form" id="cf">
-      <label>Sommeil (h)<input name="sleep" inputmode="decimal" required value="${esc(existing.sleep || '')}"></label>
-      <label>Sensations /10<input name="feeling" inputmode="numeric" required value="${esc(existing.feeling || '')}"></label>
-      <label>Calories<input name="kcal" value="${esc(nutrition.kcal || existing.kcal || '')}"></label>
-      <label>Protéines (g)<input name="protein" value="${esc(nutrition.protein || existing.protein || '')}"></label>
-      <label>Douleur ou gêne<textarea name="pain" rows="3" placeholder="Aucune, ou précise la zone">${esc(existing.pain || '')}</textarea></label>
+      <div class="check-form__grid">
+        <label>Sommeil (h)<input name="sleep" inputmode="decimal" required value="${esc(existing.sleep || '')}" placeholder="7"></label>
+        <label>Forme générale /10<input name="feeling" inputmode="numeric" required value="${esc(existing.feeling || '')}" placeholder="7"></label>
+        <label>Fatigue /10<input name="fatigue" inputmode="numeric" value="${esc(existing.fatigue || '')}" placeholder="3"></label>
+        <label>Motivation /10<input name="motivation" inputmode="numeric" value="${esc(existing.motivation || '')}" placeholder="8"></label>
+        <label>Courbatures /10<input name="soreness" inputmode="numeric" value="${esc(existing.soreness || '')}" placeholder="3"></label>
+        <label>Stress /10<input name="stress" inputmode="numeric" value="${esc(existing.stress || '')}" placeholder="3"></label>
+      </div>
+      <label>Douleur ou gêne<textarea name="pain" rows="3" placeholder="Aucune, ou précise la zone et le mouvement concerné">${esc(existing.pain || '')}</textarea></label>
+      <details class="checkin-details">
+        <summary>Nutrition du jour <span>optionnel</span></summary>
+        <div class="check-form__grid check-form__grid--nutrition">
+          <label>Calories<input name="kcal" inputmode="numeric" value="${esc(nutrition.kcal || existing.kcal || '')}"></label>
+          <label>Protéines (g)<input name="protein" inputmode="numeric" value="${esc(nutrition.protein || existing.protein || '')}"></label>
+        </div>
+      </details>
+      <p class="form-help">1 = très faible, 10 = très élevé. Pour fatigue, courbatures et stress, une valeur haute est un signal de prudence.</p>
       <button class="btn btn-primary btn-block">${existing.date ? 'Mettre à jour le check-in' : 'Enregistrer le check-in'}</button>
     </form>
 
@@ -52,6 +64,10 @@ export function checkinPage() {
       date: today,
       sleep: form.get('sleep'),
       feeling: form.get('feeling'),
+      fatigue: form.get('fatigue'),
+      motivation: form.get('motivation'),
+      soreness: form.get('soreness'),
+      stress: form.get('stress'),
       kcal: form.get('kcal'),
       protein: form.get('protein'),
       pain: form.get('pain'),
