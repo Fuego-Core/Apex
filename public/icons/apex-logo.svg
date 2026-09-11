@@ -1,49 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 470" width="340" height="470" role="img" aria-label="APEX — Your body. Your rules.">
-  <!-- Lockup de marque : symbole facetté, wordmark au E à barres, devise. -->
-  <defs>
-    <linearGradient id="agL" x1="0" y1="0" x2="0.9" y2="1">
-      <stop offset="0" stop-color="#f9e893"/><stop offset="0.5" stop-color="#d4af37"/><stop offset="1" stop-color="#8a6a1c"/>
-    </linearGradient>
-    <linearGradient id="agR" x1="1" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#fff7c4"/><stop offset="0.55" stop-color="#e2bf49"/><stop offset="1" stop-color="#9a7a22"/>
-    </linearGradient>
-    <radialGradient id="agGlow" cx="0.5" cy="0.3" r="0.65">
-      <stop offset="0" stop-color="rgba(246,225,122,0.2)"/><stop offset="1" stop-color="rgba(0,0,0,0)"/>
-    </radialGradient>
-  </defs>
-  <defs>
-    <linearGradient id="agW" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#f3dd80"/><stop offset="1" stop-color="#b08c26"/>
-    </linearGradient>
-  </defs>
-  <g transform="translate(50 20) scale(5)">
-    <path d="M24 0 L12.6 24.6 H16.6 L24 8.6 Z" fill="url(#agL)"/>
-    <path d="M24 0 L35.4 24.6 H31.4 L24 8.6 Z" fill="url(#agR)"/>
-    <path d="M12.6 24.6 L5.5 40 H10.6 L16.6 24.6 Z" fill="url(#agL)"/>
-    <path d="M35.4 24.6 L42.5 40 H37.4 L31.4 24.6 Z" fill="url(#agR)"/>
-    <path d="M24 11.5 L33.5 34 H14.5 Z" fill="#0b0b0c" stroke="#26262a" stroke-width="0.4"/>
-    <path d="M24 17 L29.4 30 H26.6 L24 23.6 L21.4 30 H18.6 Z" fill="url(#agL)"/>
-    <rect x="2.4" y="31.4" width="43.2" height="2.1" rx="0.5" fill="url(#agL)"/>
-    <rect x="6.2" y="28.6" width="2.3" height="7.7" rx="0.6" fill="url(#agR)"/>
-    <rect x="2.6" y="29.6" width="2" height="5.7" rx="0.55" fill="url(#agL)"/>
-    <rect x="39.5" y="28.6" width="2.3" height="7.7" rx="0.6" fill="url(#agR)"/>
-    <rect x="43.4" y="29.6" width="2" height="5.7" rx="0.55" fill="url(#agL)"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 470" width="340" height="470" role="img" aria-label="APEX — Performance system">
+  <rect width="340" height="470" rx="36" fill="#080808"/>
+  <g transform="translate(50 20) scale(5)" fill="#ff5a1f">
+    <path d="M24 0 12.6 24.6h4L24 8.6zm0 0 11.4 24.6h-4L24 8.6z"/>
+    <path d="m12.6 24.6-7.1 15h5.1l6-15zm22.8 0 7.1 15h-5.1l-6-15z"/>
+    <path d="m24 17 5.4 13h-2.8L24 23.6 21.4 30h-2.8z"/>
+    <rect x="2.4" y="31.4" width="43.2" height="2.1" rx="0.5"/>
+    <rect x="6.2" y="28.6" width="2.3" height="7.7" rx="0.6"/>
+    <rect x="2.6" y="29.6" width="2" height="5.7" rx="0.55"/>
+    <rect x="39.5" y="28.6" width="2.3" height="7.7" rx="0.6"/>
+    <rect x="43.4" y="29.6" width="2" height="5.7" rx="0.55"/>
   </g>
-  <!-- APEX — lettres géométriques tracées -->
-  <g transform="translate(38 300)" fill="url(#agW)">
-    <!-- A -->
-    <path d="M0 52 L20.4 0 H31.6 L52 52 H41 L26 12.4 L11 52 Z"/>
-    <path d="M15.5 40.5 L19 31.5 H33 L36.5 40.5 Z"/>
-    <!-- P -->
-    <path d="M70 52 V0 H100 A16 16 0 0 1 100 32 H80 V52 Z M80 9 V23 H98 A7 7 0 0 0 98 9 Z"/>
-    <!-- E : trois barres -->
+  <g transform="translate(38 300)" fill="#f7f7f5">
+    <path d="M0 52 20.4 0h11.2L52 52H41L26 12.4 11 52zm15.5-11.5 3.5-9h14l3.5 9z"/>
+    <path d="M70 52V0h30a16 16 0 0 1 0 32H80v20zm10-43v14h18a7 7 0 0 0 0-14z"/>
     <rect x="126" y="0" width="34" height="10"/>
     <rect x="126" y="21" width="30" height="10"/>
     <rect x="126" y="42" width="34" height="10"/>
-    <!-- X -->
-    <path d="M180 0 H192 L202 17.8 L212 0 H224 L208.5 26 L224 52 H212 L202 34.2 L192 52 H180 L195.5 26 Z"/>
+    <path d="M180 0h12l10 17.8L212 0h12l-15.5 26L224 52h-12l-10-17.8L192 52h-12l15.5-26z"/>
   </g>
-  <!-- devise -->
-  <text x="170" y="401" text-anchor="middle" font-family="'Inter','Helvetica Neue',Arial,sans-serif"
-        font-size="13" letter-spacing="5" fill="#c9a532">YOUR BODY. YOUR RULES.</text>
+  <rect x="38" y="379" width="52" height="5" rx="2.5" fill="#ff5a1f"/>
+  <text x="38" y="411" font-family="Inter,Arial,sans-serif" font-size="11" font-weight="700" letter-spacing="3.2" fill="#8b8b8b">PERFORMANCE SYSTEM</text>
 </svg>
