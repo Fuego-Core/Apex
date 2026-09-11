@@ -18,6 +18,7 @@ export function num(value) {
 function icon(name) {
   const paths = {
     home: 'M4 11 12 4l8 7v9h-5v-6H9v6H4z',
+    tracking: 'M5 19V9m7 10V5m7 14v-7',
     program: 'M5 6h14M5 12h14M5 18h14',
     nutrition: 'M12 3v18M6 7h12',
     progress: 'M4 18l5-6 4 3 7-9',
@@ -27,16 +28,15 @@ function icon(name) {
 }
 
 function nav(active) {
+  const activeGroup = ['tracking', 'nutrition', 'progress', 'checkin'].includes(active) ? 'tracking' : active
   const items = [
     ['home', 'home', 'Aujourd’hui'],
-    ['program', 'program', 'Programme'],
-    ['nutrition', 'nutrition', 'Nutrition'],
-    ['progress', 'progress', 'Progrès'],
-    ['checkin', 'checkin', 'Check-in']
+    ['tracking', 'tracking', 'Suivi'],
+    ['program', 'program', 'Programme']
   ]
 
-  return `<nav class="bottom-nav">${items.map(([route, glyph, label]) => `
-    <button data-nav="${route}" class="nav-item ${active === route ? 'active' : ''}">
+  return `<nav class="bottom-nav" aria-label="Navigation principale">${items.map(([route, glyph, label]) => `
+    <button data-nav="${route}" class="nav-item ${activeGroup === route ? 'active' : ''}" aria-label="${label}">
       ${icon(glyph)}<span>${label}</span>
     </button>`).join('')}</nav>`
 }
@@ -67,7 +67,7 @@ export function top(title, subtitle = '') {
       <h1>${title}</h1>
       <p>${subtitle}</p>
     </div>
-    <div class="profile-dot">F</div>
+    <div class="profile-dot" aria-label="Profil Fuego">F</div>
   </header>`
 }
 
