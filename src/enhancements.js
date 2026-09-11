@@ -1,6 +1,6 @@
 import './enhancements.css'
 
-import { nutritionLogTotals, state } from './app/store.js'
+import { nutritionDay, state } from './app/store.js'
 
 const avg = (values) => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null
 const n = (value, digits = 1) => Number.isFinite(Number(value))
@@ -140,14 +140,7 @@ function weeklyNutrition(weekAgo) {
 
   return [...dates]
     .filter((date) => isRecent(date, weekAgo))
-    .map((date) => {
-      const manual = state.nutritionDays?.[date] || {}
-      const scanned = nutritionLogTotals(date)
-      return {
-        kcal: manual.kcal || (scanned.count ? scanned.kcal : null),
-        protein: manual.protein || (scanned.count ? scanned.protein : null)
-      }
-    })
+    .map((date) => nutritionDay(date))
 }
 
 function weeklyData() {
