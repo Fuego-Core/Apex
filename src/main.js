@@ -3,6 +3,7 @@ import './finish.css'
 import './enhancements.js'
 import './basicfit-media.js'
 import './nutrition-scanner.js'
+import './smart-actions.js'
 
 import { checkinPage } from './app/checkin-view.js'
 import { nutritionPage } from './app/nutrition-view.js'
