@@ -1,6 +1,6 @@
 import './styles.css'
 import './finish.css'
-import './enhancements.js'
+import './enhancements.css'
 import './basicfit-media.js'
 import './nutrition-scanner.js'
 import './smart-actions.js'
