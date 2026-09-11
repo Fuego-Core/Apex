@@ -24,7 +24,7 @@ function icon(name) {
     progress: 'M4 18l5-6 4 3 7-9',
     checkin: 'm5 12 4 4 10-10'
   }
-  return `<svg viewBox="0 0 24 24"><path d="${paths[name] || paths.home}"/></svg>`
+  return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${paths[name] || paths.home}"/></svg>`
 }
 
 function nav(active) {
@@ -63,11 +63,10 @@ export function shell(html, active) {
 export function top(title, subtitle = '') {
   return `<header class="page-head">
     <div>
-      <p class="brandline">APEX</p>
+      <p class="brandline">APEX PERFORMANCE</p>
       <h1>${title}</h1>
       <p>${subtitle}</p>
     </div>
-    <div class="profile-dot" aria-label="Profil Fuego">F</div>
   </header>`
 }
 
