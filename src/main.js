@@ -1,170 +1,54 @@
-import './fonts.css'
-import './ui/tokens.css'
 import './styles.css'
-import './ui/components.css'
-import { primeAudio } from './timer.js'
-import { initState, onStorageError, getBootInfo } from './state.js'
-import { downloadEmergencyExport } from './data/rescue.js'
-import { banner, fatalScreen, toast } from './ui.js'
-import { initNav, syncNav } from './ui/nav.js'
-import { measureLocal, storageAdvice } from './data/storageInfo.js'
-import dashboardView from './views/dashboard.js'
-import sessionsView from './views/sessions.js'
-import bodyView from './views/body.js'
-import goalsView from './views/goals.js'
-import profileView from './views/profile.js'
-import nutritionView from './views/nutrition.js'
-import nutritionHistoryView from './views/nutrition-history.js'
-import recipesView from './views/recipes.js'
-import prepView from './views/prep.js'
-import workoutView from './views/workout.js'
-import summaryView from './views/summary.js'
-import historyView from './views/history.js'
-import exerciseView from './views/exercise.js'
-import settingsView from './views/settings.js'
-import progressView from './views/progress.js'
 
-const app = document.getElementById('app')
-
-/* Routeur hash minimal : '/seance/push/workout' -> view + params */
-const ROUTES = [
-  { re: /^\/?$/, view: dashboardView },
-  { re: /^\/seances$/, view: sessionsView },
-  { re: /^\/corps$/, view: bodyView },
-  { re: /^\/corps\/ajouter\/(poids|taille)$/, view: bodyView, keys: ['add'] },
-  { re: /^\/objectifs$/, view: goalsView },
-  { re: /^\/objectifs\/nouveau$/, view: goalsView, keys: [], create: true },
-  { re: /^\/profil$/, view: profileView },
-  { re: /^\/progression$/, view: progressView },
-  { re: /^\/nutrition$/, view: nutritionView },
-  { re: /^\/nutrition\/historique$/, view: nutritionHistoryView },
-  { re: /^\/nutrition\/(\d{4}-\d{2}-\d{2})$/, view: nutritionView, keys: ['date'] },
-  { re: /^\/recettes$/, view: recipesView },
-  { re: /^\/seance\/([^/]+)$/, view: prepView, keys: ['sessionId'] },
-  { re: /^\/seance\/([^/]+)\/workout$/, view: workoutView, keys: ['sessionId'] },
-  { re: /^\/seance\/([^/]+)\/resume$/, view: summaryView, keys: ['sessionId'] },
-  { re: /^\/historique$/, view: historyView },
-  { re: /^\/historique\/([^/]+)$/, view: historyView, keys: ['entryId'] },
-  { re: /^\/exercice\/([^/]+)$/, view: exerciseView, keys: ['exerciseId'] },
-  { re: /^\/reglages$/, view: settingsView }
+const STORAGE='apex-coach-v2'
+const J0={date:'11/09/2026',weight:75,height:172,chest:101,waist:88,navel:96,hips:102.5,armL:31,armR:31,thighL:52,thighR:52,calfL:33.5,calfR:33.5}
+const nutrition={kcal:2300,protein:155,fat:70,carbs:250,creatine:'3–5 g'}
+const sessions=[
+ {id:'upper-a',name:'Upper A',focus:'Pecs · Dos · Calisthénie',duration:'70–80 min',cardio:'15 min tapis incliné facile',exercises:[
+  ['Supine Press machine','3','6–8','3','Ancienne réf. 50 kg · charge de reprise propre','🏋️'],
+  ['Tractions assistées','3','6–10','3','Poitrine sortie, aucun élan · noter l’assistance','🧗'],
+  ['Développé incliné haltères','3','8–10','3','Banc 30–45° · contrôle complet','↗️'],
+  ['Rowing poulie','3','8–12','3','Tirer avec les coudes, torse stable','🚣'],
+  ['Élévations latérales','3','12–15','3','Épaules basses · mouvement propre','🪽'],
+  ['Dips assistés','2','8–12','3','Ancienne réf. 25 kg assistance','⬇️'],
+  ['Curl biceps','2','10–12','3','Sans balancer le buste','💪'] ]},
+ {id:'lower-a',name:'Lower A',focus:'Quadriceps · Ischios · Mollets',duration:'65–75 min',cardio:'10–15 min tapis incliné facile',exercises:[
+  ['Hack squat','3','8–10','3','Ancienne réf. 27 kg · amplitude contrôlée','🦵'],['Presse à jambes','3','10–12','3','Ancienne réf. 54–56 kg','🛷'],['Leg curl','3','10–12','3','Contraction complète','🔁'],['Fentes marchées','2','10/jambe','3','Pas stables, genou contrôlé','🚶'],['Mollets','3','10–15','3','Pause en bas, amplitude complète','🦶'],['Crunch poulie','3','10–15','3','Enrouler le tronc','⚡'] ]},
+ {id:'upper-b',name:'Upper B',focus:'Épaules · Dos · Pecs · Bras',duration:'70–80 min',cardio:'15 min tapis incliné facile',exercises:[
+  ['Développé incliné','3','8–10','3','Machine ou haltères','↗️'],['Tirage vertical','3','8–10','3','Ancienne réf. 39 kg · coudes vers le sol','⬇️'],['Développé épaules machine','3','8–10','3','Contrôle, pas de rebond','🏗️'],['Tirage horizontal serré','3','8–12','3','Omoplates contrôlées','🚣'],['Élévations latérales','3','12–15','3','Priorité largeur d’épaules','🪽'],['Face pull / reverse fly','2','12–15','3','Arrière d’épaule','🎯'],['Extension triceps','2','10–12','3','Coudes fixes','🔒'],['Curl incliné','2','10–12','3','Étirement complet','💪'] ]},
+ {id:'lower-b',name:'Lower B',focus:'Chaîne postérieure · Jambes · Abdos',duration:'65–75 min',cardio:'10–15 min tapis incliné facile',exercises:[
+  ['Soulevé de terre roumain','3','8–10','3','40 kg = ancienne estimation, pas une obligation','🏋️'],['Fente bulgare','3','8–10/jambe','3','Contrôle et stabilité','🦵'],['Leg curl','3','10–12','3','Tempo propre','🔁'],['Hip thrust','3','8–12','3','Verrouiller sans hyperextension','🌉'],['Leg extension','2','12–15','3','Contrôle complet','⚙️'],['Mollets','3','12–15','3','Pause en bas','🦶'],['Abdos','3','10–15','3','Crunch câble ou variante contrôlée','⚡'] ]},
+ {id:'skill',name:'Skills',focus:'Calisthénie technique · Facultatif',duration:'25–35 min',cardio:'Aucun cardio obligatoire',optional:true,exercises:[
+  ['Suspension barre','3','20–40 sec','4','Prise active et confortable','🧗'],['Scapular pull-ups','3','6–10','4','Petite amplitude, épaules contrôlées','🔼'],['Pompes strictes','3','8–15','4','Garder de la marge','⬆️'],['Support dips','3','15–30 sec','4','Épaules basses, bras tendus','⬇️'],['Handstand mur','4','20–30 sec','4','Technique uniquement','🤸'] ]}
 ]
 
-let cleanup = null
-let ready = false
+let state=load()
+let route=location.hash.replace('#','')||'home'
+function load(){try{return {...{completed:{},logs:{},body:[{date:'2026-09-11',weight:75,navel:96}],checkins:[]},...JSON.parse(localStorage.getItem(STORAGE)||'{}')}}catch{return {completed:{},logs:{},body:[{date:'2026-09-11',weight:75,navel:96}],checkins:[]}}}
+function save(){localStorage.setItem(STORAGE,JSON.stringify(state))}
+function todayIndex(){const done=sessions.filter(s=>!s.optional&&state.completed[s.id]).length;return Math.min(done,3)}
+function nav(to){location.hash=to;route=to;render()}
+window.addEventListener('hashchange',()=>{route=location.hash.replace('#','')||'home';render()})
 
-export function navigate(hash) {
-  if (location.hash === hash) render()
-  else location.hash = hash
-}
+const app=document.querySelector('#app')
+function shell(content,active='home'){app.innerHTML=`<main>${content}</main><nav class="bottom-nav">${[['home','⌂','Aujourd’hui'],['program','▦','Programme'],['nutrition','◉','Nutrition'],['progress','↗','Progrès'],['checkin','✓','Check-in']].map(([id,ic,l])=>`<button class="nav-btn ${active===id?'active':''}" data-nav="${id}"><span>${ic}</span><small>${l}</small></button>`).join('')}</nav>`;document.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>nav(b.dataset.nav))}
+function header(title,sub=''){return `<header class="top"><div><div class="eyebrow">APEX COACH</div><h1>${title}</h1>${sub?`<p>${sub}</p>`:''}</div><div class="avatar">F</div></header>`}
+function progressRing(){const done=Object.values(state.completed).filter(Boolean).length;const pct=Math.min(100,Math.round(done/4*100));return `<div class="ring" style="--p:${pct}"><strong>${pct}%</strong><span>semaine</span></div>`}
 
-/** Un seul décodage, et jamais d'exception sur une URL bricolée. */
-function decodeParam(value) {
-  try {
-    return decodeURIComponent(value)
-  } catch (e) {
-    return value
-  }
-}
+function home(){const s=sessions[todayIndex()];const last=state.body[state.body.length-1]||{};shell(`${header('Aujourd’hui','Reprise · Semaine 1 · objectif 3 RIR')}
+<section class="hero"><div><span class="pill">SÉANCE DU JOUR</span><h2>${s.name}</h2><p>${s.focus}</p><div class="meta"><span>⏱ ${s.duration}</span><span>🎯 ${s.exercises.length} exercices</span></div><button class="primary" id="start">Commencer la séance</button></div>${progressRing()}</section>
+<section class="grid stats"><article><small>Poids J0</small><b>${last.weight??75} kg</b><span>objectif : recomposition</span></article><article><small>Nombril J0</small><b>${last.navel??96} cm</b><span>priorité : ↓ progressivement</span></article></section>
+<h3 class="section-title">Plan du jour</h3><div class="exercise-list preview">${s.exercises.slice(0,4).map((e,i)=>exerciseRow(e,i,false)).join('')}</div><button class="ghost full" id="full">Voir les ${s.exercises.length} exercices</button>
+<h3 class="section-title">Règle de reprise</h3><article class="coach-note"><span>COACH</span><p>Cette semaine : environ <b>3 répétitions en réserve</b>. Tu dois finir en ayant la sensation que tu pouvais faire davantage. Pas d’échec musculaire.</p></article>`, 'home');document.querySelector('#start').onclick=()=>nav('workout:'+s.id);document.querySelector('#full').onclick=()=>nav('workout:'+s.id)}
 
-function render() {
-  if (!ready) return
+function exerciseRow(e,i,editable=true,id=''){const [name,sets,reps,rir,note,icon]=e;const log=(state.logs[id]||{})[i]||{};return `<article class="exercise"><div class="exercise-icon">${icon}</div><div class="exercise-main"><div class="exercise-head"><div><small>EXERCICE ${i+1}</small><h3>${name}</h3></div><span class="target">${sets} × ${reps}</span></div><p>${note}</p><div class="chips"><span>RIR ${rir}</span><span>${sets} séries</span></div>${editable?`<div class="log-row"><label>Charge / assistance<input inputmode="decimal" data-log="weight" data-i="${i}" value="${log.weight??''}" placeholder="kg"></label><label>Répétitions<input data-log="reps" data-i="${i}" value="${log.reps??''}" placeholder="8/8/8"></label></div>`:''}</div></article>`}
+function workout(id){const s=sessions.find(x=>x.id===id)||sessions[0];shell(`${header(s.name,s.focus)}<div class="workout-banner"><b>Objectif semaine 1</b><span>3 RIR · technique propre · aucune série forcée</span></div><div class="exercise-list">${s.exercises.map((e,i)=>exerciseRow(e,i,true,s.id)).join('')}</div><article class="card cardio"><div class="exercise-icon">🚶</div><div><small>FIN DE SÉANCE</small><h3>Cardio</h3><p>${s.cardio}</p></div></article><button class="primary full" id="finish">Terminer et enregistrer</button>`, 'program');document.querySelectorAll('[data-log]').forEach(inp=>inp.oninput=()=>{state.logs[id]??={};state.logs[id][inp.dataset.i]??={};state.logs[id][inp.dataset.i][inp.dataset.log]=inp.value;save()});document.querySelector('#finish').onclick=()=>{state.completed[id]=true;save();nav('summary:'+id)}}
+function summary(id){const s=sessions.find(x=>x.id===id);shell(`${header('Séance enregistrée','Bien joué. On garde les données pour ajuster la suite.')}<section class="success"><div>✓</div><h2>${s?.name||'Séance'} terminée</h2><p>Les charges et répétitions sont sauvegardées sur cet appareil.</p></section><article class="coach-note"><span>À M’ENVOYER</span><p>Après la séance : sensations /10, douleur éventuelle, cardio fait ou non, sommeil, calories et protéines du jour.</p></article><button class="primary full" id="back">Retour à l’accueil</button>`, 'home');document.querySelector('#back').onclick=()=>nav('home')}
+function program(){shell(`${header('Programme','Hypertrophie + calisthénie · semaine 1 de reprise')}<div class="week-rule">4 séances obligatoires · 1 skill facultative · ordre > calendrier</div><div class="session-list">${sessions.map((s,i)=>`<button class="session ${state.completed[s.id]?'done':''}" data-session="${s.id}"><div><small>${s.optional?'FACULTATIF':`SÉANCE ${Math.min(i+1,4)}`}</small><h2>${s.name}</h2><p>${s.focus}</p></div><div class="session-side">${state.completed[s.id]?'✓':'›'}</div></button>`).join('')}</div>`, 'program');document.querySelectorAll('[data-session]').forEach(b=>b.onclick=()=>nav('workout:'+b.dataset.session))}
+function nutritionPage(){shell(`${header('Nutrition','Point de départ · à ajuster selon la tendance')}<section class="macro-hero"><div><small>CIBLE JOURNALIÈRE</small><b>${nutrition.kcal}</b><span>kcal</span></div></section><div class="grid macros"><article><small>Protéines</small><b>${nutrition.protein} g</b></article><article><small>Lipides</small><b>${nutrition.fat} g</b></article><article><small>Glucides</small><b>≈ ${nutrition.carbs} g</b></article><article><small>Créatine</small><b>${nutrition.creatine}</b></article></div><h3 class="section-title">Organisation adaptée au travail de nuit</h3><div class="timeline">${[['15h','Réveil · premier repas'],['18–20h','Entraînement / repas autour'],['00–01h','Repas au travail'],['05–06h','Collation / dernier repas'],['07h30','Sommeil']].map(([t,x])=>`<div><b>${t}</b><span>${x}</span></div>`).join('')}</div><article class="coach-note"><span>RÈGLE</span><p>Pas de sèche agressive. On veut perdre du gras tout en récupérant les performances et en construisant du muscle.</p></article>`, 'nutrition')}
+function progressPage(){const body=state.body[state.body.length-1]||J0;shell(`${header('Progrès','Les chiffres servent le physique, pas l’inverse')}<section class="j0"><small>POINT ZÉRO · ${J0.date}</small><div><b>${body.weight??75}<span> kg</span></b><p>1,72 m</p></div></section><div class="grid measures">${[['Poitrine',J0.chest],['Taille',J0.waist],['Nombril',body.navel??J0.navel],['Hanches',J0.hips],['Bras',J0.armL],['Cuisses',J0.thighL],['Mollets',J0.calfL]].map(([n,v])=>`<article><small>${n}</small><b>${v} cm</b></article>`).join('')}</div><h3 class="section-title">Ajouter un relevé</h3><article class="card"><div class="log-row"><label>Poids<input id="newWeight" inputmode="decimal" placeholder="75.0"></label><label>Nombril<input id="newNavel" inputmode="decimal" placeholder="96"></label></div><button class="primary full" id="saveBody">Enregistrer</button></article><article class="coach-note"><span>CAP</span><p>Tour de taille ↓ · performances ↑ · tractions/dips ↑ · masse musculaire conservée ou augmentée.</p></article>`, 'progress');document.querySelector('#saveBody').onclick=()=>{const w=parseFloat(document.querySelector('#newWeight').value.replace(',','.'));const n=parseFloat(document.querySelector('#newNavel').value.replace(',','.'));if(!w&&!n)return;state.body.push({date:new Date().toISOString().slice(0,10),weight:w||body.weight,navel:n||body.navel});save();progressPage()}}
+function checkin(){shell(`${header('Check-in','Le compte rendu qui me permettra d’ajuster ton coaching')}<form class="checkin" id="checkForm"><label>Sommeil (heures)<input name="sleep" inputmode="decimal" placeholder="7.5"></label><label>Calories du jour<input name="kcal" inputmode="numeric" placeholder="2300"></label><label>Protéines (g)<input name="protein" inputmode="numeric" placeholder="155"></label><label>Sensations /10<input name="feeling" inputmode="numeric" placeholder="8"></label><label>Cardio fait ?<select name="cardio"><option>Oui</option><option>Non</option></select></label><label>Douleur / gêne ?<select name="pain"><option>Non</option><option>Oui</option></select></label><label>Notes<textarea name="notes" placeholder="Énergie, faim, séance, difficultés..."></textarea></label><button class="primary full">Enregistrer le check-in</button></form><p class="privacy">Les données sont actuellement enregistrées uniquement sur ton appareil.</p>`, 'checkin');document.querySelector('#checkForm').onsubmit=e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.currentTarget));state.checkins.push({date:new Date().toISOString(),...d});save();e.currentTarget.innerHTML=`<section class="success small"><div>✓</div><h2>Check-in enregistré</h2><p>On pourra s’en servir pour ajuster la semaine.</p></section>`}}
+function render(){if(route.startsWith('workout:'))return workout(route.split(':')[1]);if(route.startsWith('summary:'))return summary(route.split(':')[1]);({home,program,nutrition:nutritionPage,progress:progressPage,checkin}[route]||home)()}
+render()
 
-  const path = location.hash.replace(/^#/, '') || '/'
-  const match = ROUTES.map((r) => ({ r, m: path.match(r.re) })).find((x) => x.m)
-  syncNav(path)
-
-  if (typeof cleanup === 'function') {
-    cleanup()
-    cleanup = null
-  }
-
-  if (!match) {
-    location.hash = '#/'
-    return
-  }
-
-  const params = {}
-  ;(match.r.keys || []).forEach((k, i) => {
-    params[k] = decodeParam(match.m[i + 1])
-  })
-
-  app.scrollTop = 0
-  window.scrollTo(0, 0)
-
-  if (match.r.create) params.create = true
-  if (params.add) params.kind = params.add === 'taille' ? 'waist' : 'weight'
-
-  try {
-    cleanup = match.r.view(app, params) || null
-  } catch (error) {
-    console.error('APEX: rendu impossible', error)
-    cleanup = null
-    fatalScreen(app, {
-      title: 'Cet écran n’a pas pu s’afficher',
-      message: 'Une erreur inattendue est survenue. Tes données sont enregistrées.',
-      details: [String(error?.message || error)],
-      onExport: () => downloadEmergencyExport(),
-      onRetry: () => navigate('#/')
-    })
-  }
-}
-
-async function boot() {
-  try {
-    await initState()
-  } catch (error) {
-    console.error('APEX: démarrage impossible', error)
-    fatalScreen(app, {
-      title: 'APEX n’a pas pu démarrer',
-      message: error?.message || 'Erreur inconnue au chargement des données.',
-      details: error?.details || [],
-      onExport: () => downloadEmergencyExport()
-    })
-    return
-  }
-
-  ready = true
-  initNav()
-
-  // Un échec d'enregistrement ne doit jamais rester invisible.
-  onStorageError((error) => {
-    banner(error?.userMessage || 'Modification non enregistrée.', { id: 'storage' })
-  })
-
-  window.addEventListener('hashchange', render)
-  render()
-
-  /* Le stockage se remplit sans prévenir : on prévient. Seul le niveau
-     critique interrompt — l'avertissement plus doux vit dans les réglages,
-     avec le détail et le bouton d'export. */
-  const local = measureLocal(globalThis.localStorage)
-  if (local.level === 'critical') {
-    banner(storageAdvice(local).text, { tone: 'danger', id: 'storage-full' })
-  }
-
-  const info = getBootInfo()
-  if (info.migrated) {
-    toast('Données migrées · sauvegarde de l’ancienne version conservée', 'gold')
-  }
-
-  // L'audio du timer doit être débloqué par un geste utilisateur sur mobile.
-  document.addEventListener('pointerdown', () => primeAudio(), { once: true })
-
-  /* Service worker : l'app doit démarrer sans réseau, en salle. */
-  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    const url = new URL('./sw.js', document.baseURI)
-    navigator.serviceWorker.register(url, { scope: './' }).catch((e) => {
-      console.warn('APEX: service worker non enregistré', e)
-    })
-  }
-}
-
-/* Filet de sécurité : aucune erreur ne doit disparaître en silence. */
-window.addEventListener('error', (e) => {
-  console.error('APEX: erreur non gérée', e.error || e.message)
-})
-window.addEventListener('unhandledrejection', (e) => {
-  console.error('APEX: promesse rejetée', e.reason)
-})
-
-boot()
+if('serviceWorker'in navigator&&location.protocol!=='file:'){navigator.serviceWorker.register(new URL('../sw.js',import.meta.url),{scope:'../'}).catch(()=>{})}
