@@ -88,13 +88,14 @@ export function nutritionLogTotals(date = TODAY()) {
 export function nutritionDay(date = TODAY()) {
   const manual = state.nutritionDays?.[date] || {}
   const scanned = nutritionLogTotals(date)
-  const fallback = (key) => (scanned.count ? Math.round(scanned[key] * 10) / 10 : '')
+  const rounded = (key) => Math.round(scanned[key] * 10) / 10
+  const automatic = scanned.count > 0
 
   return {
-    kcal: manual.kcal || fallback('kcal'),
-    protein: manual.protein || fallback('protein'),
-    fat: manual.fat || fallback('fat'),
-    carbs: manual.carbs || fallback('carbs'),
+    kcal: automatic ? rounded('kcal') : (manual.kcal || ''),
+    protein: automatic ? rounded('protein') : (manual.protein || ''),
+    fat: automatic ? rounded('fat') : (manual.fat || ''),
+    carbs: automatic ? rounded('carbs') : (manual.carbs || ''),
     scanned
   }
 }
