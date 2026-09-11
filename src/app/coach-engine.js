@@ -2,7 +2,8 @@ import { J0, nutritionTargets } from './config.js'
 import { nutritionDay, state, TODAY } from './store.js'
 
 function number(value) {
-  const parsed = Number(String(value ?? '').replace(',', '.'))
+  if (value === null || value === undefined || String(value).trim() === '') return null
+  const parsed = Number(String(value).replace(',', '.'))
   return Number.isFinite(parsed) ? parsed : null
 }
 
@@ -186,7 +187,7 @@ export function weeklySummary({ days = 7, now = new Date() } = {}) {
   const sleepScore = checkins.length
     ? mean(checkins.map((item) => {
       const sleep = number(item.sleep)
-      return sleep === null ? 0 : Math.min(100, sleep / 7 * 100)
+      return sleep === null ? null : Math.min(100, sleep / 7 * 100)
     }))
     : null
   const availableScores = [trainingScore, nutritionScore, sleepScore].filter((score) => score !== null)
