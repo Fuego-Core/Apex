@@ -78,10 +78,7 @@ describe('store actif APEX', () => {
     const { nutritionDay } = await loadStore({
       nutritionDays: {
         '2026-09-11': {
-          kcal: '500',
-          protein: '25',
-          carbs: '60',
-          fat: '12',
+          kcal: '500', protein: '25', carbs: '60', fat: '12',
           updatedAt: '2026-09-11T12:00:00.000Z'
         }
       },
@@ -105,10 +102,7 @@ describe('store actif APEX', () => {
     const { nutritionDay } = await loadStore({
       nutritionDays: {
         '2026-09-11': {
-          kcal: '600',
-          protein: '40',
-          carbs: '65',
-          fat: '17',
+          kcal: '600', protein: '40', carbs: '65', fat: '17',
           updatedAt: '2026-09-11T14:00:00.000Z'
         }
       },
@@ -120,11 +114,7 @@ describe('store actif APEX', () => {
     })
 
     expect(nutritionDay('2026-09-11')).toMatchObject({
-      kcal: '600',
-      protein: '40',
-      carbs: '65',
-      fat: '17',
-      source: 'manual'
+      kcal: '600', protein: '40', carbs: '65', fat: '17', source: 'manual'
     })
   })
 
@@ -136,11 +126,7 @@ describe('store actif APEX', () => {
     })
 
     expect(nutritionDay('2026-09-11')).toMatchObject({
-      kcal: '2250',
-      protein: '152',
-      carbs: '240',
-      fat: '68',
-      source: 'manual'
+      kcal: '2250', protein: '152', carbs: '240', fat: '68', source: 'manual'
     })
   })
 
@@ -153,5 +139,33 @@ describe('store actif APEX', () => {
     const persisted = JSON.parse(storage.getItem('apex-coach-pro-v1'))
     expect(persisted.pantry[0].barcode).toBe('3017620422003')
     expect(persisted.foodLog['2026-09-11']).toHaveLength(1)
+  })
+
+  it('exporte une sauvegarde versionnée puis restaure les données en place', async () => {
+    const { exportState, restoreState, state, storage } = await loadStore({
+      currentWeek: 2,
+      body: [{ date: '2026-09-11', weight: 75, navel: 96 }],
+      pantry: [{ barcode: '12345678', name: 'Test', qty: 1, unit: 'unité' }]
+    })
+
+    const backup = exportState()
+    expect(backup).toMatchObject({ format: 'apex-backup', version: 1 })
+    expect(backup.data.currentWeek).toBe(2)
+
+    state.currentWeek = 6
+    state.pantry = []
+    restoreState(backup)
+
+    expect(state.currentWeek).toBe(2)
+    expect(state.pantry).toHaveLength(1)
+    expect(JSON.parse(storage.getItem('apex-coach-pro-v1')).currentWeek).toBe(2)
+  })
+
+  it('normalise aussi les sauvegardes importées avant de remplacer l’état', async () => {
+    const { restoreState, state } = await loadStore()
+    restoreState({ format: 'apex-backup', data: { currentWeek: 99, pantry: 'invalide' } })
+    expect(state.currentWeek).toBe(6)
+    expect(state.pantry).toEqual([])
+    expect(Array.isArray(state.body)).toBe(true)
   })
 })
