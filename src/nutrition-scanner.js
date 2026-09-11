@@ -100,8 +100,10 @@ async function lookup(barcode) {
 }
 
 function stockBase(product) {
-  const explicit = Number(product.remainingBase)
-  if (Number.isFinite(explicit)) return { amount: explicit, unit: product.baseUnit || (product.unit === 'ml' ? 'ml' : 'g') }
+  if (product.remainingBase !== null && product.remainingBase !== undefined && product.remainingBase !== '') {
+    const explicit = Number(product.remainingBase)
+    if (Number.isFinite(explicit)) return { amount: explicit, unit: product.baseUnit || (product.unit === 'ml' ? 'ml' : 'g') }
+  }
   if (product.unit === 'g' || product.unit === 'ml') return { amount: Number(product.qty) || 0, unit: product.unit }
   const packageSize = Number(product.packageSize)
   if (packageSize > 0) return { amount: (Number(product.qty) || 0) * packageSize, unit: product.baseUnit || 'g' }
