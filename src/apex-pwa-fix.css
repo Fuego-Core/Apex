@@ -1,0 +1,100 @@
+/* iOS standalone/PWA navigation hardening.
+   Keeps system chrome clear, prevents content from hiding under the bottom nav,
+   and gives installed mode a stable native-app viewport. */
+
+html,
+body,
+#app,
+.app-shell {
+  min-height: 100dvh;
+}
+
+html {
+  background: var(--bg);
+  overscroll-behavior-y: none;
+}
+
+body {
+  min-height: 100dvh;
+  overscroll-behavior-y: none;
+}
+
+/* Always leave enough room for the fixed bottom navigation and the home indicator. */
+.content {
+  padding-bottom: calc(146px + var(--safe-b)) !important;
+  scroll-padding-bottom: calc(132px + var(--safe-b));
+}
+
+/* Installed iOS apps may still paint the document under the status bar even
+   when safe-area env() is inconsistent. This fixed guard prevents text/cards
+   from ever scrolling behind the clock, signal and Dynamic Island. */
+@media (display-mode: standalone) {
+  :root {
+    --pwa-system-top: max(var(--safe-t), 52px);
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    z-index: 1000;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--pwa-system-top);
+    background: var(--bg);
+    pointer-events: none;
+  }
+
+  .content {
+    padding-top: calc(var(--pwa-system-top) + 18px) !important;
+  }
+
+  .bottom-nav {
+    z-index: 1100 !important;
+  }
+
+  /* Workout has its own sticky header; keep it below the protected system zone. */
+  body[data-route="workout"] .content {
+    padding-top: var(--pwa-system-top) !important;
+  }
+
+  body[data-route="workout"] .workout-head {
+    top: var(--pwa-system-top) !important;
+    margin-top: 0 !important;
+    padding-top: 12px !important;
+  }
+}
+
+/* iOS standalone detection fallback for WebKit versions where display-mode
+   does not expose the installed state consistently. */
+@supports (-webkit-touch-callout: none) {
+  body.apex-standalone::before {
+    content: "";
+    position: fixed;
+    z-index: 1000;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: max(var(--safe-t), 52px);
+    background: var(--bg);
+    pointer-events: none;
+  }
+
+  body.apex-standalone .content {
+    padding-top: calc(max(var(--safe-t), 52px) + 18px) !important;
+  }
+
+  body.apex-standalone .bottom-nav {
+    z-index: 1100 !important;
+  }
+
+  body.apex-standalone[data-route="workout"] .content {
+    padding-top: max(var(--safe-t), 52px) !important;
+  }
+
+  body.apex-standalone[data-route="workout"] .workout-head {
+    top: max(var(--safe-t), 52px) !important;
+    margin-top: 0 !important;
+    padding-top: 12px !important;
+  }
+}
