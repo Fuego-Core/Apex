@@ -18,7 +18,7 @@ export function num(value) {
 function icon(name) {
   const paths = {
     home: 'M4 11 12 4l8 7v9h-5v-6H9v6H4z',
-    tracking: 'M5 19V9m7 10V5m7 14v-7',
+    tracking: 'M4 18l5-6 4 3 7-9',
     program: 'M5 7h4l2-3h2l2 3h4v12H5z M9 13h6',
     nutrition: 'M6 4h12v4H6z M8 8v12m8-12v12M6 20h12',
     progress: 'M4 18l5-6 4 3 7-9',
@@ -35,7 +35,7 @@ function nav(active) {
     ['home', 'home', 'Accueil'],
     ['program', 'program', 'Entraînement'],
     ['nutrition', 'nutrition', 'Nutrition'],
-    ['tracking', 'tracking', 'Suivi']
+    ['tracking', 'tracking', 'Progrès']
   ]
 
   return `<nav class="bottom-nav" aria-label="Navigation principale">${items.map(([route, glyph, label]) => `
@@ -67,8 +67,7 @@ export function shell(html, active) {
 export function top(title, subtitle = '') {
   return `<header class="page-head">
     <div class="app-brandbar">
-      <div class="app-wordmark">APEX<em>.</em></div>
-      <div class="app-brandtag">Coaching personnel</div>
+      <div class="app-wordmark" aria-label="APEX">APEX<span>.</span></div>
     </div>
     <div class="page-title">
       <h1>${title}</h1>
