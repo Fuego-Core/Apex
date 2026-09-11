@@ -6,9 +6,9 @@ export function nutritionPage() {
   const day = nutritionDay(TODAY())
   const nutritionStatus = day.scanned.count
     ? day.source === 'manual'
-      ? 'Correction manuelle enregistrée après le dernier aliment. Un nouvel aliment ajouté recalculera automatiquement la journée.'
-      : `Calculé automatiquement à partir de ${day.scanned.count} aliment${day.scanned.count > 1 ? 's' : ''}. Tu peux corriger ces totaux puis enregistrer.`
-    : ''
+      ? 'Correction manuelle active. Les aliments restent dans le journal et tu peux revenir au calcul automatique à tout moment.'
+      : `Calculé automatiquement à partir de ${day.scanned.count} aliment${day.scanned.count > 1 ? 's' : ''}. Tu peux corriger ces totaux si une étiquette ou une portion est atypique.`
+    : 'Aucun aliment journalisé : tu peux saisir les totaux manuellement ou utiliser le scanner.'
 
   shell(`
     ${top('Nutrition', 'Plan alimentaire adapté au travail de nuit')}
@@ -39,14 +39,15 @@ export function nutritionPage() {
 
     ${section('Bilan du jour')}
     <article class="plain-card food-log">
-      ${nutritionStatus ? `<p class="nutrition-note">${nutritionStatus}</p>` : ''}
+      <p class="nutrition-note">${nutritionStatus}</p>
       <div class="form-grid">
         <label>Calories<input id="kcal" inputmode="numeric" value="${esc(day.kcal)}" placeholder="2300"></label>
         <label>Protéines<input id="protein" inputmode="numeric" value="${esc(day.protein)}" placeholder="155"></label>
         <label>Lipides<input id="fat" inputmode="numeric" value="${esc(day.fat)}" placeholder="70"></label>
         <label>Glucides<input id="carbs" inputmode="numeric" value="${esc(day.carbs)}" placeholder="250"></label>
       </div>
-      <button class="btn btn-primary btn-block" id="saveNut">Enregistrer</button>
+      <button class="btn btn-primary btn-block" id="saveNut">Enregistrer une correction</button>
+      ${day.source === 'manual' && day.scanned.count ? '<button class="btn btn-secondary btn-block" id="resetNut">Revenir au calcul automatique</button>' : ''}
     </article>
   `, 'nutrition')
 
@@ -58,6 +59,13 @@ export function nutritionPage() {
       carbs: document.querySelector('#carbs').value,
       updatedAt: new Date().toISOString()
     }
+    save()
+    nutritionPage()
+  }
+
+  const reset = document.querySelector('#resetNut')
+  if (reset) reset.onclick = () => {
+    delete state.nutritionDays[TODAY()]
     save()
     nutritionPage()
   }
