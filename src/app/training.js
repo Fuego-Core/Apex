@@ -203,7 +203,7 @@ export function workoutView(id) {
       <label class="textarea-label"><span>Note de séance</span><textarea id="notes" rows="3">${esc(currentWorkout.notes || '')}</textarea></label>
     </article>
 
-    <button class="btn btn-primary btn-block" id="finish">Terminer la séance</button>
+    <button class="btn btn-primary btn-block" id="finish">${currentWorkout.completed ? 'Mettre à jour la séance' : 'Terminer la séance'}</button>
     <div class="timer-overlay hidden" id="rest-overlay">
       <div><span>Repos</span><strong id="tv">00:00</strong><div><button id="minus">−15 s</button><button id="close">Fermer</button><button id="plus">+15 s</button></div></div>
     </div>
@@ -242,18 +242,35 @@ export function workoutView(id) {
     save()
   }
   document.querySelector('#finish').onclick = () => {
-    currentWorkout.completed = true
-    currentWorkout.completedAt = new Date().toISOString()
-    state.history.push({
-      id: `${id}-${Date.now()}`,
+    const now = new Date().toISOString()
+    const historyEntry = {
       sessionId: id,
       name: session.name,
       date: TODAY(),
       week: state.currentWeek,
       exercises: clone(currentWorkout.exercises),
       cardio: currentWorkout.cardio,
-      notes: currentWorkout.notes
-    })
+      notes: currentWorkout.notes,
+      updatedAt: now
+    }
+    let historyIndex = currentWorkout.historyId
+      ? state.history.findIndex((entry) => entry.id === currentWorkout.historyId)
+      : -1
+    if (historyIndex < 0 && currentWorkout.completed) {
+      historyIndex = state.history.findIndex((entry) => entry.sessionId === id && Number(entry.week) === Number(state.currentWeek))
+    }
+
+    if (historyIndex >= 0) {
+      state.history[historyIndex] = { ...state.history[historyIndex], ...historyEntry }
+      currentWorkout.historyId = state.history[historyIndex].id
+    } else {
+      const historyId = `${id}-${Date.now()}`
+      state.history.push({ id: historyId, ...historyEntry })
+      currentWorkout.historyId = historyId
+    }
+
+    currentWorkout.completed = true
+    currentWorkout.completedAt ||= now
     save()
     go('checkin')
   }
