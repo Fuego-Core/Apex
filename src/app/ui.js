@@ -28,7 +28,9 @@ function icon(name) {
 }
 
 function nav(active) {
-  const activeGroup = ['progress', 'checkin', 'tracking'].includes(active) ? 'tracking' : active
+  const activeGroup = active === 'workout'
+    ? 'program'
+    : ['progress', 'checkin', 'tracking'].includes(active) ? 'tracking' : active
   const items = [
     ['home', 'home', 'Accueil'],
     ['program', 'program', 'Entraînement'],
@@ -49,6 +51,7 @@ function announceRender(route) {
 }
 
 export function shell(html, active) {
+  document.body.dataset.route = active
   document.querySelector('#app').innerHTML = `
     <div class="app-shell">
       <main class="content">${html}</main>
