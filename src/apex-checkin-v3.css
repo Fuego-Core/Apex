@@ -1,0 +1,39 @@
+/* APEX V3 check-in */
+.v3-checkin-hero{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:center;padding:21px;border:1px solid var(--v3-line);border-radius:20px;background:#fff;box-shadow:var(--v3-shadow)}
+.v3-checkin-hero>div>span{display:block;color:var(--v3-orange);font-size:8px;font-weight:900;letter-spacing:.13em}
+.v3-checkin-hero h2{margin:7px 0 5px;color:var(--v3-ink);font-family:"Space Grotesk",Inter,sans-serif;font-size:25px;letter-spacing:-.04em}
+.v3-checkin-hero p{margin:0;color:var(--v3-muted);font-size:9px;line-height:1.5}
+.v3-checkin-hero>b{display:grid;place-items:center;min-width:54px;height:54px;border-radius:15px;background:#fff0e5;color:var(--v3-orange);font-size:12px}
+.v3-checkin-hero.done>b{background:#e6f4ec;color:var(--v3-green)}
+.v3-checkin-form{display:grid;gap:11px;margin-top:12px}
+.v3-sleep-card,.v3-pain-card,.v3-check-slider{border:1px solid var(--v3-line);border-radius:15px;background:#fff}
+.v3-sleep-card{display:grid;grid-template-columns:minmax(0,1fr) 118px;gap:18px;align-items:center;padding:17px}
+.v3-sleep-card>div>span,.v3-pain-card span{display:block;color:var(--v3-orange);font-size:8px;font-weight:900;letter-spacing:.12em}
+.v3-sleep-card strong,.v3-pain-card strong{display:block;margin:5px 0 3px;color:var(--v3-ink);font-size:15px}
+.v3-sleep-card small{display:block;color:var(--v3-muted);font-size:8px}
+.v3-sleep-card label{display:flex;align-items:center;border:1px solid var(--v3-line);border-radius:11px;background:#faf5ed;padding:0 12px}
+.v3-sleep-card input{width:100%;height:48px;border:0!important;background:transparent!important;padding:0!important;font-family:"Space Grotesk",Inter,sans-serif;font-size:21px;font-weight:700;text-align:center}
+.v3-sleep-card label>span{color:var(--v3-muted);font-size:10px;font-weight:800}
+.v3-checkin-sliders{display:grid;gap:8px}
+.v3-check-slider{display:block;padding:15px 16px}
+.v3-check-slider>div:first-child{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:center}
+.v3-check-slider>div:first-child>span{grid-column:1;color:var(--v3-ink);font-size:13px;font-weight:800}
+.v3-check-slider>div:first-child>small{grid-column:1;color:var(--v3-muted);font-size:8px}
+.v3-check-slider output{grid-column:2;grid-row:1/span 2;display:grid;place-items:center;min-width:38px;height:38px;border-radius:10px;background:#fff0e5;color:var(--v3-orange);font-family:"Space Grotesk",Inter,sans-serif;font-size:16px;font-weight:700}
+.v3-check-slider input[type="range"]{width:100%;height:24px;margin:9px 0 0;appearance:none;-webkit-appearance:none;background:transparent!important;border:0!important;box-shadow:none!important}
+.v3-check-slider input[type="range"]::-webkit-slider-runnable-track{height:6px;border-radius:99px;background:linear-gradient(90deg,#efe6d8,#ffd0b1)}
+.v3-check-slider input[type="range"].reverse::-webkit-slider-runnable-track{background:linear-gradient(90deg,#dff1e7,#f4c3b8)}
+.v3-check-slider input[type="range"]::-webkit-slider-thumb{appearance:none;-webkit-appearance:none;width:22px;height:22px;margin-top:-8px;border:3px solid #fff;border-radius:50%;background:var(--v3-orange);box-shadow:0 1px 5px rgba(59,41,22,.18)}
+.v3-check-scale{display:flex!important;justify-content:space-between;color:#aaa196;font-size:7px}
+.v3-pain-card{padding:16px}
+.v3-pain-card textarea{width:100%;margin-top:11px;resize:vertical}
+.v3-checkin-nutrition{margin-top:0}
+.v3-checkin-save{min-height:56px;border:0;border-radius:11px;background:var(--v3-purple);color:#fff;font-size:12px;font-weight:900}
+.v3-report-card{padding:18px;border-radius:17px;background:#2a2729;color:#fff}
+.v3-report-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;border-radius:12px;overflow:hidden;background:#494246}
+.v3-report-grid>div{padding:13px 9px;background:#312d30}
+.v3-report-grid span{display:block;color:#bfb7b1;font-size:7px;letter-spacing:.08em}
+.v3-report-grid strong{display:block;margin-top:5px;font-family:"Space Grotesk",Inter,sans-serif;font-size:15px}
+.v3-report-card>p{margin:14px 0;color:#d1cbc5;font-size:9px;line-height:1.5}
+.v3-report-card>button{width:100%;min-height:48px;border:0;border-radius:10px;background:#fff;color:#2a2729;font-size:10px;font-weight:900}
+@media(max-width:520px){.v3-sleep-card{grid-template-columns:1fr 105px}.v3-report-grid{grid-template-columns:repeat(2,1fr)}}
