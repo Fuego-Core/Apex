@@ -5,23 +5,15 @@ import './nutrition-scanner.js'
 import './apex-v2.css'
 import './coach-ui.css'
 import './apex-club.css'
-import './photo-progress.css'
 import './apex-fit.css'
 import './apex-fit-route.css'
 import './apex-pwa-fix.css'
 import './apex-product-v3.css'
 import './apex-product-pages.css'
-import './apex-checkin-v3.css'
-import './apex-body-v3.css'
 import './apex-nutrition-polish.css'
 
-import { checkinPage } from './app/checkin-view.js'
 import { homePage } from './app/home-view.js'
 import { nutritionPage } from './app/nutrition-view.js'
-import { bodyPage } from './app/body-view.js'
-import { trackingPage } from './app/tracking-view.js'
-import { programPage } from './app/program-view.js'
-import { workoutView } from './app/training.js'
 
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
 
@@ -34,20 +26,8 @@ function resetRouteScroll() {
 
 function render({ resetScroll = false } = {}) {
   const route = (location.hash || '#home').slice(1)
-  if (route.startsWith('workout/')) {
-    workoutView(route.split('/')[1])
-  } else {
-    const routes = {
-      home: homePage,
-      tracking: trackingPage,
-      program: programPage,
-      nutrition: nutritionPage,
-      progress: bodyPage,
-      checkin: checkinPage
-    }
-    ;(routes[route] || homePage)()
-  }
-
+  const routes = { home: homePage, nutrition: nutritionPage }
+  ;(routes[route] || homePage)()
   if (resetScroll) resetRouteScroll()
 }
 
