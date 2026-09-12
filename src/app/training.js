@@ -158,7 +158,8 @@ function weekStrip() {
 
 function exerciseThumb(exercise, exerciseIndex) {
   const guide = exerciseGuide(exercise.name)
-  if (guide?.src) return `<img class="exercise-thumb" src="${esc(guide.src)}" alt="" loading="lazy">`
+  const src = guide?.image || guide?.thumbnail || guide?.src
+  if (src) return `<img class="exercise-thumb" src="${esc(src)}" alt="${esc(exercise.name)} — Basic-Fit" loading="lazy">`
   return `<span class="exercise-thumb exercise-thumb--empty">${String(exerciseIndex + 1).padStart(2, '0')}</span>`
 }
 
