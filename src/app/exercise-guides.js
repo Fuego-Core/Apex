@@ -1,4 +1,4 @@
-import '../basicfit-media.css'
+import '../smartworkout-media.css'
 import { exerciseMedia } from './exercise-media.js'
 
 // Technique copy stays local to APEX. SmartWorkout is the only external
@@ -40,16 +40,16 @@ export function exerciseGuide(name=''){
   const guide=guides.find(g=>g.match.some(key=>normalized.includes(key)))||null
   if(!guide)return null
   const demo=exerciseMedia(name)
-  return demo?{...guide,url:demo.page,source:'SmartWorkout',src:null}:guide
+  return demo?{...guide,url:demo.page,source:'SmartWorkout'}:guide
 }
 
 function media(guide){
   if(!guide.url)return ''
-  return `<a class="bf-reference" href="${esc(guide.url)}" target="_blank" rel="noopener"><div><span class="bf-source">DÉMO SMARTWORKOUT</span><strong>${esc(guide.label)}</strong><small>Toucher pour voir la démonstration et le guide complet</small></div><b>↗</b></a>`
+  return `<a class="sw-demo" href="${esc(guide.url)}" target="_blank" rel="noopener"><div class="sw-demo-visual" aria-hidden="true"><span class="sw-play">▶</span></div><div class="sw-demo-copy"><span class="sw-source">DÉMO SMARTWORKOUT</span><strong>${esc(guide.label)}</strong><small>Voir la démonstration vidéo et le guide complet</small></div><b>↗</b></a>`
 }
 
 export function renderExerciseGuide(name=''){
   const guide=exerciseGuide(name)
   if(!guide)return ''
-  return `<section class="bf-machine"><div class="bf-section-label">COMMENT FAIRE</div>${media(guide)}<div class="bf-guide"><div class="bf-title"><strong>${esc(guide.label)}</strong><small>${esc(guide.muscles)}</small></div><div class="bf-steps"><div><b>1</b><p><strong>Réglage</strong><span>${esc(guide.setup)}</span></p></div><div><b>2</b><p><strong>Mouvement</strong><span>${esc(guide.move)}</span></p></div><div class="bf-warning"><b>!</b><p><strong>À éviter</strong><span>${esc(guide.avoid)}</span></p></div></div></div></section>`
+  return `<section class="sw-machine"><div class="sw-section-label">COMMENT FAIRE</div>${media(guide)}<div class="sw-guide"><div class="sw-title"><strong>${esc(guide.label)}</strong><small>${esc(guide.muscles)}</small></div><div class="sw-steps"><div><b>1</b><p><strong>Réglage</strong><span>${esc(guide.setup)}</span></p></div><div><b>2</b><p><strong>Mouvement</strong><span>${esc(guide.move)}</span></p></div><div class="sw-warning"><b>!</b><p><strong>À éviter</strong><span>${esc(guide.avoid)}</span></p></div></div></div></section>`
 }
