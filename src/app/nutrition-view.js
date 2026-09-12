@@ -1,6 +1,6 @@
 import { mealPlan, nutritionTargets } from './config.js'
 import { TODAY, nutritionDay, save, state } from './store.js'
-import { esc, shell, top } from './ui.js'
+import { esc, shell } from './ui.js'
 import { renderStockRecipes } from './pantry-recipes.js'
 import { renderQuickFoods } from './nutrition-quick.js'
 
@@ -14,6 +14,11 @@ function pct(current, target) {
   return Math.max(0, Math.min(100, Math.round(value(current) / target * 100)))
 }
 
+function dateLabel() {
+  const label = new Intl.DateTimeFormat('fr-BE', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())
+  return label.charAt(0).toUpperCase() + label.slice(1)
+}
+
 export function nutritionPage() {
   const day = nutritionDay(TODAY())
   const kcal = value(day.kcal)
@@ -24,89 +29,90 @@ export function nutritionPage() {
   const remainingProtein = Math.max(0, Math.round(nutritionTargets.protein - protein))
   const nutritionStatus = day.scanned.count
     ? day.source === 'manual'
-      ? 'Correction manuelle active. Tu peux revenir au calcul automatique à tout moment.'
-      : `${day.scanned.count} aliment${day.scanned.count > 1 ? 's' : ''} calculé${day.scanned.count > 1 ? 's' : ''} automatiquement aujourd’hui.`
+      ? 'Correction manuelle active.'
+      : `${day.scanned.count} aliment${day.scanned.count > 1 ? 's' : ''} ajouté${day.scanned.count > 1 ? 's' : ''} aujourd’hui.`
     : 'Aucun aliment ajouté aujourd’hui.'
 
-  const macroRows = [
-    ['Protéines', protein, nutritionTargets.protein, 'g'],
-    ['Glucides', carbs, nutritionTargets.carbs, 'g'],
-    ['Lipides', fat, nutritionTargets.fat, 'g']
+  const macros = [
+    ['Protéines', protein, nutritionTargets.protein, 'protein'],
+    ['Glucides', carbs, nutritionTargets.carbs, 'carbs'],
+    ['Lipides', fat, nutritionTargets.fat, 'fat']
   ]
 
   shell(`
-    ${top('Nutrition', 'Ta journée, tes repas et ton stock')}
+    <header class="nx-head nx-head--nutrition">
+      <div class="nx-brand">APEX<span>.</span><small>NUTRITION</small></div>
+      <div class="nx-date">${esc(dateLabel())}</div>
+      <h1>Alimentation</h1>
+      <p>Ajoute ce que tu manges. APEX calcule le reste.</p>
+    </header>
 
-    <section class="v3-nutrition-hero">
-      <div class="v3-nutrition-main">
+    <section class="nx-day-summary">
+      <div>
         <span>AUJOURD’HUI</span>
-        <strong>${Math.round(kcal)}</strong>
-        <p>sur ${nutritionTargets.kcal} kcal</p>
+        <strong>${Math.round(kcal)} <small>/ ${nutritionTargets.kcal} kcal</small></strong>
+        <div class="nx-day-track"><i style="width:${pct(kcal, nutritionTargets.kcal)}%"></i></div>
       </div>
-      <div class="v3-nutrition-remaining">
-        <span>IL TE RESTE</span>
-        <strong>${remainingKcal} kcal</strong>
-        <small>${remainingProtein} g de protéines</small>
-      </div>
-      <div class="v3-calorie-track"><i style="width:${pct(kcal, nutritionTargets.kcal)}%"></i></div>
+      <aside><span>IL TE RESTE</span><strong>${remainingKcal}</strong><small>kcal · ${remainingProtein} g prot.</small></aside>
     </section>
 
-    <section class="v3-macros">
-      ${macroRows.map(([label, current, target, unit]) => `<article>
-        <div><span>${label}</span><strong>${Math.round(current)} <small>/ ${target} ${unit}</small></strong></div>
-        <div class="v3-macro-track"><i style="width:${pct(current, target)}%"></i></div>
+    <section class="nx-macros nx-macros--nutrition">
+      ${macros.map(([label,current,target,tone]) => `<article class="nx-macro nx-macro--${tone}">
+        <div class="nx-macro-top"><span>${label}</span><b>${Math.round(current)} <small>/ ${target} g</small></b></div>
+        <div class="nx-track"><i style="width:${pct(current,target)}%"></i></div>
+        <small>${Math.max(0, Math.round(target-current))} g restantes</small>
       </article>`).join('')}
     </section>
 
-    <section class="v3-nutrition-actions">
-      <button data-jump="nutrition-tools-slot"><span>AJOUTER</span><strong>Scanner un produit</strong><small>Caméra · code-barres · manuel</small><b>›</b></button>
-      <button data-jump="quick-foods-slot"><span>RAPIDE</span><strong>Récents & favoris</strong><small>Reprendre un aliment connu</small><b>›</b></button>
-      <button data-jump="stock-recipes-slot"><span>CUISINER</span><strong>Avec mon stock</strong><small>Idées selon ce que tu as</small><b>›</b></button>
-      <button data-jump="meal-plan"><span>REPÈRES</span><strong>Plan de la journée</strong><small>Adapté à ton travail de nuit</small><b>›</b></button>
+    <section class="nx-action-grid">
+      <button data-jump="nutrition-tools-slot" class="nx-action nx-action--primary"><span>＋</span><div><small>AJOUTER</small><strong>Un aliment</strong><p>Scanner ou saisir</p></div><b>›</b></button>
+      <button data-jump="quick-foods-slot" class="nx-action"><span>♡</span><div><small>RAPIDE</small><strong>Récents & favoris</strong><p>En un geste</p></div><b>›</b></button>
+      <button data-jump="stock-recipes-slot" class="nx-action"><span>□</span><div><small>STOCK</small><strong>Idées de repas</strong><p>Avec ce que tu as</p></div><b>›</b></button>
+      <button data-jump="meal-plan" class="nx-action"><span>☰</span><div><small>REPÈRES</small><strong>Plan du jour</strong><p>Selon ton rythme</p></div><b>›</b></button>
     </section>
 
-    <section class="v3-section-block">
-      <div class="v3-section-title"><div><span>AJOUTER À MA JOURNÉE</span><h2>Scanner & stock</h2></div><small>Les macros se mettent à jour automatiquement</small></div>
+    <section class="nx-workspace" id="nutrition-tools-slot-wrap">
+      <div class="nx-workspace-head"><span>AJOUTER</span><h2>Scanner ou saisir</h2><p>Le plus rapide pour mettre ta journée à jour.</p></div>
       <div id="nutrition-tools-slot"></div>
     </section>
 
-    <section class="v3-section-block">
-      <div class="v3-section-title"><div><span>EN UN GESTE</span><h2>Récents & favoris</h2></div><small>Ta routine, sans ressaisie</small></div>
+    <section class="nx-workspace">
+      <div class="nx-workspace-head"><span>EN UN GESTE</span><h2>Récents & favoris</h2><p>Réutilise les aliments que tu consommes souvent.</p></div>
       <div id="quick-foods-slot"></div>
     </section>
 
-    <section class="v3-section-block">
-      <div class="v3-section-title"><div><span>TON GARDE-MANGER</span><h2>Cuisiner avec mon stock</h2></div><small>Quantités et macros réelles</small></div>
+    <section class="nx-workspace">
+      <div class="nx-workspace-head"><span>TON STOCK</span><h2>Que manger ?</h2><p>Des idées basées sur les aliments disponibles chez toi.</p></div>
       <div id="stock-recipes-slot"></div>
     </section>
 
-    <section class="v3-section-block" id="meal-plan">
-      <div class="v3-section-title"><div><span>RYTHME DE NUIT</span><h2>Plan de la journée</h2></div><small>Des bases, jamais une obligation</small></div>
-      <div class="v3-meal-timeline">
-        ${mealPlan.map((meal, mealIndex) => `<article class="v3-meal ${mealIndex === 0 ? 'open' : ''}">
-          <button class="v3-meal-head" data-meal-toggle="${mealIndex}" type="button">
-            <time>${meal.time}</time>
+    <section class="nx-workspace" id="meal-plan">
+      <div class="nx-workspace-head"><span>TA JOURNÉE</span><h2>Repères de repas</h2><p>Une structure pratique, pas une obligation.</p></div>
+      <div class="nx-plan-list">
+        ${mealPlan.map((meal, mealIndex) => `<article class="nx-plan ${mealIndex === 0 ? 'open' : ''}">
+          <button data-meal-toggle="${mealIndex}" type="button">
+            <time>${esc(meal.time)}</time>
             <span><strong>${esc(meal.title.replace(/^Repas \d+ · /, ''))}</strong><small>${esc(meal.target)}</small></span>
             <b>${mealIndex === 0 ? '−' : '+'}</b>
           </button>
-          <div class="v3-meal-body"><div>
+          <div class="nx-plan-body"><div>
             ${meal.options.map((option, index) => `<article><span>OPTION ${index + 1}</span><strong>${esc(option.name)}</strong>${option.items.map((item) => `<p>${esc(item)}</p>`).join('')}</article>`).join('')}
           </div></div>
         </article>`).join('')}
       </div>
     </section>
 
-    <details class="v3-advanced-tools">
-      <summary><span>OUTILS AVANCÉS</span><strong>Correction manuelle</strong><b>›</b></summary>
-      <div class="v3-advanced-body">
-        <p>${esc(nutritionStatus)} Open Food Facts est communautaire : vérifie l’étiquette si une valeur paraît anormale.</p>
+    <details class="nx-settings">
+      <summary><span>Réglage avancé</span><strong>Corriger les totaux manuellement</strong><b>›</b></summary>
+      <div class="nx-settings-body">
+        <p>${esc(nutritionStatus)} Utilise cette correction seulement si les données d’un produit sont incorrectes.</p>
         <div class="form-grid">
           <label>Calories<input id="kcal" inputmode="numeric" value="${esc(day.kcal)}" placeholder="2300"></label>
           <label>Protéines<input id="protein" inputmode="numeric" value="${esc(day.protein)}" placeholder="155"></label>
           <label>Lipides<input id="fat" inputmode="numeric" value="${esc(day.fat)}" placeholder="70"></label>
           <label>Glucides<input id="carbs" inputmode="numeric" value="${esc(day.carbs)}" placeholder="250"></label>
         </div>
-        <button class="btn btn-primary btn-block" id="saveNut">Enregistrer la correction</button>
+        <button class="btn btn-primary btn-block" id="saveNut">Enregistrer</button>
         ${day.source === 'manual' && day.scanned.count ? '<button class="btn btn-secondary btn-block" id="resetNut">Revenir au calcul automatique</button>' : ''}
       </div>
     </details>
@@ -121,17 +127,17 @@ export function nutritionPage() {
 
   document.querySelectorAll('[data-meal-toggle]').forEach((header) => {
     header.onclick = () => {
-      const card = header.closest('.v3-meal')
+      const card = header.closest('.nx-plan')
       if (!card) return
       const wasOpen = card.classList.contains('open')
-      document.querySelectorAll('.v3-meal.open').forEach((openCard) => {
+      document.querySelectorAll('.nx-plan.open').forEach((openCard) => {
         openCard.classList.remove('open')
-        const toggle = openCard.querySelector('.v3-meal-head b')
+        const toggle = openCard.querySelector('button b')
         if (toggle) toggle.textContent = '+'
       })
       if (!wasOpen) {
         card.classList.add('open')
-        const toggle = card.querySelector('.v3-meal-head b')
+        const toggle = card.querySelector('button b')
         if (toggle) toggle.textContent = '−'
       }
     }
