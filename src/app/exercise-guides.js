@@ -38,7 +38,7 @@ export function exerciseGuide(name=''){
   const guide=guides.find(g=>g.match.some(key=>normalized.includes(key)))||null
   if(!guide)return null
   const media=exerciseMedia(name)
-  return media?{...guide,...media}:guide
+  return media?{...guide,...media,src:media.thumbnail||media.image||null}:guide
 }
 
 function mediaBlock(guide){
