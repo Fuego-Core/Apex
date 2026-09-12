@@ -1,8 +1,6 @@
 import '../smartworkout-media.css'
 import { exerciseMedia } from './exercise-media.js'
 
-// Technique copy stays local to APEX. SmartWorkout is the only external
-// exercise demonstration/reference source.
 const guides = [
   { match:['chest press machine'],label:'Chest Press',muscles:'Pectoraux · épaules · triceps',setup:'Poignées au milieu de la poitrine. Dos et tête contre le dossier.',move:'Pousse sans verrouiller les coudes, puis reviens lentement.',avoid:'Ne décolle pas le dos et ne hausse pas les épaules.'},
   { match:['presse à jambes'],label:'Leg Press',muscles:'Quadriceps · fessiers · ischios',setup:'Dos soutenu. Pieds stables à largeur confortable.',move:'Descends sous contrôle puis pousse en gardant genoux et pieds alignés.',avoid:'Ne verrouille pas les genoux et ne décolle pas le bassin.'},
@@ -39,17 +37,22 @@ export function exerciseGuide(name=''){
   const normalized=String(name).toLowerCase()
   const guide=guides.find(g=>g.match.some(key=>normalized.includes(key)))||null
   if(!guide)return null
-  const demo=exerciseMedia(name)
-  return demo?{...guide,url:demo.page,source:'SmartWorkout'}:guide
+  const media=exerciseMedia(name)
+  return media?{...guide,...media}:guide
 }
 
-function media(guide){
-  if(!guide.url)return ''
-  return `<a class="sw-demo" href="${esc(guide.url)}" target="_blank" rel="noopener"><div class="sw-demo-visual" aria-hidden="true"><span class="sw-play">▶</span></div><div class="sw-demo-copy"><span class="sw-source">DÉMO SMARTWORKOUT</span><strong>${esc(guide.label)}</strong><small>Voir la démonstration vidéo et le guide complet</small></div><b>↗</b></a>`
+function mediaBlock(guide){
+  if(guide.image){
+    return `<a class="sw-real-media" href="${esc(guide.page)}" target="_blank" rel="noopener"><img src="${esc(guide.image)}" alt="${esc(guide.label)} — démonstration ${esc(guide.source)}" loading="lazy"><span><b>${esc(guide.source)}</b><small>Démo officielle</small></span></a>`
+  }
+  if(guide.page){
+    return `<a class="sw-clean-link" href="${esc(guide.page)}" target="_blank" rel="noopener"><span><small>GUIDE EXTERNE</small><b>${esc(guide.source)}</b></span><strong>Voir la démonstration ↗</strong></a>`
+  }
+  return ''
 }
 
 export function renderExerciseGuide(name=''){
   const guide=exerciseGuide(name)
   if(!guide)return ''
-  return `<section class="sw-machine"><div class="sw-section-label">COMMENT FAIRE</div>${media(guide)}<div class="sw-guide"><div class="sw-title"><strong>${esc(guide.label)}</strong><small>${esc(guide.muscles)}</small></div><div class="sw-steps"><div><b>1</b><p><strong>Réglage</strong><span>${esc(guide.setup)}</span></p></div><div><b>2</b><p><strong>Mouvement</strong><span>${esc(guide.move)}</span></p></div><div class="sw-warning"><b>!</b><p><strong>À éviter</strong><span>${esc(guide.avoid)}</span></p></div></div></div></section>`
+  return `<section class="sw-machine"><div class="sw-head"><div><span>TECHNIQUE</span><strong>${esc(guide.label)}</strong><small>${esc(guide.muscles)}</small></div></div>${mediaBlock(guide)}<div class="sw-guide"><div class="sw-steps"><div><b>1</b><p><strong>Réglage</strong><span>${esc(guide.setup)}</span></p></div><div><b>2</b><p><strong>Mouvement</strong><span>${esc(guide.move)}</span></p></div><div class="sw-warning"><b>!</b><p><strong>À éviter</strong><span>${esc(guide.avoid)}</span></p></div></div></div></section>`
 }
