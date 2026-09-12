@@ -11,6 +11,7 @@ import './apex-pwa-fix.css'
 import './apex-product-v3.css'
 import './apex-product-pages.css'
 import './apex-nutrition-polish.css'
+import './apex-nutrition-v4.css'
 
 import { homePage } from './app/home-view.js'
 import { nutritionPage } from './app/nutrition-view.js'
