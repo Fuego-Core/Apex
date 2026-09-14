@@ -19,9 +19,11 @@ import './apex-nutrition-v5.css'
 import './apex-nutrition-final.css'
 import './apex-dark-pro.css'
 import './apex-simple-nutrition.css'
+import './apex-storage.css'
 
 import { homePage } from './app/home-view.js'
 import { nutritionPage } from './app/nutrition-view.js'
+import { storagePage } from './app/storage-view.js'
 
 if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
 
@@ -34,14 +36,16 @@ function resetRouteScroll() {
 
 function render({ resetScroll = false } = {}) {
   const route = (location.hash || '#home').slice(1)
-  const routes = { home: homePage, nutrition: nutritionPage }
+  const routes = { home: homePage, nutrition: nutritionPage, storage: storagePage }
   ;(routes[route] || homePage)()
   if (resetScroll) resetRouteScroll()
 }
 
 window.addEventListener('hashchange', () => render({ resetScroll: true }))
 window.addEventListener('apex:state-changed', (event) => {
-  if (event.detail?.scope === 'nutrition' && (location.hash || '#home') === '#nutrition') nutritionPage()
+  const route = (location.hash || '#home').slice(1)
+  if (event.detail?.scope === 'nutrition' && route === 'nutrition') nutritionPage()
+  if (event.detail?.scope === 'nutrition' && route === 'storage') storagePage()
 })
 
 render({ resetScroll: true })
