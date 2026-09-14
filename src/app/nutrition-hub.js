@@ -4,23 +4,24 @@ import { TODAY, save, state } from './store.js'
 const OFF_SEARCH = 'https://world.openfoodfacts.org/cgi/search.pl'
 
 const BASE_FOODS = [
-  ['Œuf entier',143,12.6,0.7,9.5],['Blanc de poulet',120,23,0,2.6],['Escalope de dinde',112,24,0,1.5],['Bœuf 5%',137,21,0,5],['Steak haché 10%',176,20,0,10],['Thon au naturel',116,26,0,1],['Saumon',208,20,0,13],['Cabillaud',82,18,0,0.7],
-  ['Riz basmati cuit',130,2.7,28,0.3],['Pâtes cuites',157,5.8,30.9,0.9],['Pommes de terre cuites',87,1.9,20,0.1],['Patate douce cuite',90,2,21,0.2],['Pain complet',247,9,41,3.5],['Tortilla blé',312,8,52,8],['Flocons d’avoine',370,13,59,7],
-  ['Skyr nature',63,10.8,4,0.2],['Fromage blanc 0%',46,8,4,0.2],['Yaourt grec 0%',59,10,3.6,0.4],['Lait demi-écrémé',46,3.4,4.8,1.5],['Whey protéine',390,78,8,6],
+  ['Œuf entier',143,12.6,0.7,9.5,{unit:'œuf',unitPlural:'œufs',servingGrams:50,defaultQty:2}],['Blanc de poulet',120,23,0,2.6],['Escalope de dinde',112,24,0,1.5],['Bœuf 5%',137,21,0,5],['Steak haché 10%',176,20,0,10],['Thon au naturel',116,26,0,1],['Saumon',208,20,0,13],['Cabillaud',82,18,0,0.7],
+  ['Riz basmati cuit',130,2.7,28,0.3],['Pâtes cuites',157,5.8,30.9,0.9],['Pommes de terre cuites',87,1.9,20,0.1],['Patate douce cuite',90,2,21,0.2],['Pain complet',247,9,41,3.5,{unit:'tranche',unitPlural:'tranches',servingGrams:35,defaultQty:2}],['Tortilla blé',312,8,52,8,{unit:'tortilla',unitPlural:'tortillas',servingGrams:60,defaultQty:1}],['Flocons d’avoine',370,13,59,7],
+  ['Skyr nature',63,10.8,4,0.2],['Fromage blanc 0%',46,8,4,0.2],['Yaourt grec 0%',59,10,3.6,0.4],['Lait demi-écrémé',46,3.4,4.8,1.5],['Whey protéine',390,78,8,6,{unit:'dose',unitPlural:'doses',servingGrams:30,defaultQty:1}],
   ['Banane',89,1.1,23,0.3],['Pomme',52,0.3,14,0.2],['Orange',47,0.9,12,0.1],['Fraises',32,0.7,7.7,0.3],['Avocat',160,2,8.5,14.7],
   ['Brocoli',34,2.8,7,0.4],['Haricots verts',31,1.8,7,0.2],['Carottes',41,0.9,10,0.2],['Tomates',18,0.9,3.9,0.2],['Courgettes',17,1.2,3.1,0.3],
-  ['Huile d’olive',884,0,0,100],['Beurre de cacahuète',588,25,20,50],['Amandes',579,21,22,50],['Noix',654,15,14,65],['Miel',304,0.3,82,0],
+  ['Huile d’olive',884,0,0,100,{unit:'cuillère à soupe',unitPlural:'cuillères à soupe',servingGrams:13.5,defaultQty:1}],['Beurre de cacahuète',588,25,20,50],['Amandes',579,21,22,50],['Noix',654,15,14,65],['Miel',304,0.3,82,0],
   ['Lentilles cuites',116,9,20,0.4],['Pois chiches cuits',164,8.9,27,2.6],['Haricots rouges cuits',127,8.7,23,0.5],['Tofu ferme',144,17,2.8,8.7]
-].map(([name,kcal,protein,carbs,fat],index)=>({id:`base-${index}`,name,kcal,protein,carbs,fat,source:'APEX Base'}))
+].map(([name,kcal,protein,carbs,fat,meta={}],index)=>({id:`base-${index}`,name,kcal,protein,carbs,fat,source:'APEX Base',...meta}))
 
 function esc(value=''){return String(value).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'})[c])}
 function num(value){const n=Number(String(value??'').replace(',','.'));return Number.isFinite(n)?n:0}
 function uid(prefix){return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,7)}`}
 function ensure(){state.recipes=Array.isArray(state.recipes)?state.recipes:[];state.customFoods=Array.isArray(state.customFoods)?state.customFoods:[];state.foodLog=state.foodLog&&typeof state.foodLog==='object'?state.foodLog:{};return state}
 function macroFor(food,amount){const f=Math.max(0,num(amount))/100;return {kcal:num(food.kcal)*f,protein:num(food.protein)*f,carbs:num(food.carbs)*f,fat:num(food.fat)*f}}
+function displayUnit(food,qty){return num(qty)===1?(food.unit||'unité'):(food.unitPlural||`${food.unit||'unité'}s`)}
 function addToToday(food,amount=100,extra={}){ensure();const macros=macroFor(food,amount);state.foodLog[TODAY()]=Array.isArray(state.foodLog[TODAY()])?state.foodLog[TODAY()]:[];state.foodLog[TODAY()].push({id:uid('food'),name:food.name,amount:num(amount),per100:{kcal:num(food.kcal),protein:num(food.protein),carbs:num(food.carbs),fat:num(food.fat)},...macros,source:food.source||'APEX',at:new Date().toISOString(),...extra});save({scope:'nutrition'});return macros}
 
-function card(food,index){return `<article class="fh-food"><div><span>${esc(food.brand||food.source||'APEX')}</span><strong>${esc(food.name)}</strong><small>${Math.round(num(food.kcal))} kcal · P ${num(food.protein).toFixed(1)} · G ${num(food.carbs).toFixed(1)} · L ${num(food.fat).toFixed(1)} /100g</small></div><button data-fh-add="${index}">Ajouter</button></article>`}
+function card(food,index){const unitInfo=food.servingGrams?` · ≈ ${Math.round(macroFor(food,food.servingGrams).kcal)} kcal / ${esc(food.unit)}`:'';return `<article class="fh-food"><div><span>${esc(food.brand||food.source||'APEX')}</span><strong>${esc(food.name)}</strong><small>${Math.round(num(food.kcal))} kcal · P ${num(food.protein).toFixed(1)} · G ${num(food.carbs).toFixed(1)} · L ${num(food.fat).toFixed(1)} /100g${unitInfo}</small></div><button data-fh-add="${index}">Ajouter</button></article>`}
 
 async function searchOnline(term){
   const url=`${OFF_SEARCH}?search_terms=${encodeURIComponent(term)}&search_simple=1&action=process&json=1&page_size=24&fields=code,product_name,product_name_fr,brands,nutriments`
@@ -29,8 +30,12 @@ async function searchOnline(term){
 }
 
 function openAdd(food){
-  document.querySelector('.fh-modal')?.remove();document.body.insertAdjacentHTML('beforeend',`<div class="fh-modal"><section><header><div><span>AJOUT RAPIDE</span><h2>${esc(food.name)}</h2></div><button data-fh-close>×</button></header><p>${esc(food.brand||food.source||'APEX')} · ${Math.round(num(food.kcal))} kcal / 100 g</p><label>Quantité consommée (g/ml)<input id="fhAmount" inputmode="decimal" value="100"></label><div class="fh-preview" id="fhPreview"></div><button class="fh-primary" id="fhConfirm">Ajouter à ma journée</button></section></div>`)
-  const amount=document.querySelector('#fhAmount'),preview=document.querySelector('#fhPreview');const update=()=>{const m=macroFor(food,amount.value);preview.innerHTML=`<strong>${Math.round(m.kcal)} kcal</strong><span>${m.protein.toFixed(1)} g prot. · ${m.carbs.toFixed(1)} g gluc. · ${m.fat.toFixed(1)} g lip.</span>`};amount.oninput=update;update();document.querySelector('[data-fh-close]').onclick=()=>document.querySelector('.fh-modal')?.remove();document.querySelector('#fhConfirm').onclick=()=>{addToToday(food,amount.value);document.querySelector('.fh-modal')?.remove()}
+  const byUnit=Number(food.servingGrams)>0
+  const defaultValue=byUnit?(food.defaultQty||1):100
+  const label=byUnit?`Combien de ${esc(food.unitPlural||food.unit)} ?`:'Quantité consommée (g/ml)'
+  const suffix=byUnit?`${esc(food.unit)} ≈ ${Math.round(food.servingGrams)} g`:'Valeurs calculées selon la quantité saisie.'
+  document.querySelector('.fh-modal')?.remove();document.body.insertAdjacentHTML('beforeend',`<div class="fh-modal"><section><header><div><span>AJOUT RAPIDE</span><h2>${esc(food.name)}</h2></div><button data-fh-close>×</button></header><p>${esc(food.brand||food.source||'APEX')} · ${Math.round(num(food.kcal))} kcal / 100 g</p><label>${label}<input id="fhAmount" inputmode="decimal" value="${defaultValue}" ${byUnit?'step="1" min="0"':'min="0"'}></label><small style="display:block;margin-top:7px;color:#9297a1">${suffix}</small><div class="fh-preview" id="fhPreview"></div><button class="fh-primary" id="fhConfirm">Ajouter à ma journée</button></section></div>`)
+  const amount=document.querySelector('#fhAmount'),preview=document.querySelector('#fhPreview');const calcGrams=()=>byUnit?Math.max(0,num(amount.value))*num(food.servingGrams):Math.max(0,num(amount.value));const update=()=>{const grams=calcGrams();const m=macroFor(food,grams);const qty=num(amount.value);preview.innerHTML=`<strong>${Math.round(m.kcal)} kcal</strong><span>${m.protein.toFixed(1)} g prot. · ${m.carbs.toFixed(1)} g gluc. · ${m.fat.toFixed(1)} g lip.${byUnit?` · ${qty} ${displayUnit(food,qty)}`:''}</span>`};amount.oninput=update;update();document.querySelector('[data-fh-close]').onclick=()=>document.querySelector('.fh-modal')?.remove();document.querySelector('#fhConfirm').onclick=()=>{const qty=num(amount.value);const grams=calcGrams();addToToday(food,grams,byUnit?{displayAmount:qty,displayUnit:displayUnit(food,qty),servingGrams:num(food.servingGrams)}:{});document.querySelector('.fh-modal')?.remove()}
 }
 
 function openRecipeBuilder(){
