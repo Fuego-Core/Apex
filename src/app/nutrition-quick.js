@@ -16,6 +16,12 @@ function uid(prefix = 'item') {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
+function ensureFoodLog() {
+  state.foodLog = state.foodLog && typeof state.foodLog === 'object' ? state.foodLog : {}
+  state.foodLog[TODAY()] = Array.isArray(state.foodLog[TODAY()]) ? state.foodLog[TODAY()] : []
+  return state.foodLog[TODAY()]
+}
+
 function recentFoods() {
   const all = Object.entries(state.foodLog || {}).flatMap(([date, rows]) =>
     (Array.isArray(rows) ? rows : []).map((row) => ({ ...row, date }))
@@ -68,12 +74,12 @@ function addRecent(row) {
     }
   })()
   const factor = amount / 100
-  state.foodLog[TODAY()] = Array.isArray(state.foodLog?.[TODAY()]) ? state.foodLog[TODAY()] : []
-  state.foodLog[TODAY()].push({
+  ensureFoodLog().push({
     id: uid('food'),
     pantryId: product?.id || row.pantryId,
     barcode: row.barcode,
     name: row.name,
+    mealName: row.mealName || 'Repas',
     amount,
     kcal: number(per100.kcal) * factor,
     protein: number(per100.protein) * factor,
@@ -88,21 +94,110 @@ function addRecent(row) {
   return { ok: true }
 }
 
+function manualComposerMarkup() {
+  return `
+    <section class="meal-composer">
+      <div class="meal-composer__head">
+        <div><span>AJOUT DIRECT</span><strong>Ajouter ce que je mange</strong></div>
+        <small>Le quota se met à jour immédiatement.</small>
+      </div>
+      <div class="meal-composer__meal">
+        <label>Repas
+          <select id="manualMealName">
+            <option>Petit-déjeuner</option>
+            <option selected>Déjeuner</option>
+            <option>Dîner</option>
+            <option>Collation</option>
+          </select>
+        </label>
+        <label>Aliment
+          <input id="manualFoodName" autocomplete="off" placeholder="Ex. œufs, riz, poulet…">
+        </label>
+      </div>
+      <div class="meal-composer__amount">
+        <label>Quantité mangée
+          <div><input id="manualFoodAmount" inputmode="decimal" placeholder="Ex. 150"><span>g / ml</span></div>
+        </label>
+      </div>
+      <div class="meal-composer__label"><span>Valeurs pour 100 g / ml</span><small>Recopie simplement l’étiquette</small></div>
+      <div class="meal-composer__macros">
+        <label>kcal<input id="manualFoodKcal" inputmode="decimal" placeholder="0"></label>
+        <label>Protéines<input id="manualFoodProtein" inputmode="decimal" placeholder="0"></label>
+        <label>Glucides<input id="manualFoodCarbs" inputmode="decimal" placeholder="0"></label>
+        <label>Lipides<input id="manualFoodFat" inputmode="decimal" placeholder="0"></label>
+      </div>
+      <div class="meal-composer__preview" id="manualFoodPreview">Entre une quantité et les valeurs nutritionnelles.</div>
+      <button class="meal-composer__save" id="manualFoodSave">Ajouter à ma journée</button>
+      <p class="meal-composer__status" id="manualFoodStatus" hidden></p>
+    </section>`
+}
+
+function bindManualComposer(target) {
+  const amount = target.querySelector('#manualFoodAmount')
+  const kcal = target.querySelector('#manualFoodKcal')
+  const protein = target.querySelector('#manualFoodProtein')
+  const carbs = target.querySelector('#manualFoodCarbs')
+  const fat = target.querySelector('#manualFoodFat')
+  const preview = target.querySelector('#manualFoodPreview')
+  const status = target.querySelector('#manualFoodStatus')
+
+  const updatePreview = () => {
+    const factor = Math.max(0, number(amount?.value)) / 100
+    if (!factor) {
+      preview.textContent = 'Entre une quantité et les valeurs nutritionnelles.'
+      return
+    }
+    preview.innerHTML = `<strong>${Math.round(number(kcal?.value) * factor)} kcal</strong><span>${(number(protein?.value) * factor).toFixed(1)} g prot.</span><span>${(number(carbs?.value) * factor).toFixed(1)} g gluc.</span><span>${(number(fat?.value) * factor).toFixed(1)} g lip.</span>`
+  }
+
+  ;[amount, kcal, protein, carbs, fat].forEach((field) => { if (field) field.oninput = updatePreview })
+
+  target.querySelector('#manualFoodSave').onclick = () => {
+    const name = target.querySelector('#manualFoodName').value.trim()
+    const mealName = target.querySelector('#manualMealName').value
+    const qty = Math.max(0, number(amount.value))
+    const per100 = {
+      kcal: Math.max(0, number(kcal.value)),
+      protein: Math.max(0, number(protein.value)),
+      carbs: Math.max(0, number(carbs.value)),
+      fat: Math.max(0, number(fat.value))
+    }
+
+    if (!name || qty <= 0) {
+      status.hidden = false
+      status.textContent = 'Indique au minimum le nom de l’aliment et la quantité mangée.'
+      return
+    }
+
+    const factor = qty / 100
+    ensureFoodLog().push({
+      id: uid('food'),
+      name,
+      mealName,
+      amount: qty,
+      kcal: per100.kcal * factor,
+      protein: per100.protein * factor,
+      carbs: per100.carbs * factor,
+      fat: per100.fat * factor,
+      per100,
+      stockTracked: false,
+      source: 'manual-meal',
+      at: new Date().toISOString()
+    })
+    save({ scope: 'nutrition' })
+  }
+}
+
 export function renderQuickFoods(target) {
   if (!target) return
   const recents = recentFoods()
-  if (!recents.length) {
-    target.innerHTML = ''
-    return
-  }
-
   const favoriteRows = favorites()
   const shown = [...favoriteRows, ...recents.filter((row) => !favoriteRows.some((fav) => foodKey(fav) === foodKey(row)))].slice(0, 6)
   const favoriteKeys = new Set(state.foodFavorites || [])
 
-  target.innerHTML = `
-    <section class="quick-foods">
-      <div class="quick-foods__head"><strong>Ajout rapide</strong><span>Récents & favoris</span></div>
+  target.innerHTML = `${manualComposerMarkup()}
+    ${shown.length ? `<section class="quick-foods">
+      <div class="quick-foods__head"><strong>Ajouter à nouveau</strong><span>Récents & favoris</span></div>
       <div class="quick-foods__list">
         ${shown.map((row, index) => {
           const key = foodKey(row)
@@ -117,12 +212,15 @@ export function renderQuickFoods(target) {
           </article>`
         }).join('')}
       </div>
-    </section>`
+    </section>` : ''}`
+
+  bindManualComposer(target)
 
   target.querySelectorAll('[data-fav]').forEach((button) => {
     button.onclick = () => {
       const row = shown[Number(button.dataset.fav)]
       const key = foodKey(row)
+      state.foodFavorites = Array.isArray(state.foodFavorites) ? state.foodFavorites : []
       state.foodFavorites = state.foodFavorites.includes(key)
         ? state.foodFavorites.filter((item) => item !== key)
         : [...state.foodFavorites, key]
