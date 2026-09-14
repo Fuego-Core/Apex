@@ -1,6 +1,6 @@
 export function esc(value = '') {
-  return String(value).replace(/[&<>'"]/g, (char) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  return String(value).replace(/[&<>'\"]/g, (char) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '\"': '&quot;'
   })[char])
 }
 
@@ -12,7 +12,8 @@ export function num(value) {
 function icon(name) {
   const paths = {
     home: 'M4 11 12 4l8 7v9h-5v-6H9v6H4z',
-    nutrition: 'M6 4h12v4H6z M8 8v12m8-12v12M6 20h12'
+    nutrition: 'M6 4h12v4H6z M8 8v12m8-12v12M6 20h12',
+    storage: 'M4 7h16v13H4z M7 4h10v3H7z M8 11h8 M8 15h5'
   }
   return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${paths[name] || paths.home}"/></svg>`
 }
@@ -20,7 +21,8 @@ function icon(name) {
 function nav(active) {
   const items = [
     ['home', 'home', 'Aujourd’hui'],
-    ['nutrition', 'nutrition', 'Alimentation']
+    ['nutrition', 'nutrition', 'Alimentation'],
+    ['storage', 'storage', 'Stockage']
   ]
   return `<nav class="bottom-nav" aria-label="Navigation principale">${items.map(([route, glyph, label]) => `
     <button data-nav="${route}" class="nav-item ${active === route ? 'active' : ''}" aria-label="${label}">
