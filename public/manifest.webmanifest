@@ -1,16 +1,16 @@
 {
-  "name": "APEX — Coaching personnel",
+  "name": "APEX — Nutrition",
   "short_name": "APEX",
-  "description": "Application personnelle de coaching : entraînement, nutrition, check-ins et progression.",
+  "description": "Application personnelle de suivi nutritionnel, aliments, recettes et objectifs quotidiens.",
   "lang": "fr",
   "dir": "ltr",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f4ecdd",
-  "theme_color": "#f4ecdd",
-  "categories": ["health", "fitness", "sports"],
+  "background_color": "#080d14",
+  "theme_color": "#080d14",
+  "categories": ["health", "fitness"],
   "icons": [
     {
       "src": "./icons/apex-touch-512.png",
